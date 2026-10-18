@@ -1,0 +1,4 @@
+OPENAI_API_KEY=replace-with-your-project-key
+TELEGRAM_BOT_TOKEN=replace-with-your-bot-token
+TELEGRAM_WEBHOOK_SECRET=replace-with-a-random-secret
+MINI_APP_URL=https://your-worker.your-subdomain.workers.dev

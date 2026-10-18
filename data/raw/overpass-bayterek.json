@@ -1,0 +1,6338 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-18T15:50:20Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 455447665,
+      "lat": 51.1345953,
+      "lon": 71.4596617,
+      "tags": {
+        "historic": "monument",
+        "name": "Бауыржан Момышұлы",
+        "name:ru": "Бауыржану Момышулы"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1198118007,
+      "lat": 51.1450863,
+      "lon": 71.4135603,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Mega"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1843876259,
+      "lat": 51.1279864,
+      "lon": 71.4372343,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Rafe"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2388707906,
+      "lat": 51.1294931,
+      "lon": 71.4182513,
+      "tags": {
+        "amenity": "community_centre",
+        "contact:email": "office@astana-expo.com",
+        "contact:fax": "+7(7172) 52-43-03",
+        "contact:phone": "+7(7172) 52-42-33",
+        "contact:website": "http://www.astana-expo.com",
+        "name": "Астана-Экспо КС",
+        "tourism": "gallery"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2641415781,
+      "lat": 51.1230123,
+      "lon": 71.4554152,
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2671060738,
+      "lat": 51.1283377,
+      "lon": 71.4180466,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Избушка",
+        "wheelchair": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2671060739,
+      "lat": 51.1284084,
+      "lon": 71.4174565,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Дастархан"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2691137163,
+      "lat": 51.1289248,
+      "lon": 71.4220016,
+      "tags": {
+        "amenity": "childcare",
+        "leisure": "playground",
+        "name": "Gymboree"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2691375023,
+      "lat": 51.12852,
+      "lon": 71.4252029,
+      "tags": {
+        "leisure": "playground",
+        "wheelchair": "limited"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2691377551,
+      "lat": 51.122191,
+      "lon": 71.4204919,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4108293490,
+      "lat": 51.126424,
+      "lon": 71.4375196,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "regional;steak",
+        "name": "Тайказан",
+        "opening_hours": "Mo-Su 08:00-5:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4133836390,
+      "lat": 51.1246666,
+      "lon": 71.4224207,
+      "tags": {
+        "amenity": "cafe"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4133836392,
+      "lat": 51.1235526,
+      "lon": 71.4219552,
+      "tags": {
+        "addr:housenumber": "10",
+        "addr:street": "Сығанақ көшесі",
+        "amenity": "cafe",
+        "name": "Дастаркан",
+        "opening_hours": "24/7"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4133854089,
+      "lat": 51.1297293,
+      "lon": 71.4259859,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Rafe"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4792472508,
+      "lat": 51.1360407,
+      "lon": 71.4219483,
+      "tags": {
+        "amenity": "cafe",
+        "name": "HamStar"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4853972122,
+      "lat": 51.1277607,
+      "lon": 71.4251746,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "lebanese",
+        "email": "intelfoodkz@gmail.com",
+        "internet_access": "wlan",
+        "name": "Фаттуш",
+        "name:en": "Fattoush",
+        "opening_hours": "Mo-Su 10:00-23:00",
+        "operator": "ИП INTELFOOD (ИНТЕЛФУД)",
+        "phone": "+77017330010"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4929123022,
+      "lat": 51.1414649,
+      "lon": 71.4486596,
+      "tags": {
+        "historic": "monument",
+        "name": "Памятник Шарлю Де Голлю"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4931062101,
+      "lat": 51.1452308,
+      "lon": 71.4506283,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Зеленая поляна"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4958412863,
+      "lat": 51.1318179,
+      "lon": 71.4077184,
+      "tags": {
+        "historic": "memorial",
+        "memorial": "statue",
+        "name": "Zur Sultan",
+        "name:en": "Zul Sultan"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4960517245,
+      "lat": 51.1263197,
+      "lon": 71.4576183,
+      "tags": {
+        "historic": "memorial"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4965763220,
+      "lat": 51.1432781,
+      "lon": 71.4457266,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Комильфо"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5126825313,
+      "lat": 51.1450693,
+      "lon": 71.4189112,
+      "tags": {
+        "amenity": "arts_centre",
+        "name": "Астаналық Цирк",
+        "name:en": "City Circus",
+        "name:ru": "Столичный Цирк"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5132817725,
+      "lat": 51.1250687,
+      "lon": 71.4326558,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "level": "1",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Fr 07:30-23:00; Sa-Su 08:00-23:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5333278825,
+      "lat": 51.145965,
+      "lon": 71.4243176,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "internet_access": "wlan",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Su 09:30-23:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5861170185,
+      "lat": 51.1433486,
+      "lon": 71.4458291,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Le Desert"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5866018450,
+      "lat": 51.1462371,
+      "lon": 71.418305,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Coffee Boom",
+        "outdoor_seating": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5883365485,
+      "lat": 51.1419656,
+      "lon": 71.4206292,
+      "tags": {
+        "addr:housenumber": "14А",
+        "addr:street": "Қарасақал Ерімбет көшесі",
+        "amenity": "cafe",
+        "name": "Белый дом"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5901727985,
+      "lat": 51.1497971,
+      "lon": 71.4267774,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Coffee likes",
+        "opening_hours": "Mo-Su 12:00-01:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5918078786,
+      "lat": 51.1341855,
+      "lon": 71.4621788,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Марипоса",
+        "opening_hours": "Mo-Su 10:00-23:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5918121386,
+      "lat": 51.1313366,
+      "lon": 71.4595375,
+      "tags": {
+        "amenity": "cafe",
+        "indoor_seating": "yes",
+        "name": "Избушка",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5918121388,
+      "lat": 51.1298506,
+      "lon": 71.4590741,
+      "tags": {
+        "historic": "memorial",
+        "memorial": "statue",
+        "name": "Рақымжан Қошқарбаев",
+        "name:en": "Rakhimzhan Koshkarbaev",
+        "name:ru": "Ракымжан Кошкарбаев"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5918174790,
+      "lat": 51.1273281,
+      "lon": 71.4628751,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Gloria Jean's Coffees"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5918208793,
+      "lat": 51.1423447,
+      "lon": 71.4487462,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Карра"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5920221628,
+      "lat": 51.1442658,
+      "lon": 71.4284317,
+      "tags": {
+        "addr:housenumber": "13",
+        "addr:street": "Нұртас Оңдасынов көшесі",
+        "amenity": "cafe",
+        "cuisine": "burger",
+        "internet_access": "wlan",
+        "name": "Pchelkin Good Food",
+        "opening_hours": "00:00-23:59",
+        "smoking": "outside"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5936638686,
+      "lat": 51.1354068,
+      "lon": 71.4305421,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Кафела",
+        "name:en": "Cafela",
+        "name:ru": "Кафела"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5936676246,
+      "lat": 51.1342545,
+      "lon": 71.436492,
+      "tags": {
+        "addr:street": "улица Сарайшык",
+        "amenity": "cafe",
+        "name": "Borough",
+        "opening_hours": "Mo-Su 12:30-23:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6404769888,
+      "lat": 51.128348,
+      "lon": 71.4348209,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Mado",
+        "brand:kk": "Мадо",
+        "brand:ru": "Мадо",
+        "brand:wikidata": "Q17116336",
+        "cuisine": "coffee_shop",
+        "name": "Mado",
+        "name:kk": "Мадо",
+        "name:ru": "Мадо",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6408271985,
+      "lat": 51.1293821,
+      "lon": 71.4285934,
+      "tags": {
+        "amenity": "cafe",
+        "contact:email": "info@crepecafe.kz",
+        "contact:facebook": "https://www.facebook.com/crepecafekz",
+        "contact:instagram": "https://www.instagram.com/crepecafe_kz",
+        "contact:phone": "+7 771 949 4949",
+        "contact:website": "https://crepecafe.kz",
+        "name": "CrepeCafe",
+        "opening_hours": "Mo-Fr 08:00-00:00; Sa-Su 09:00-00:00",
+        "operator": "AZAKI2019"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6494912582,
+      "lat": 51.1311886,
+      "lon": 71.4207674,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Coffee Like",
+        "brand:wikidata": "Q55662627",
+        "brand:wikipedia": "ru:Coffee Like",
+        "contact:email": "hotline@coffee-like.com",
+        "contact:phone": "+7 341 2908292;+7 800 3334130",
+        "contact:website": "https://coffee-like.com/",
+        "cuisine": "coffee_shop",
+        "name": "Coffee Like",
+        "opening_hours": "Mo-Fr 08:00-20:00",
+        "operator": "South Union",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6678039485,
+      "lat": 51.1159366,
+      "lon": 71.4310825,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "buschenschank;breakfast;cake",
+        "internet_access": "wlan",
+        "name": "Буфет",
+        "name:en": "Bufet",
+        "name:kk": "Буфетъ"
+      }
+    },
+    {
+      "type": "node",
+      "id": 7569228633,
+      "lat": 51.1302666,
+      "lon": 71.4215615,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "6",
+        "addr:street": "Қонаев көшесі",
+        "amenity": "cafe",
+        "brand": "Coffee Like",
+        "brand:wikidata": "Q55662627",
+        "brand:wikipedia": "ru:Coffee Like",
+        "cuisine": "coffee_shop",
+        "name": "Coffee Like",
+        "opening_hours": "Mo-Fr 08:00-18:00",
+        "phone": "+7 341 290-82-92;+7 800 333-41-30",
+        "takeaway": "yes",
+        "website": "https://coffee-like.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9047331868,
+      "lat": 51.130891,
+      "lon": 71.423656,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Fr 07:30-19:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9047331880,
+      "lat": 51.1280727,
+      "lon": 71.4254906,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Su 09:00-23:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9047331881,
+      "lat": 51.1452543,
+      "lon": 71.4139733,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Su 08:00-23:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10093885578,
+      "lat": 51.1325332,
+      "lon": 71.4510438,
+      "tags": {
+        "name": "Дракон",
+        "name:en": "Dragon",
+        "name:es": "Dragón",
+        "name:ru": "Дракон",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10168968309,
+      "lat": 51.1479426,
+      "lon": 71.4158765,
+      "tags": {
+        "leisure": "water_park",
+        "name": "Ailand"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10170946741,
+      "lat": 51.1218424,
+      "lon": 71.4280501,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Su 09:30-22:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10170946742,
+      "lat": 51.1215924,
+      "lon": 71.4281745,
+      "tags": {
+        "amenity": "cafe",
+        "level": "2",
+        "name": "Coffee BOOM"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10170946745,
+      "lat": 51.1215961,
+      "lon": 71.4279892,
+      "tags": {
+        "amenity": "cafe",
+        "level": "2",
+        "name": "Chaleur"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10559299807,
+      "lat": 51.1162897,
+      "lon": 71.4334497,
+      "tags": {
+        "amenity": "cafe",
+        "contact:email": "info@crepecafe.kz",
+        "contact:facebook": "https://www.facebook.com/crepecafekz",
+        "contact:instagram": "https://www.instagram.com/crepecafe_kz",
+        "contact:phone": "+7 771 949 4949",
+        "contact:website": "https://crepecafe.kz",
+        "name": "CrepeCafe",
+        "opening_hours": "Mo-Fr 08:00-00:00; Sa-Su 09:00-00:00",
+        "operator": "CrepeCafe (КрепКафе)"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10564988185,
+      "lat": 51.1285659,
+      "lon": 71.4333254,
+      "tags": {
+        "amenity": "cafe",
+        "contact:email": "marketing@degirmen.kz",
+        "contact:phone": "+7 708 377 7778",
+        "contact:website": "http://degirmen.kz/",
+        "name": "Degirmen",
+        "opening_hours": "Mo-Su 08:00-00:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11104886254,
+      "lat": 51.13394,
+      "lon": 71.437832,
+      "tags": {
+        "historic": "monument"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11109477264,
+      "lat": 51.1216043,
+      "lon": 71.3983127,
+      "tags": {
+        "amenity": "cafe",
+        "check_date": "2023-08-09",
+        "internet_access": "wlan",
+        "internet_access:fee": "customers",
+        "name": "Coffee inn",
+        "opening_hours": "Mo-Fr 09:00-22:00; Sa-Su 09:00-23:00",
+        "payment:mastercard": "yes",
+        "payment:visa": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11131442511,
+      "lat": 51.125631,
+      "lon": 71.4031114,
+      "tags": {
+        "amenity": "cafe",
+        "check_date": "2023-08-15",
+        "cuisine": "coffee_shop",
+        "name": "Espresso day",
+        "opening_hours": "Mo-Su 08:00-24:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11131442512,
+      "lat": 51.1266591,
+      "lon": 71.4014855,
+      "tags": {
+        "amenity": "cafe",
+        "check_date": "2023-08-15",
+        "name": "Q-cafe"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11206429884,
+      "lat": 51.1104543,
+      "lon": 71.4213542,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "13/3",
+        "addr:street": "улица Акмешит",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "internet_access": "wlan",
+        "internet_access:fee": "customers",
+        "name": "JumpinGoat",
+        "opening_hours": "Mo-Su 10:00-22:00",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11904395671,
+      "lat": 51.1218067,
+      "lon": 71.4320276,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11910202470,
+      "lat": 51.1284058,
+      "lon": 71.4250639,
+      "tags": {
+        "amenity": "cafe",
+        "name": "marrone rosso"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11927785970,
+      "lat": 51.1149252,
+      "lon": 71.4331914,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Zebra Coffee",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12041597369,
+      "lat": 51.1251254,
+      "lon": 71.4318134,
+      "tags": {
+        "amenity": "cafe",
+        "name": "MÖKKi"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12104374564,
+      "lat": 51.1258433,
+      "lon": 71.4659686,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Soul kitchen"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12135833544,
+      "lat": 51.1463178,
+      "lon": 71.4235987,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "name": "Master Coffee"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12514017369,
+      "lat": 51.1176683,
+      "lon": 71.4613135,
+      "tags": {
+        "air_conditioning": "yes",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Blackбери",
+        "name:kk": "Blackбери",
+        "name:ru": "Блэкбери",
+        "opening_hours": "Mo-Su,PH 06:50-23:00",
+        "outdoor_seating": "no",
+        "payment:credit_cards": "no",
+        "payment:debit_cards": "yes",
+        "smoking": "no",
+        "wheelchair": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12520559589,
+      "lat": 51.1279246,
+      "lon": 71.4254505,
+      "tags": {
+        "amenity": "cafe",
+        "contact:phone": "+7 707 180 7400",
+        "contact:website": "https://lepimivarim.ru",
+        "cuisine": "russian",
+        "name": "Лепим и варим",
+        "opening_hours": "Mo-Su 10:00-22:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12778095709,
+      "lat": 51.1157105,
+      "lon": 71.4284921,
+      "tags": {
+        "addr:housenumber": "8/2",
+        "addr:street": "улица Туркестан",
+        "amenity": "cafe"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12853525201,
+      "lat": 51.1119639,
+      "lon": 71.4439964,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12873415104,
+      "lat": 51.1251862,
+      "lon": 71.4029526,
+      "tags": {
+        "addr:housenumber": "41А",
+        "addr:street": "Turan Avenue",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop;sandwich",
+        "internet_access": "wlan",
+        "name": "BlackBerry",
+        "opening_hours": "6:50-23:00",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12893538292,
+      "lat": 51.116732,
+      "lon": 71.4057852,
+      "tags": {
+        "historic": "memorial",
+        "memorial": "bust",
+        "name": "Асқар Забикулин",
+        "name:ru": "Аскару Забикулину"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12917060979,
+      "lat": 51.1373687,
+      "lon": 71.402613,
+      "tags": {
+        "amenity": "cafe",
+        "indoor_seating": "yes",
+        "name": "SQ Plov",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12917084209,
+      "lat": 51.1469235,
+      "lon": 71.4114744,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Injir"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12917093499,
+      "lat": 51.1465835,
+      "lon": 71.4135123,
+      "tags": {
+        "amenity": "cafe",
+        "indoor_seating": "yes",
+        "name": "McDoner's",
+        "outdoor_seating": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12917093976,
+      "lat": 51.1376181,
+      "lon": 71.4006584,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "name": "Zebra Coffee"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12917095126,
+      "lat": 51.1373199,
+      "lon": 71.402995,
+      "tags": {
+        "amenity": "cafe",
+        "indoor_seating": "yes",
+        "name": "Shashlyk Pub",
+        "opening_hours": "Sa,Su 12:00-02:00",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12917112809,
+      "lat": 51.1401959,
+      "lon": 71.4105286,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "name": "Coffee BOOM"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12959449801,
+      "lat": 51.1246776,
+      "lon": 71.4219553,
+      "tags": {
+        "addr:housenumber": "33",
+        "addr:street": "Сығанақ көшесі",
+        "amenity": "cafe",
+        "name": "Культура Диктует"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12973341169,
+      "lat": 51.1458599,
+      "lon": 71.4246482,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Master Coffee",
+        "outdoor_seating": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12993941252,
+      "lat": 51.14026,
+      "lon": 71.4171016,
+      "tags": {
+        "amenity": "cafe",
+        "indoor_seating": "yes",
+        "name": "Wine cafe",
+        "outdoor_seating": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12993945455,
+      "lat": 51.1432226,
+      "lon": 71.4191739,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Cappuccino",
+        "outdoor_seating": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13125546428,
+      "lat": 51.1157233,
+      "lon": 71.4334022,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Coffee Day",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13125556689,
+      "lat": 51.1163017,
+      "lon": 71.4336184,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor_seating": "yes",
+        "name": "Coffee BOOM",
+        "outdoor_seating": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13206869766,
+      "lat": 51.1469549,
+      "lon": 71.4443271,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "21а",
+        "addr:street": "Амман көшесі",
+        "amenity": "cafe",
+        "cuisine": "breakfast;brunch;european;pastry",
+        "highchair": "yes",
+        "instagram": "https://www.instagram.com/gasteria.astana?igsh=N2Q2cWVmZ3BnODJ2",
+        "level": "0",
+        "name": "Gasteria",
+        "opening_hours": "Mo-Su 09:00-00:00",
+        "phone": "87779002009",
+        "website": "https://white.kz/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13230573012,
+      "lat": 51.139287,
+      "lon": 71.4101618,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "22/1",
+        "addr:postcode": "Z19Y4X2",
+        "addr:street": "Проспект Туран",
+        "amenity": "cafe",
+        "cuisine": "european;pastry;breakfast;brunch",
+        "delivery": "yes",
+        "highchair": "yes",
+        "instagram": "https://www.instagram.com/GASTERIA.ASTANA",
+        "internet_access": "yes",
+        "internet_access:fee": "no",
+        "level": "0",
+        "name": "Gasteria",
+        "opening_hours": "Mo-Su 09:00-00:00",
+        "outdoor_seating": "yes",
+        "phone": "+77007700010",
+        "website": "https://white.kz/",
+        "website:menu": "https://gasteria.kamiqr.com/menu/at-place"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13313122337,
+      "lat": 51.1298475,
+      "lon": 71.4241936,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "8/1",
+        "addr:street": "Қонаев көшесі",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop;european;breakfast;brunch",
+        "internet_access:fee": "no",
+        "name": "Gasteria"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13333371893,
+      "lat": 51.1326916,
+      "lon": 71.3991703,
+      "tags": {
+        "amenity": "cafe",
+        "internet_access": "yes",
+        "internet_access:fee": "no",
+        "name": "Coffee Boom"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13333386406,
+      "lat": 51.1324475,
+      "lon": 71.3983901,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13333409377,
+      "lat": 51.1303587,
+      "lon": 71.4010254,
+      "tags": {
+        "historic": "memorial",
+        "memorial": "statue",
+        "name": "Махтумкули Фраги"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13335403670,
+      "lat": 51.132845,
+      "lon": 71.3962003,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13335403671,
+      "lat": 51.1321263,
+      "lon": 71.3960652,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13335403753,
+      "lat": 51.1345144,
+      "lon": 71.3969811,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13335403758,
+      "lat": 51.1368912,
+      "lon": 71.3978376,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040624,
+      "lat": 51.1364849,
+      "lon": 71.4108482,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040625,
+      "lat": 51.1364738,
+      "lon": 71.4109312,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040626,
+      "lat": 51.1364617,
+      "lon": 71.410987,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040627,
+      "lat": 51.1364132,
+      "lon": 71.4109977,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040628,
+      "lat": 51.1364179,
+      "lon": 71.4109301,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040629,
+      "lat": 51.1364314,
+      "lon": 71.4108701,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040630,
+      "lat": 51.1364408,
+      "lon": 71.410796,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040665,
+      "lat": 51.1346692,
+      "lon": 71.4106104,
+      "tags": {
+        "artist_name": "М.Мансурова;Т.Ермекова",
+        "artwork_type": "statue",
+        "name": "Жетігенші",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340040666,
+      "lat": 51.1347534,
+      "lon": 71.4100755,
+      "tags": {
+        "artwork_type": "statue",
+        "name": "Қобызшы",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13340050452,
+      "lat": 51.1369933,
+      "lon": 71.4027939,
+      "tags": {
+        "artwork_type": "sculpture",
+        "name": "Хатико",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13408518401,
+      "lat": 51.1379062,
+      "lon": 71.4155612,
+      "tags": {
+        "addr:housenumber": "13",
+        "addr:street": "Қабанбай Батыр даңғылы",
+        "amenity": "cafe",
+        "name": "Zebra coffee"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13412540648,
+      "lat": 51.113423,
+      "lon": 71.4343289,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13448000429,
+      "lat": 51.1395829,
+      "lon": 71.4103149,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Waffle"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13448013130,
+      "lat": 51.1392416,
+      "lon": 71.4087264,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Loft Park"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13448032837,
+      "lat": 51.1408098,
+      "lon": 71.4107741,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "name": "vanilla"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13467930249,
+      "lat": 51.1405527,
+      "lon": 71.4127911,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Roastbeef"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13667384701,
+      "lat": 51.1167613,
+      "lon": 71.4337969,
+      "tags": {
+        "addr:housenumber": "17",
+        "addr:street": "Мәңгілік Ел даңғылы",
+        "amenity": "cafe",
+        "contact:facebook": "crepecafekz",
+        "contact:instagram": "crepecafe_kz",
+        "cuisine": "crepe",
+        "internet_access": "wlan",
+        "name": "CrepeCafe",
+        "website": "https://crepecafe.kz"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13760723564,
+      "lat": 51.1410694,
+      "lon": 71.4200484,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Чайхана"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13767468131,
+      "lat": 51.1288183,
+      "lon": 71.4151606,
+      "tags": {
+        "artwork_type": "sculpture",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13858040201,
+      "lat": 51.1299661,
+      "lon": 71.4376735,
+      "tags": {
+        "addr:housenumber": "35",
+        "addr:street": "Қонаев көшесі",
+        "amenity": "cafe",
+        "contact:instagram": "mastercoffee.kz",
+        "name": "Master Coffee",
+        "opening_hours": "Mo-Fr 07:15-23:00; Sa-Su 08:15-00:00",
+        "outdoor_seating": "yes",
+        "phone": "+7 702 249 41 13"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13947918427,
+      "lat": 51.1288298,
+      "lon": 71.4219293,
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14073633140,
+      "lat": 51.1272808,
+      "lon": 71.4370073,
+      "tags": {
+        "artwork_type": "installation",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14087643081,
+      "lat": 51.1318367,
+      "lon": 71.4146358,
+      "tags": {
+        "name": "Жылқылар үйірі",
+        "name:ru": "Табун Лошадей",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14089441241,
+      "lat": 51.1185328,
+      "lon": 71.460603,
+      "tags": {
+        "air_conditioning": "yes",
+        "amenity": "cafe",
+        "bar": "no",
+        "changing_table": "no",
+        "cuisine": "coffee_shop",
+        "delivery": "no",
+        "drive_through": "no",
+        "highchair": "no",
+        "indoor_seating": "yes",
+        "name": "Drinkit",
+        "outdoor_seating": "no",
+        "toilets": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14089471172,
+      "lat": 51.1277749,
+      "lon": 71.422767,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Qaganat"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14100100182,
+      "lat": 51.1302883,
+      "lon": 71.4290105,
+      "tags": {
+        "air_conditioning": "yes",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "internet_access": "yes",
+        "name": "Drinkit",
+        "toilets": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 37884583,
+      "center": {
+        "lat": 51.1314922,
+        "lon": 71.4092097
+      },
+      "nodes": [
+        444592656,
+        444592660,
+        444592659,
+        444592658,
+        444592656
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Ғашықтар саябағы",
+        "name:en": "Lovers Park",
+        "name:kk": "Ғашықтар саябағы",
+        "name:ru": "Парк влюбленных"
+      }
+    },
+    {
+      "type": "way",
+      "id": 68678495,
+      "center": {
+        "lat": 51.1439649,
+        "lon": 71.4427235
+      },
+      "nodes": [
+        825448243,
+        825448222,
+        825448154,
+        825448225,
+        825448188,
+        825448234,
+        825448202,
+        825448198,
+        825448164,
+        825448193,
+        5865773900,
+        825448182,
+        825448147,
+        825448231,
+        825448177,
+        825448209,
+        825448243
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 69232075,
+      "center": {
+        "lat": 51.1359887,
+        "lon": 71.4384501
+      },
+      "nodes": [
+        2640864110,
+        11017331163,
+        2640864111,
+        2640864112,
+        2640864113,
+        2640864115,
+        12009549060,
+        12009549059,
+        2678319966,
+        2678319967,
+        2678319968,
+        2678319969,
+        2678319970,
+        2678319971,
+        2640864116,
+        830003339,
+        830003354,
+        830003357,
+        11017297902,
+        830003322,
+        830003327,
+        830003344,
+        830003343,
+        830003356,
+        830003361,
+        830003326,
+        830003330,
+        830003338,
+        830003335,
+        13923198502,
+        13923198501,
+        8502580647,
+        13923198519,
+        13923198520,
+        13923198565,
+        13923198566,
+        830003365,
+        13923198560,
+        2640864109,
+        2640864110
+      ],
+      "tags": {
+        "barrier": "fence",
+        "int_name": "Jetisu",
+        "leisure": "park",
+        "name": "Жетісу саябағы",
+        "name:en": "Zhetysu Park",
+        "name:kk": "Жетісу саябағы",
+        "name:ru": "Парк Жетысу",
+        "wikidata": "Q104866925",
+        "wikipedia": "ru:Жетысу (парк)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 112177946,
+      "center": {
+        "lat": 51.1248323,
+        "lon": 71.4579236
+      },
+      "nodes": [
+        1776764130,
+        7811866837,
+        11064683601,
+        7813377889,
+        12809125678,
+        12809125679,
+        1275879029,
+        4960535317,
+        7813377890,
+        7813377891,
+        2641415649,
+        1275879033,
+        2641415673,
+        2641415660,
+        2641415672,
+        1275879018,
+        2641415696,
+        10125360725,
+        2641415698,
+        2641415682,
+        2641415678,
+        2641415694,
+        2641415667,
+        12809125534,
+        12809125305,
+        7811615393,
+        2641415679,
+        2641415677,
+        7811615391,
+        10068809681,
+        12809125316,
+        2641415655,
+        7813377892,
+        7813377893,
+        7813377894,
+        2641415658,
+        10125360727,
+        2641415669,
+        2641415674,
+        2641415730,
+        2641415728,
+        2641415779,
+        2641415783,
+        2641415843,
+        2641415840,
+        7813377897,
+        2641415848,
+        12809172908,
+        1275879001,
+        2641415847,
+        2641415849,
+        2641415851,
+        12809172896,
+        12809172931,
+        2641415852,
+        2641415850,
+        2641415853,
+        2641415854,
+        12809172940,
+        12809173007,
+        12809173005,
+        12809173004,
+        12809173002,
+        12809172862,
+        2641415857,
+        2641415855,
+        2641415856,
+        2641415858,
+        12809172764,
+        12809172792,
+        2641415861,
+        2641415859,
+        1275879000,
+        2641415862,
+        12809172808,
+        2641415863,
+        12809172806,
+        12809173157,
+        12809172810,
+        2641415866,
+        2641415864,
+        13940723494,
+        2641415865,
+        1275879003,
+        2641415867,
+        13940723495,
+        2641415868,
+        2641415870,
+        2641415869,
+        13940728526,
+        2641415871,
+        13940728525,
+        12809173336,
+        1275879028,
+        12809173335,
+        2641415873,
+        2641415875,
+        12809173334,
+        2641415874,
+        2641415876,
+        2641415877,
+        1275879012,
+        5031041666,
+        4117912654,
+        4960517174,
+        1275878996,
+        13623691409,
+        13623691410,
+        13623691402,
+        13623678296,
+        10101188289,
+        10101188290,
+        2641415872,
+        10101188286,
+        10101188287,
+        10148735204,
+        10148735203,
+        7811813704,
+        7811813706,
+        7811813705,
+        1275878997,
+        1275879005,
+        7811813703,
+        1776764040,
+        5022666029,
+        5022666032,
+        5022666033,
+        5022666030,
+        5022666031,
+        5022666028,
+        1776764016,
+        7811721730,
+        7811721731,
+        7811721732,
+        7811721735,
+        7811721734,
+        7811721733,
+        7811721736,
+        7811721737,
+        7811721738,
+        7811721739,
+        1776764014,
+        1776763996,
+        1776764100,
+        1776764130
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Президент саябағы",
+        "name:de": "Präsidentenpark",
+        "name:en": "President Park",
+        "name:kk": "Президент саябағы",
+        "name:ru": "Президентский парк"
+      }
+    },
+    {
+      "type": "way",
+      "id": 112456426,
+      "center": {
+        "lat": 51.1325233,
+        "lon": 71.4569112
+      },
+      "nodes": [
+        1278114326,
+        10083808431,
+        10083808432,
+        10083808433,
+        4960517340,
+        10083808434,
+        4242597490,
+        5031023538,
+        4960517341,
+        4242718990,
+        5030150228,
+        5030150231,
+        5030150229,
+        5030150230,
+        5030150227,
+        5030150226,
+        4242719289,
+        4242594596,
+        4960517326,
+        1278114229,
+        13659094330,
+        5031022785,
+        4242582890,
+        5031022789,
+        5031022945,
+        5031022784,
+        4242595890,
+        1278114196,
+        4242597493,
+        1278114198,
+        13659094440,
+        4242594597,
+        1278114254,
+        5030150232,
+        1278114260,
+        1278114320,
+        1278114178,
+        1278114364,
+        4242596592,
+        4242597492,
+        4242596591,
+        4242718991,
+        5030150233,
+        4242597491,
+        13659093601,
+        13659024900,
+        1278114326
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Бауыржан Момышұлы атындағы саябақ",
+        "name:en": "Bauyrzhan Momyshuly Park",
+        "name:kk": "Бауыржан Момышұлы атындағы саябақ",
+        "name:ru": "Парк имени Бауыржана Момышулы"
+      }
+    },
+    {
+      "type": "way",
+      "id": 230358847,
+      "center": {
+        "lat": 51.1286406,
+        "lon": 71.4203796
+      },
+      "nodes": [
+        13467930221,
+        2389121474,
+        2388707905,
+        2388707865,
+        2388707863,
+        2389121461,
+        2389121459,
+        13467930218,
+        13467930241,
+        13467930226,
+        13467930224,
+        13467930240,
+        13467930227,
+        13467930222,
+        13467930239,
+        13467930228,
+        13467930238,
+        2389121462,
+        13467930237,
+        13467930229,
+        13467930236,
+        13467930223,
+        13467930235,
+        13467930230,
+        13467930234,
+        13467930225,
+        13467930233,
+        13467930231,
+        13467930232,
+        13467930219,
+        13467930220,
+        13467930221
+      ],
+      "tags": {
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "3",
+        "addr:street": "Достық көшесі",
+        "building": "yes",
+        "building:levels": "6",
+        "name": "Көрме",
+        "name:en": "Korme",
+        "name:es": "Korme",
+        "name:ru": "Корме",
+        "toilets:wheelchair": "no",
+        "tourism": "gallery",
+        "wheelchair": "limited"
+      }
+    },
+    {
+      "type": "way",
+      "id": 230358854,
+      "center": {
+        "lat": 51.127997,
+        "lon": 71.4235705
+      },
+      "nodes": [
+        2388707891,
+        2388707892,
+        2388707893,
+        2388707894,
+        2388707891
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Сквер"
+      }
+    },
+    {
+      "type": "way",
+      "id": 230401645,
+      "center": {
+        "lat": 51.1282882,
+        "lon": 71.4304546
+      },
+      "nodes": [
+        2680323704,
+        2680323702,
+        2389116271,
+        2680323699,
+        2680323693,
+        2680323696,
+        2389116270,
+        2680323690,
+        2680323685,
+        14084367281,
+        2389116265,
+        2680323695,
+        2680323692,
+        2680323697,
+        2389116263,
+        2680323700,
+        2680323703,
+        2680323706,
+        2389116259,
+        2680323709,
+        2680323715,
+        2680323712,
+        2389116257,
+        2680323718,
+        2680323719,
+        14084367282,
+        2389116269,
+        2680323714,
+        2680323716,
+        2680323710,
+        2389116268,
+        2680323707,
+        2680323704
+      ],
+      "tags": {
+        "access": "yes",
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "14",
+        "addr:street": "Нұржол желек жолы",
+        "building": "yes",
+        "building:levels": "27",
+        "historic": "monument",
+        "layer": "1",
+        "name": "Бәйтерек",
+        "name:de": "Bajterek-Turm",
+        "name:en": "Bayterek",
+        "name:ja": "バイテレック・タワー・タワー",
+        "name:kk": "Бәйтерек",
+        "name:ml": "ബൈറ്റെറെക് ടവർ",
+        "name:ru": "Байтерек",
+        "wikidata": "Q804210",
+        "wikipedia": "kk:Бәйтерек (монумент)",
+        "wikipedia:ru": "ru:Байтерек (монумент)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 240921034,
+      "center": {
+        "lat": 51.1481229,
+        "lon": 71.4167693
+      },
+      "nodes": [
+        2486102375,
+        2486102391,
+        2486102393,
+        2486102392,
+        2486102386,
+        2486102381,
+        2486102371,
+        2486102353,
+        2486102345,
+        2486102328,
+        2486102320,
+        2486102288,
+        2486102272,
+        2486102255,
+        2486102229,
+        2486102237,
+        2486102178,
+        2486102179,
+        2486102138,
+        2486102133,
+        2486102131,
+        2486102105,
+        2486102141,
+        2486102136,
+        2486102158,
+        2486102150,
+        2486102146,
+        2486102148,
+        2486102135,
+        2486102143,
+        2486102153,
+        2486102167,
+        2486102174,
+        2486102177,
+        2486102184,
+        2486102200,
+        2486102213,
+        2486102243,
+        2486102246,
+        2486102375
+      ],
+      "tags": {
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "2",
+        "addr:street": "Қорғалжын тас жолы",
+        "building": "yes",
+        "building:levels": "3",
+        "name": "Ailand",
+        "name:en": "Ailand",
+        "name:kk": "Ailand",
+        "name:ru": "Ailand",
+        "opening_hours": "Mo-Su 10:00-22:00",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 243041606,
+      "center": {
+        "lat": 51.113398,
+        "lon": 71.4447685
+      },
+      "nodes": [
+        2504824272,
+        2504824271,
+        2504824270,
+        2504824269,
+        2504824255,
+        2504824254,
+        2504824253,
+        2504824252,
+        2504824225,
+        2639705494,
+        10154751344,
+        2639705465,
+        2639705444,
+        2639705437,
+        2639705417,
+        2639705405,
+        2639705403,
+        2639705426,
+        2639705452,
+        2504824221,
+        13403736356,
+        2504824228,
+        3289741245,
+        3289741244,
+        3289741243,
+        3289741242,
+        13403736372,
+        2504824227,
+        2504824235,
+        13403736371,
+        3289741237,
+        3289741238,
+        3289741239,
+        3289741240,
+        13403759233,
+        13403759214,
+        13403759217,
+        13403759218,
+        13403759221,
+        13403759205,
+        3289741241,
+        13403759204,
+        13403759180,
+        13403759181,
+        13403759171,
+        13403759172,
+        13403759164,
+        2504824272
+      ],
+      "tags": {
+        "int_name": "Prezïdent sayabağı",
+        "leisure": "park",
+        "name": "Президент саябағы",
+        "name:de": "Präsidentenpark",
+        "name:en": "Presidential Park",
+        "name:kk": "Президент саябағы",
+        "name:pl": "park Prezydencki",
+        "name:ru": "Президентский парк"
+      }
+    },
+    {
+      "type": "way",
+      "id": 243041609,
+      "center": {
+        "lat": 51.1339394,
+        "lon": 71.4437521
+      },
+      "nodes": [
+        2504824550,
+        2504824362,
+        13641598172,
+        13638535788,
+        2504824378,
+        4926186473,
+        2504824382,
+        2504824384,
+        2504824406,
+        13638549398,
+        2504824478,
+        13638549399,
+        13638549400,
+        13638549401,
+        2504824547,
+        2504824550
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Арай саябағы",
+        "name:ru": "Парк Арай"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258615112,
+      "center": {
+        "lat": 51.1083201,
+        "lon": 71.4368434
+      },
+      "nodes": [
+        2639494990,
+        13147829532,
+        2639494996,
+        2639495051,
+        5151254050,
+        2639495009,
+        2639494990
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258637599,
+      "center": {
+        "lat": 51.1071916,
+        "lon": 71.4526016
+      },
+      "nodes": [
+        2639705492,
+        10154751348,
+        10154751346,
+        2639705463,
+        2639705447,
+        2639705430,
+        2639705398,
+        2639705387,
+        2639705370,
+        2639705349,
+        13399554733,
+        13399554734,
+        13399554735,
+        13399554757,
+        5007580782,
+        13399554786,
+        2639705377,
+        2639705407,
+        2639705419,
+        2639705427,
+        2639705442,
+        2639705457,
+        2639705470,
+        10154751345,
+        2639705478,
+        2639705492
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258818058,
+      "center": {
+        "lat": 51.1281729,
+        "lon": 71.4311358
+      },
+      "nodes": [
+        14080411682,
+        2641347903,
+        2641347916,
+        14080470001,
+        2641347931,
+        2641347949,
+        14080470002,
+        2641347969,
+        2641347986,
+        14080470003,
+        2641347997,
+        2641348007,
+        14080470004,
+        2641348021,
+        14080470005,
+        14080411683,
+        14080411684,
+        14080470007,
+        14080470006,
+        14080411685,
+        14080411686,
+        14080411697,
+        14080411687,
+        14080411688,
+        14080411698,
+        14080411689,
+        14080411690,
+        14080411691,
+        14080411692,
+        14080411693,
+        14080411694,
+        14080411699,
+        14080411695,
+        14080411700,
+        14080411696,
+        14080411682
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258818059,
+      "center": {
+        "lat": 51.1283882,
+        "lon": 71.4297908
+      },
+      "nodes": [
+        14080470014,
+        14080470015,
+        14080470016,
+        14080470017,
+        14080470018,
+        14080470019,
+        14080470020,
+        14080470021,
+        14080470022,
+        14080470023,
+        14080470024,
+        14080470025,
+        14080470026,
+        14080470027,
+        14080470028,
+        14080470029,
+        14080470030,
+        14080470031,
+        14080470032,
+        14080470033,
+        14080470008,
+        2641348083,
+        14080470009,
+        2641348071,
+        2641348057,
+        14080470010,
+        2641348037,
+        2641348016,
+        2641348001,
+        14080470011,
+        2641347993,
+        2641347980,
+        14080470012,
+        2641347968,
+        14080470013,
+        14080470014
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258818060,
+      "center": {
+        "lat": 51.1276351,
+        "lon": 71.4308149
+      },
+      "nodes": [
+        14080470062,
+        2641347861,
+        2641347864,
+        14080470066,
+        2641347871,
+        14080470063,
+        14080470064,
+        14080470062
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258818061,
+      "center": {
+        "lat": 51.1287708,
+        "lon": 71.4312281
+      },
+      "nodes": [
+        14080411668,
+        14080411669,
+        14080411670,
+        2641348075,
+        2641348084,
+        14080411671,
+        2641348098,
+        14080411668
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258818062,
+      "center": {
+        "lat": 51.1289381,
+        "lon": 71.4301126
+      },
+      "nodes": [
+        14080411674,
+        2641348127,
+        14080411681,
+        2641348122,
+        2641348116,
+        14080411675,
+        14080411676,
+        14080411674
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 258818063,
+      "center": {
+        "lat": 51.1278066,
+        "lon": 71.4297076
+      },
+      "nodes": [
+        14080470069,
+        14080470073,
+        2641347915,
+        2641347902,
+        2641347890,
+        14080470070,
+        14080470071,
+        14080470069
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 262168265,
+      "center": {
+        "lat": 51.1287136,
+        "lon": 71.4152474
+      },
+      "nodes": [
+        4561457054,
+        4561457056,
+        4561457055,
+        2678329357,
+        4561457070,
+        2678329360,
+        2678329367,
+        13767468144,
+        13767468143,
+        13767468142,
+        13767468141,
+        4561457061,
+        4561457060,
+        4561457059,
+        2678329369,
+        2678329370,
+        4519113930,
+        13767389659,
+        5787558743,
+        5787558744,
+        5787558746,
+        4561457054
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 262491203,
+      "center": {
+        "lat": 51.1468802,
+        "lon": 71.4357253
+      },
+      "nodes": [
+        2681622175,
+        2681622176,
+        2681622177,
+        2681622178,
+        1776796721,
+        2681622179,
+        10142540930,
+        2681622180,
+        10142540931,
+        259995015,
+        13641619276,
+        2681622181,
+        10142540932,
+        5031041603,
+        10142540933,
+        2681622182,
+        2681622183,
+        2681622185,
+        4557103575,
+        10142540934,
+        259995012,
+        10142540935,
+        5031041609,
+        4557103576,
+        13641619029,
+        2681622186,
+        4557103577,
+        10142540937,
+        5031041610,
+        259852309,
+        2681622187,
+        2681622189,
+        2681622190,
+        4557103579,
+        259995025,
+        5031041611,
+        5031041613,
+        5031041614,
+        5031041612,
+        2681622192,
+        2681622193,
+        10142540943,
+        5031041617,
+        5031041618,
+        5031041616,
+        5031041620,
+        13641619028,
+        10142540944,
+        5031041615,
+        4557103581,
+        10142540946,
+        2681622194,
+        2681622196,
+        2681622197,
+        2681622198,
+        2681622199,
+        2681622200,
+        2681622201,
+        5030150259,
+        2681622202,
+        2681622203,
+        13641619582,
+        5865773883,
+        5865773878,
+        5865773879,
+        5865773881,
+        5865773882,
+        5865773884,
+        2681622205,
+        2681622206,
+        2681622175
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 502046671,
+      "center": {
+        "lat": 51.149582,
+        "lon": 71.422543
+      },
+      "nodes": [
+        4926412825,
+        10594247099,
+        4926412824,
+        4926412823,
+        4926412822,
+        4926412821,
+        4926411820,
+        4926411819,
+        4926411818,
+        4926412825
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 502433077,
+      "center": {
+        "lat": 51.1365356,
+        "lon": 71.4502399
+      },
+      "nodes": [
+        4929123078,
+        4929123077,
+        4929123076,
+        4929123075,
+        4929123074,
+        5787558975,
+        5787558976,
+        10086187234,
+        5787558977,
+        5787558978,
+        5787558979,
+        10086187218,
+        5787558980,
+        5787558981,
+        5787558982,
+        5787558983,
+        10086187221,
+        5787558984,
+        10086187222,
+        10086187223,
+        5787558985,
+        5787558986,
+        5787558987,
+        5787558988,
+        5787558989,
+        10086187233,
+        4929123073,
+        5787558993,
+        4929123044,
+        4929123072,
+        4929123071,
+        10083776375,
+        5787558994,
+        10083776373,
+        4929123070,
+        10083776374,
+        4929123069,
+        10084866669,
+        4929123068,
+        10084866670,
+        10084866671,
+        4929123067,
+        10084866623,
+        10084866625,
+        10084866626,
+        5787558992,
+        5787558991,
+        10084866627,
+        10084866628,
+        10084866629,
+        4929123053,
+        4929123078
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 508761545,
+      "center": {
+        "lat": 51.1174356,
+        "lon": 71.4548287
+      },
+      "nodes": [
+        4980095877,
+        4980095876,
+        4980095871,
+        4980095875,
+        4980095874,
+        4980095877
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 508761571,
+      "center": {
+        "lat": 51.114434,
+        "lon": 71.4582353
+      },
+      "nodes": [
+        4980095967,
+        4980095966,
+        4980095965,
+        4980095964,
+        4980095963,
+        10167138454,
+        4980095962,
+        4980095967
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 548145934,
+      "center": {
+        "lat": 51.1348194,
+        "lon": 71.463943
+      },
+      "nodes": [
+        5295731337,
+        5295731338,
+        5295731339,
+        5295731340,
+        5295731337
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 548145936,
+      "center": {
+        "lat": 51.1344187,
+        "lon": 71.4627348
+      },
+      "nodes": [
+        5295731341,
+        5295731342,
+        5295731343,
+        5295731344,
+        5295731341
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 556574299,
+      "center": {
+        "lat": 51.1348551,
+        "lon": 71.4594815
+      },
+      "nodes": [
+        4975688534,
+        5368968732,
+        4975688526,
+        4975688604,
+        4975688603,
+        4975688602,
+        4975688601,
+        4975688600,
+        4975688599,
+        4975688598,
+        5368968320,
+        5368968722,
+        5368968723,
+        5368968721,
+        4975688725,
+        5368968724,
+        5368968725,
+        5368968726,
+        5368968727,
+        5368968728,
+        5368968731,
+        5368968730,
+        5368968729,
+        4975688534
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Парк отдыха Момышулы"
+      }
+    },
+    {
+      "type": "way",
+      "id": 607452625,
+      "center": {
+        "lat": 51.129501,
+        "lon": 71.3941621
+      },
+      "nodes": [
+        5756882831,
+        5756882830,
+        5756882829,
+        5756882828,
+        5756882827,
+        5756882826,
+        5756882825,
+        5756882824,
+        5756882823,
+        13915790206,
+        13353871933,
+        13308087178,
+        13308087179,
+        13353871938,
+        13308087180,
+        13308087177,
+        13353871939,
+        11201555130,
+        13308087182,
+        13308087183,
+        13308087156,
+        13353871941,
+        13353871935,
+        11201555131,
+        5756882417,
+        5756882416,
+        5756882831
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Бухарест саябағы",
+        "name:en": "Bucharest",
+        "name:ru": "Бухарест"
+      }
+    },
+    {
+      "type": "way",
+      "id": 609969185,
+      "center": {
+        "lat": 51.1224519,
+        "lon": 71.4384974
+      },
+      "nodes": [
+        5777105639,
+        5777105638,
+        5777105637,
+        5777105636,
+        5777105635,
+        5777105634,
+        5777105633,
+        5777105632,
+        5777105639
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 609969233,
+      "center": {
+        "lat": 51.1260317,
+        "lon": 71.4365836
+      },
+      "nodes": [
+        5777106336,
+        5777106335,
+        5777106334,
+        5777106333,
+        5777106336
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 610182662,
+      "center": {
+        "lat": 51.1363661,
+        "lon": 71.4224333
+      },
+      "nodes": [
+        5778951189,
+        5778951188,
+        5778951187,
+        5778951186,
+        5778951189
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 622586293,
+      "center": {
+        "lat": 51.1099466,
+        "lon": 71.4176267
+      },
+      "nodes": [
+        5880704606,
+        5880704605,
+        5880704604,
+        5880704603,
+        5880704606
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 628842643,
+      "center": {
+        "lat": 51.1372126,
+        "lon": 71.4387756
+      },
+      "nodes": [
+        5937131930,
+        5937131929,
+        5937131928,
+        5937131927,
+        5937131930
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 629228206,
+      "center": {
+        "lat": 51.13992,
+        "lon": 71.4401248
+      },
+      "nodes": [
+        5940789682,
+        5940789681,
+        5940789680,
+        5940789679,
+        5940789682
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 641203807,
+      "center": {
+        "lat": 51.117893,
+        "lon": 71.4400074
+      },
+      "nodes": [
+        6039106970,
+        6039106969,
+        6039106968,
+        6039106967,
+        6039106966,
+        6039106965,
+        6039106964,
+        6039106970
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 674088598,
+      "center": {
+        "lat": 51.1281355,
+        "lon": 71.4386054
+      },
+      "nodes": [
+        6312769184,
+        6312769183,
+        6312769182,
+        6312769181,
+        6312769180,
+        6312769179,
+        6312769178,
+        6312769177,
+        6312769176,
+        6312769175,
+        6312769174,
+        6312769173,
+        6312769172,
+        6312769171,
+        6312769170,
+        6312769169,
+        6312769168,
+        6312769184
+      ],
+      "tags": {
+        "leisure": "garden",
+        "source:geometry": "Bing Aerial Imagery"
+      }
+    },
+    {
+      "type": "way",
+      "id": 734514013,
+      "center": {
+        "lat": 51.1185681,
+        "lon": 71.4266471
+      },
+      "nodes": [
+        6878899808,
+        6878899807,
+        6878899806,
+        6878899804,
+        6878899808
+      ],
+      "tags": {
+        "int_name": "Sızıqtıq sayabaq",
+        "leisure": "park",
+        "name": "Сызықтық саябақ",
+        "name:kk": "Сызықтық саябақ",
+        "name:ru": "Линейный парк"
+      }
+    },
+    {
+      "type": "way",
+      "id": 736769246,
+      "center": {
+        "lat": 51.1214987,
+        "lon": 71.3966713
+      },
+      "nodes": [
+        6897961877,
+        6897961878,
+        6897961882,
+        6897961879,
+        6897961877
+      ],
+      "tags": {
+        "leisure": "playground",
+        "surface": "grass_paver"
+      }
+    },
+    {
+      "type": "way",
+      "id": 917478479,
+      "center": {
+        "lat": 51.1354512,
+        "lon": 71.410753
+      },
+      "nodes": [
+        4928623655,
+        4928623656,
+        4928623657,
+        4928623658,
+        4928623659,
+        4928623660,
+        2486018419,
+        2486018362,
+        13340040666,
+        13340040667,
+        13340040665,
+        2616720925,
+        2486018383,
+        4928623645,
+        4928623646,
+        4928623647,
+        4928623648,
+        4928623649,
+        4928623650,
+        4928623651,
+        4928623652,
+        4928623653,
+        4928623654,
+        4928623655
+      ],
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "1",
+        "addr:street": "Қонаев көшесі",
+        "amenity": "theatre",
+        "building": "civic",
+        "name": "Астана Опера",
+        "name:en": "Astana Opera",
+        "name:ru": "Астана Опера",
+        "website": "https://astanaopera.kz/",
+        "wikidata": "Q21371563",
+        "wikimedia_commons": "Category:Astana Opera",
+        "wikipedia": "en:Astana Opera"
+      }
+    },
+    {
+      "type": "way",
+      "id": 963855443,
+      "center": {
+        "lat": 51.1146527,
+        "lon": 71.4421493
+      },
+      "nodes": [
+        8915559842,
+        8915559843,
+        8915559844,
+        8915559845,
+        8915559846,
+        8915559847,
+        8915559848,
+        8915559849,
+        8915559842
+      ],
+      "tags": {
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "1а",
+        "addr:street": "Әлихан Бөкейхан көшесі",
+        "building": "yes",
+        "fee": "no",
+        "name": "Назарбаев орталығы-2",
+        "name:de": "Nasarbajew-Zentrum 2",
+        "name:en": "Nazarbayev Center 2",
+        "name:kk": "Назарбаев орталығы-2",
+        "name:ru": "Назарбаев центр-2",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111134705,
+      "center": {
+        "lat": 51.119292,
+        "lon": 71.4616548
+      },
+      "nodes": [
+        10167122211,
+        10167122212,
+        10167122213,
+        10167122214,
+        10167122211
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111134706,
+      "center": {
+        "lat": 51.1191839,
+        "lon": 71.4615247
+      },
+      "nodes": [
+        10167122215,
+        10167122216,
+        10167122217,
+        10167122218,
+        10167122215
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111134707,
+      "center": {
+        "lat": 51.119231,
+        "lon": 71.4612304
+      },
+      "nodes": [
+        10167122219,
+        10167122220,
+        10167122221,
+        10167122222,
+        10167122219
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111134708,
+      "center": {
+        "lat": 51.1193552,
+        "lon": 71.4614238
+      },
+      "nodes": [
+        10167122223,
+        10167122224,
+        10167122225,
+        10167122229,
+        10167122226,
+        10167122223
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111137190,
+      "center": {
+        "lat": 51.1142284,
+        "lon": 71.4576291
+      },
+      "nodes": [
+        10167138455,
+        10167138456,
+        10167138457,
+        10167138458,
+        10167138459,
+        10167138460,
+        10167138461,
+        10167151964,
+        10167138462,
+        10167138463,
+        10167138464,
+        10167138465,
+        10167138466,
+        10167138467,
+        10167138468,
+        10167138469,
+        10167138470,
+        10167138471,
+        10167138472,
+        10167138473,
+        10167138474,
+        10167138455
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111137208,
+      "center": {
+        "lat": 51.1144422,
+        "lon": 71.4578595
+      },
+      "nodes": [
+        10167151850,
+        10167151851,
+        10167151852,
+        10167151853,
+        10167151854,
+        10167151855,
+        10167151856,
+        10167151857,
+        10167151858,
+        10167151859,
+        10167151860,
+        10167151861,
+        10167151862,
+        10167151850
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111137218,
+      "center": {
+        "lat": 51.1144482,
+        "lon": 71.458131
+      },
+      "nodes": [
+        10167152048,
+        10167152049,
+        10167152050,
+        10167152051,
+        10167152052,
+        10167152053,
+        10167152054,
+        10167152055,
+        10167152056,
+        10167152057,
+        10167152048
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1111137219,
+      "center": {
+        "lat": 51.1143812,
+        "lon": 71.4581759
+      },
+      "nodes": [
+        10167151981,
+        10167152058,
+        10167152059,
+        10167152060,
+        10167122272,
+        10167122290,
+        10167122289,
+        10167122288,
+        10167122283,
+        10167151980,
+        10167122282,
+        10167122281,
+        10167122280,
+        10167122279,
+        10167122278,
+        10167151981
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1125189046,
+      "center": {
+        "lat": 51.1186517,
+        "lon": 71.4552132
+      },
+      "nodes": [
+        10289477275,
+        10289477276,
+        10289477277,
+        10289477278,
+        10289477275
+      ],
+      "tags": {
+        "historic": "monument"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1133992918,
+      "center": {
+        "lat": 51.1388195,
+        "lon": 71.4155511
+      },
+      "nodes": [
+        10572267655,
+        10572267656,
+        10572267657,
+        10572267658,
+        10572267655
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1133992928,
+      "center": {
+        "lat": 51.1395873,
+        "lon": 71.4140693
+      },
+      "nodes": [
+        10572316027,
+        10572316028,
+        10572316029,
+        10572316030,
+        10572316031,
+        10572316032,
+        10572316033,
+        10572316027
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1134745702,
+      "center": {
+        "lat": 51.1387683,
+        "lon": 71.4096828
+      },
+      "nodes": [
+        10578601083,
+        10578601084,
+        10578601085,
+        10578601086,
+        10578601087,
+        10578601083
+      ],
+      "tags": {
+        "access": "yes",
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1135404283,
+      "center": {
+        "lat": 51.1397868,
+        "lon": 71.4160442
+      },
+      "nodes": [
+        10583900923,
+        10583900924,
+        10583900925,
+        10583900939,
+        10583900926,
+        10583900940,
+        10583900941,
+        10583900927,
+        10583900942,
+        10583900943,
+        10583900944,
+        10583900928,
+        10583900929,
+        10583900930,
+        10583900931,
+        10583900932,
+        10583900933,
+        10583900923
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1135598208,
+      "center": {
+        "lat": 51.1378053,
+        "lon": 71.4150389
+      },
+      "nodes": [
+        10585696460,
+        10585696461,
+        10585696462,
+        10585696463,
+        10585696464,
+        10585696465,
+        10585696466,
+        10585696467,
+        10585696468,
+        10585696469,
+        10585696470,
+        10585696471,
+        10585696460
+      ],
+      "tags": {
+        "indoor": "yes",
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1135598209,
+      "center": {
+        "lat": 51.1373865,
+        "lon": 71.4147776
+      },
+      "nodes": [
+        10585696472,
+        10585696473,
+        10585696474,
+        10585696475,
+        10585696476,
+        10585696477,
+        10585696478,
+        10585696479,
+        10585696480,
+        10585696481,
+        10585696482,
+        10585696483,
+        10585696472
+      ],
+      "tags": {
+        "indoor": "yes",
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1135598213,
+      "center": {
+        "lat": 51.1375699,
+        "lon": 71.4140575
+      },
+      "nodes": [
+        10585696495,
+        10585696496,
+        10585696497,
+        10585696498,
+        10585696495
+      ],
+      "tags": {
+        "indoor": "yes",
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1135598691,
+      "center": {
+        "lat": 51.1385568,
+        "lon": 71.4131358
+      },
+      "nodes": [
+        10585701905,
+        10585701906,
+        10585701907,
+        10585701908,
+        10585701905
+      ],
+      "tags": {
+        "indoor": "yes",
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1148025023,
+      "center": {
+        "lat": 51.1119809,
+        "lon": 71.4204149
+      },
+      "nodes": [
+        10681515091,
+        10681515092,
+        10681515093,
+        10681515094,
+        10681515091
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1163910641,
+      "center": {
+        "lat": 51.1296858,
+        "lon": 71.4509953
+      },
+      "nodes": [
+        10824551496,
+        13623691448,
+        13623691447,
+        13623691432,
+        13623691436,
+        10824551497,
+        13623691401,
+        13623678297,
+        13623678292,
+        10824551498,
+        13623678293,
+        10824551499,
+        13623678285,
+        10824551500,
+        10824551501,
+        13623691439,
+        10824551502,
+        10824551503,
+        10824551504,
+        13623691467,
+        10824556105,
+        10824551496
+      ],
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1196402246,
+      "center": {
+        "lat": 51.1061652,
+        "lon": 71.4165705
+      },
+      "nodes": [
+        11101893923,
+        11101893924,
+        11101893925,
+        11101893928,
+        13923198952,
+        13923198943,
+        13923198941,
+        13923198937,
+        13923198953,
+        13461731632,
+        11101893926,
+        13461731623,
+        13461731622,
+        13461731610,
+        14220511191,
+        13461731614,
+        13461731613,
+        14220511190,
+        14220511189,
+        13461731653,
+        13461731657,
+        14220511181,
+        13461731664,
+        13461731558,
+        13461731560,
+        13461731551,
+        13461731550,
+        13461731547,
+        13461731544,
+        13461731543,
+        13461731739,
+        13461731740,
+        13461731747,
+        13461731755,
+        11101893927,
+        11101893923
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Ботаникалық бақ",
+        "name:de": "Botanischer Garten",
+        "name:en": "Botanical Garden",
+        "name:kk": "Ботаникалық бақ",
+        "name:ru": "Ботанический сад",
+        "phone": "+7 707 7051661",
+        "start_date": "2018-07-02",
+        "website": "https://www.astanabotsad.kz/",
+        "wikidata": "Q104866948",
+        "wikimedia_commons": "Category:Astana botanical garden",
+        "wikipedia": "kk:Ботаникалық бақ (Астана)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1296051287,
+      "center": {
+        "lat": 51.1384204,
+        "lon": 71.4362282
+      },
+      "nodes": [
+        2678319966,
+        12009549061,
+        12009549062,
+        12009549063,
+        12009549060,
+        12009549059,
+        2678319966
+      ],
+      "tags": {
+        "leisure": "garden",
+        "name": "Корей бақшасы",
+        "name:fr": "Jardin coréen",
+        "name:ru": "Корейский сад"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1326254261,
+      "center": {
+        "lat": 51.1193419,
+        "lon": 71.4635584
+      },
+      "nodes": [
+        12271007051,
+        12271007052,
+        12271007053,
+        12271007054,
+        12271007055,
+        12271007056,
+        12271007057,
+        12271007058,
+        12271007051
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1343459252,
+      "center": {
+        "lat": 51.107138,
+        "lon": 71.4268568
+      },
+      "nodes": [
+        12430639466,
+        12430639467,
+        12430639468,
+        12430639469,
+        12430639466
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1363058986,
+      "center": {
+        "lat": 51.1352766,
+        "lon": 71.4497779
+      },
+      "nodes": [
+        14220502729,
+        10137661856,
+        11064683515,
+        12620340091,
+        10137661861,
+        12620340092,
+        10080475427,
+        10080475429,
+        10080475432,
+        12620340093,
+        10080475438,
+        4929123042,
+        13659093996,
+        14220502732,
+        4929123044,
+        10080449109,
+        14220502724,
+        14220502728,
+        14220502725,
+        14220502726,
+        14220502731,
+        14220502729
+      ],
+      "tags": {
+        "addr:city": "Astana",
+        "int_name": "Trïatlon sayabağı",
+        "leisure": "park",
+        "name": "Триатлон саябағы",
+        "name:de": "Triathlonpark",
+        "name:en": "Triathlon park",
+        "name:kk": "Триатлон саябағы",
+        "name:ru": "Триатлон парк"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1377172924,
+      "center": {
+        "lat": 51.1169,
+        "lon": 71.4288909
+      },
+      "nodes": [
+        12751924912,
+        12751924913,
+        12751924914,
+        12751924915,
+        12751924912
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843791,
+      "center": {
+        "lat": 51.112271,
+        "lon": 71.4134017
+      },
+      "nodes": [
+        12893538171,
+        12893538172,
+        12893538173,
+        12893538174,
+        12893538171
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843792,
+      "center": {
+        "lat": 51.1123047,
+        "lon": 71.4131442
+      },
+      "nodes": [
+        12893538175,
+        12893538176,
+        12893538177,
+        12893538178,
+        12893538175
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843793,
+      "center": {
+        "lat": 51.1120808,
+        "lon": 71.4150566
+      },
+      "nodes": [
+        12893538179,
+        12893538180,
+        12893538181,
+        12893538182,
+        12893538183,
+        12893538184,
+        12893538185,
+        12893538179
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843794,
+      "center": {
+        "lat": 51.1129268,
+        "lon": 71.4131257
+      },
+      "nodes": [
+        12893538192,
+        12893538193,
+        12893538194,
+        12893538195,
+        12893538192
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843795,
+      "center": {
+        "lat": 51.1136552,
+        "lon": 71.412884
+      },
+      "nodes": [
+        12893538197,
+        12893538198,
+        12893538199,
+        12893538200,
+        12893538197
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843796,
+      "center": {
+        "lat": 51.1138834,
+        "lon": 71.4126574
+      },
+      "nodes": [
+        12893538201,
+        12893538202,
+        12893538203,
+        12893538204,
+        12893538201
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843797,
+      "center": {
+        "lat": 51.1147707,
+        "lon": 71.4129712
+      },
+      "nodes": [
+        12893538205,
+        12893538206,
+        12893538207,
+        12893538208,
+        12893538205
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1392843798,
+      "center": {
+        "lat": 51.1153457,
+        "lon": 71.4131536
+      },
+      "nodes": [
+        12893538209,
+        12893538210,
+        12893538211,
+        12893538212,
+        12893538213,
+        12893538214,
+        12893538215,
+        12893538216,
+        12893538217,
+        12893538218,
+        12893538209
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579155,
+      "center": {
+        "lat": 51.1277221,
+        "lon": 71.4299382
+      },
+      "nodes": [
+        13073422395,
+        13073422396,
+        13073422397,
+        14080470068,
+        13073422398,
+        13073422395
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579156,
+      "center": {
+        "lat": 51.1276426,
+        "lon": 71.4304724
+      },
+      "nodes": [
+        13073422400,
+        13073477401,
+        13073477402,
+        14080470067,
+        13073477403,
+        13073422400
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579157,
+      "center": {
+        "lat": 51.1288529,
+        "lon": 71.4310007
+      },
+      "nodes": [
+        13073477405,
+        14080411672,
+        13073477406,
+        13073477407,
+        13073477408,
+        13073477405
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579158,
+      "center": {
+        "lat": 51.1289325,
+        "lon": 71.430455
+      },
+      "nodes": [
+        13073477409,
+        14080411673,
+        13073477410,
+        13073477411,
+        13073477412,
+        13073477409
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579159,
+      "center": {
+        "lat": 51.130151,
+        "lon": 71.4315294
+      },
+      "nodes": [
+        13073477413,
+        13073477414,
+        13073477415,
+        13073477413
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579160,
+      "center": {
+        "lat": 51.1302703,
+        "lon": 71.4308421
+      },
+      "nodes": [
+        2641348262,
+        13073477417,
+        13073477418,
+        2641348262
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579161,
+      "center": {
+        "lat": 51.1299279,
+        "lon": 71.4307776
+      },
+      "nodes": [
+        13073477419,
+        13073477420,
+        13073477421,
+        13073477422,
+        13073477419
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579162,
+      "center": {
+        "lat": 51.129829,
+        "lon": 71.431392
+      },
+      "nodes": [
+        13073477423,
+        13073477424,
+        13073477425,
+        13073477426,
+        13073477423
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579163,
+      "center": {
+        "lat": 51.1295442,
+        "lon": 71.4312882
+      },
+      "nodes": [
+        13073477427,
+        13073477428,
+        13073477429,
+        13073477430,
+        13073477427
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579164,
+      "center": {
+        "lat": 51.1296561,
+        "lon": 71.4306618
+      },
+      "nodes": [
+        13073477431,
+        13073477432,
+        13073477433,
+        13073477434,
+        13073477431
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579165,
+      "center": {
+        "lat": 51.1293673,
+        "lon": 71.4305576
+      },
+      "nodes": [
+        13073477435,
+        13073477436,
+        13073477437,
+        13073477438,
+        13073477435
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422579166,
+      "center": {
+        "lat": 51.1292688,
+        "lon": 71.4311736
+      },
+      "nodes": [
+        13073477439,
+        13073477440,
+        13073477441,
+        13073477442,
+        13073477439
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767683,
+      "center": {
+        "lat": 51.1319122,
+        "lon": 71.4150911
+      },
+      "nodes": [
+        13075242691,
+        13075242692,
+        13075242693,
+        13075242694,
+        13075242691
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767684,
+      "center": {
+        "lat": 51.1318166,
+        "lon": 71.4153735
+      },
+      "nodes": [
+        13075242695,
+        13075242696,
+        13075242697,
+        13075242698,
+        13075242695
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767685,
+      "center": {
+        "lat": 51.1317227,
+        "lon": 71.4156611
+      },
+      "nodes": [
+        13075242699,
+        14087642693,
+        13075242700,
+        13075301901,
+        13075301902,
+        13075242699
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767687,
+      "center": {
+        "lat": 51.1315985,
+        "lon": 71.4146196
+      },
+      "nodes": [
+        13075301907,
+        13075301908,
+        13075301909,
+        13075301910,
+        13075301907
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767688,
+      "center": {
+        "lat": 51.1314673,
+        "lon": 71.4145973
+      },
+      "nodes": [
+        13075301911,
+        13075301912,
+        13075301913,
+        13075301914,
+        13075301911
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767689,
+      "center": {
+        "lat": 51.1317331,
+        "lon": 71.4149494
+      },
+      "nodes": [
+        13075301915,
+        13075301916,
+        13075301917,
+        13075301918,
+        13075301915
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767690,
+      "center": {
+        "lat": 51.1316884,
+        "lon": 71.4151331
+      },
+      "nodes": [
+        13075301919,
+        13075301920,
+        13075301921,
+        13075301922,
+        13075301919
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767691,
+      "center": {
+        "lat": 51.1316164,
+        "lon": 71.4153553
+      },
+      "nodes": [
+        13075301923,
+        13075301924,
+        13075301925,
+        13075301926,
+        13075301923
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767692,
+      "center": {
+        "lat": 51.1315383,
+        "lon": 71.4155209
+      },
+      "nodes": [
+        13075301927,
+        13075301928,
+        13075301929,
+        13075301930,
+        13075301927
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422767693,
+      "center": {
+        "lat": 51.1314316,
+        "lon": 71.4156535
+      },
+      "nodes": [
+        13075301931,
+        13075301932,
+        14087642681,
+        14087642682,
+        13075301933,
+        13075301934,
+        13075301935,
+        14087642680,
+        13075301936,
+        13075301931
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801899,
+      "center": {
+        "lat": 51.1311382,
+        "lon": 71.4146874
+      },
+      "nodes": [
+        13075607579,
+        13075607580,
+        14087635797,
+        13075607581,
+        13075607582,
+        13075607583,
+        14087635788,
+        13075607584,
+        13075607579
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801900,
+      "center": {
+        "lat": 51.1311484,
+        "lon": 71.4144507
+      },
+      "nodes": [
+        13075607585,
+        13075607586,
+        14087635799,
+        13075607587,
+        14087635798,
+        13075607588,
+        13075607589,
+        13075607590,
+        13075607585
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801901,
+      "center": {
+        "lat": 51.1311043,
+        "lon": 71.4142296
+      },
+      "nodes": [
+        13075607591,
+        14087635800,
+        13075607592,
+        14087635794,
+        13075607593,
+        13075607594,
+        14087642601,
+        14087642602,
+        13075607591
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801902,
+      "center": {
+        "lat": 51.1304638,
+        "lon": 71.4142705
+      },
+      "nodes": [
+        13075607595,
+        14087635786,
+        14087635787,
+        13075607596,
+        13075607597,
+        14087635784,
+        13075607598,
+        14087635785,
+        13075652501,
+        13075607595
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801903,
+      "center": {
+        "lat": 51.1304467,
+        "lon": 71.4146133
+      },
+      "nodes": [
+        13075652502,
+        13075652503,
+        13075652504,
+        13075652505,
+        13075652506,
+        13075652507,
+        13075652508,
+        14087635792,
+        14087635793,
+        13075652502
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801904,
+      "center": {
+        "lat": 51.1305068,
+        "lon": 71.4148603
+      },
+      "nodes": [
+        13075652510,
+        14087635791,
+        13075652511,
+        13075652512,
+        13075652513,
+        13075652514,
+        13075652515,
+        13075652516,
+        13075652510
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1422801905,
+      "center": {
+        "lat": 51.130607,
+        "lon": 71.4150024
+      },
+      "nodes": [
+        13075652517,
+        13075652518,
+        14087635796,
+        14087635795,
+        13075652519,
+        13075652520,
+        14087635790,
+        14087635789,
+        13075652517
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1424119032,
+      "center": {
+        "lat": 51.1215349,
+        "lon": 71.4139589
+      },
+      "nodes": [
+        13089091778,
+        14089450797,
+        14089450798,
+        13089091779,
+        13089091780,
+        13089091781,
+        10679885387,
+        13089091782,
+        13089091778
+      ],
+      "tags": {
+        "access": "yes",
+        "garden:type": "public",
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1424119033,
+      "center": {
+        "lat": 51.1217793,
+        "lon": 71.4138775
+      },
+      "nodes": [
+        13089091783,
+        13089091784,
+        13089091785,
+        13089091786,
+        13089091787,
+        13089091788,
+        13089091789,
+        13089091790,
+        13089091791,
+        13089091792,
+        13089091793,
+        13089091794,
+        13089091795,
+        13089091796,
+        13089091797,
+        13089091798,
+        13089091799,
+        13089091800,
+        13089147401,
+        13089147402,
+        13089147403,
+        13089147404,
+        13089091783
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1424558972,
+      "center": {
+        "lat": 51.1158844,
+        "lon": 71.4018113
+      },
+      "nodes": [
+        13094149233,
+        13094149234,
+        13094149235,
+        13094149236,
+        13094149237,
+        13094149238,
+        13094149233
+      ],
+      "tags": {
+        "access": "yes",
+        "garden:type": "public",
+        "leisure": "garden",
+        "name": "Mereke Park",
+        "operator": "SvoyDom, FBK-Куралыс, Damu consortium, Талгат Ергалиев",
+        "operator:type": "public"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449295053,
+      "center": {
+        "lat": 51.1325682,
+        "lon": 71.4033936
+      },
+      "nodes": [
+        13293842634,
+        13293844302,
+        13293832927,
+        13293843717,
+        13293842634
+      ],
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "indoor": "room",
+        "level": "0",
+        "name": "Cups coffee"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449301315,
+      "center": {
+        "lat": 51.1327269,
+        "lon": 71.4037634
+      },
+      "nodes": [
+        13293890809,
+        13293891608,
+        13293891111,
+        13293890810,
+        13293892204,
+        13293890811,
+        13293892015,
+        13293892016,
+        13293892017,
+        13293890809
+      ],
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "cuisine": "coffee_shop",
+        "indoor": "room",
+        "level": "1",
+        "name": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449301389,
+      "center": {
+        "lat": 51.133116,
+        "lon": 71.4030855
+      },
+      "nodes": [
+        13293891935,
+        13293891934,
+        13293892604,
+        13293891936,
+        13293891935
+      ],
+      "tags": {
+        "access": "yes",
+        "amenity": "place_of_worship",
+        "denomination": "sunni",
+        "indoor": "room",
+        "level": "1",
+        "name": "Намазхана",
+        "religion": "muslim"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449317691,
+      "center": {
+        "lat": 51.132337,
+        "lon": 71.4033443
+      },
+      "nodes": [
+        13294023866,
+        13294024404,
+        13294023955,
+        13294024213,
+        13294031105,
+        13294023956,
+        13294023867,
+        13294023866
+      ],
+      "tags": {
+        "amenity": "cafe",
+        "contact:phone": "+7 707 180 7400",
+        "contact:website": "https://lepimivarim.ru",
+        "cuisine": "russian",
+        "indoor": "room",
+        "level": "3",
+        "name": "Лепим и варим",
+        "opening_hours": "Mo-Su 10:00-23:00"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322328,
+      "center": {
+        "lat": 51.1328295,
+        "lon": 71.4034074
+      },
+      "nodes": [
+        13294075701,
+        13294075801,
+        13294075901,
+        13294075902,
+        13294076001,
+        13294075602,
+        13294076101,
+        13294075702,
+        13294076201,
+        13294076002,
+        13294076003,
+        13294076004,
+        13294075703,
+        13294075701
+      ],
+      "tags": {
+        "indoor": "room",
+        "level": "4",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322329,
+      "center": {
+        "lat": 51.1328472,
+        "lon": 71.403812
+      },
+      "nodes": [
+        13294075802,
+        13294076005,
+        13294075704,
+        13294076006,
+        13294075705,
+        13294076007,
+        13294076301,
+        13294075706,
+        13294075603,
+        13294075604,
+        13294075605,
+        13294076008,
+        13294076009,
+        13294076010,
+        13294076011,
+        13294075802
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Конвой",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322330,
+      "center": {
+        "lat": 51.1322703,
+        "lon": 71.403346
+      },
+      "nodes": [
+        13294075606,
+        13294076012,
+        13294076013,
+        13294075607,
+        13294075608,
+        13294075609,
+        13294075707,
+        13294075708,
+        13294076014,
+        13294076701,
+        13294076015,
+        13294075610,
+        13294075611,
+        13294075709,
+        13294075612,
+        13294076302,
+        13294075606
+      ],
+      "tags": {
+        "indoor": "room",
+        "leisure": "playground",
+        "level": "4"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322332,
+      "center": {
+        "lat": 51.1321771,
+        "lon": 71.4036064
+      },
+      "nodes": [
+        13294076017,
+        13294075804,
+        13294076018,
+        13294075711,
+        13293843008,
+        13294076304,
+        13294075613,
+        13294075614,
+        13294075712,
+        13294075713,
+        13294075714,
+        13294076305,
+        13294075615,
+        13294075715,
+        13294076306,
+        13294076307,
+        13294075616,
+        13294076017
+      ],
+      "tags": {
+        "indoor": "room",
+        "leisure": "playground",
+        "level": "4"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322335,
+      "center": {
+        "lat": 51.1322245,
+        "lon": 71.4039315
+      },
+      "nodes": [
+        13294076308,
+        13294076021,
+        13294075619,
+        13294076309,
+        13294075717,
+        13294075620,
+        13294076203,
+        13294075621,
+        13294076022,
+        13294075622,
+        13294075623,
+        13294076310,
+        13294075718,
+        13294075719,
+        13294075805,
+        13294076204,
+        13294075624,
+        13294075904,
+        13294075806,
+        13294075625,
+        13294076311,
+        13294076312,
+        13294075720,
+        13294075626,
+        13294075905,
+        13294076313,
+        13294076308
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Gold Mine Coaster",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322336,
+      "center": {
+        "lat": 51.1322131,
+        "lon": 71.4041463
+      },
+      "nodes": [
+        13294075906,
+        13294075627,
+        13294075628,
+        13294075629,
+        13294076205,
+        13294075630,
+        13294075631,
+        13294075632,
+        13294075907,
+        13294076314,
+        13294076315,
+        13294075721,
+        13294075633,
+        13294075906
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Pop Up",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322337,
+      "center": {
+        "lat": 51.1322391,
+        "lon": 71.4046347
+      },
+      "nodes": [
+        13294075908,
+        13294076316,
+        13294075909,
+        13294076023,
+        13294075722,
+        13294075910,
+        13294075807,
+        13294076317,
+        13294075908
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "НЛО",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322338,
+      "center": {
+        "lat": 51.1324686,
+        "lon": 71.4047499
+      },
+      "nodes": [
+        13294075723,
+        13294075634,
+        13294075808,
+        13294075635,
+        13294075723
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Ұшатын автобус",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322339,
+      "center": {
+        "lat": 51.1324374,
+        "lon": 71.4044883
+      },
+      "nodes": [
+        13294075636,
+        13294075724,
+        13294075637,
+        13294076318,
+        13294076206,
+        13294076024,
+        13294075809,
+        13294076025,
+        13294076319,
+        13294076026,
+        13294076207,
+        13294076027,
+        13294075725,
+        13294075810,
+        13294076028,
+        13294075811,
+        13294076029,
+        13294075726,
+        13294076030,
+        13294075911,
+        13294075727,
+        13294076031,
+        13294076032,
+        13294075728,
+        13294076033,
+        13294075636
+      ],
+      "tags": {
+        "indoor": "room",
+        "level": "4",
+        "name": "Динопарк",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322340,
+      "center": {
+        "lat": 51.1327244,
+        "lon": 71.404431
+      },
+      "nodes": [
+        13294076320,
+        13294075729,
+        13294075730,
+        13294075731,
+        13294075732,
+        13294075733,
+        13294075734,
+        13294075735,
+        13294075638,
+        13294076321,
+        13294075736,
+        13294076034,
+        13294075737,
+        13294075738,
+        13294075739,
+        13294076035,
+        13294075740,
+        13294075639,
+        13294075741,
+        13294075640,
+        13294075641,
+        13294076036,
+        13294076322,
+        13294076702,
+        13294075642,
+        13294075742,
+        13294075912,
+        13294076037,
+        13294075743,
+        13294075744,
+        13294076038,
+        13294075643,
+        13294076039,
+        13294075745,
+        13294076320
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Электронды көліктер",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322353,
+      "center": {
+        "lat": 51.1327723,
+        "lon": 71.4041601
+      },
+      "nodes": [
+        13294075644,
+        13294075746,
+        13294075747,
+        13294076323,
+        13294075644
+      ],
+      "tags": {
+        "attraction": "bumper_car",
+        "indoor": "area",
+        "level": "4",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1449322354,
+      "center": {
+        "lat": 51.1325344,
+        "lon": 71.4038802
+      },
+      "nodes": [
+        13293842406,
+        13293843011,
+        13293842607,
+        13293843108,
+        13293842405,
+        13293843107,
+        13293843010,
+        13293842404,
+        13294076304,
+        13293843106,
+        13294076020,
+        13293842403,
+        13293843105,
+        13293843007,
+        13293843006,
+        13293842402,
+        13294076316,
+        13294075908,
+        13293842704,
+        13293843104,
+        13293832910,
+        13293843702,
+        13293843103,
+        13293842502,
+        13293832909,
+        13293832908,
+        13293842606,
+        13293832907,
+        13293843005,
+        13293832906,
+        13293843701,
+        13293842406
+      ],
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Fame City",
+        "tourism": "theme_park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1454510526,
+      "center": {
+        "lat": 51.1209825,
+        "lon": 71.3993549
+      },
+      "nodes": [
+        13339110478,
+        13339110479,
+        13339110480,
+        13339110481,
+        13339110478
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1454611376,
+      "center": {
+        "lat": 51.1368298,
+        "lon": 71.4025257
+      },
+      "nodes": [
+        13340050445,
+        13340050446,
+        13340050447,
+        13340050429,
+        13340050430,
+        13340050431,
+        13340050432,
+        13340050433,
+        13340050434,
+        13340050442,
+        13340050443,
+        13340050444,
+        13340050435,
+        13340050436,
+        13340050437,
+        13340050438,
+        13340050439,
+        13340050440,
+        13340050441,
+        13340050445
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1460537088,
+      "center": {
+        "lat": 51.1227533,
+        "lon": 71.4417645
+      },
+      "nodes": [
+        13634752996,
+        13634753038,
+        13634753037,
+        13634752997,
+        13634753036,
+        13634752998,
+        13634753035,
+        13634753040,
+        13634753039,
+        13634752999,
+        13634753000,
+        13634753001,
+        13634753034,
+        13634753033,
+        13634753032,
+        13634753002,
+        13634753003,
+        13634753045,
+        13634753046,
+        13634753203,
+        13634753047,
+        13634753048,
+        13634753044,
+        13634753004,
+        13634753201,
+        13634753031,
+        13634753030,
+        13634753029,
+        13634753028,
+        13634753005,
+        13634753027,
+        13634753006,
+        13634753007,
+        13634753008,
+        13634753009,
+        13634753042,
+        13634753116,
+        13634753115,
+        13634753119,
+        13634753118,
+        13634753114,
+        13634753088,
+        13634753193,
+        13634753113,
+        13634753112,
+        13634753053,
+        13634753054,
+        13634753043,
+        13634753026,
+        13634753025,
+        13634753010,
+        13634753021,
+        13634753022,
+        13634753011,
+        13634753023,
+        13634753024,
+        13634753012,
+        13634753013,
+        13634753014,
+        13634753015,
+        13634753016,
+        13634753017,
+        13634753183,
+        13634753041,
+        13634753094,
+        13634753093,
+        13634753083,
+        13634753186,
+        13634753110,
+        13634753095,
+        13634753018,
+        13634753111,
+        13634753185,
+        13634753019,
+        13634753020,
+        13634752996
+      ],
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "10/1",
+        "addr:street": "Мәңгілік Ел даңғылы",
+        "alt_name": "Қазақстан Орталық концерт залы",
+        "alt_name:ru": "Центральный концертный зал Казахстан",
+        "amenity": "theatre",
+        "architect": "Манфреди Николетти",
+        "building": "civic",
+        "email": "info@qazaqconcert.kz",
+        "name": "Astana Musical",
+        "name:en": "Astana Musical",
+        "phone": "+77172705256",
+        "start_date": "2009",
+        "website": "https://qazaqconcert.kz/",
+        "wikidata": "Q573362",
+        "wikipedia": "kk:Қазақстан Орталық концерт залы",
+        "wikipedia:ru": "ru:Казахстан (концертный зал)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1460700597,
+      "center": {
+        "lat": 51.1492984,
+        "lon": 71.4180805
+      },
+      "nodes": [
+        4903977162,
+        13397202220,
+        13397202219,
+        13397202216,
+        13397202217,
+        13397202218,
+        13397202210,
+        13397202211,
+        13397202212,
+        13397202213,
+        13397202214,
+        13397202215,
+        13397202209,
+        4903977163,
+        13397202208,
+        13397202207,
+        13397202205,
+        13397202206,
+        13397202204,
+        13397202203,
+        4903977138,
+        13397202202,
+        13397202201,
+        4903977139,
+        13397202200,
+        4903977140,
+        4903977141,
+        13397202199,
+        13397202198,
+        4903977142,
+        13397202197,
+        13397202196,
+        13397202195,
+        4903977143,
+        13397202194,
+        13397202193,
+        13397202192,
+        4903977144,
+        13397202191,
+        13397202190,
+        13397202189,
+        4903977145,
+        4903977146,
+        4903977147,
+        4903977148,
+        4903977149,
+        4903977150,
+        4903977151,
+        4903977152,
+        4903977153,
+        4903977154,
+        4903977155,
+        4903977156,
+        4903977157,
+        4903977158,
+        4903977159,
+        4903977160,
+        4903977161,
+        4903977162
+      ],
+      "tags": {
+        "museum": "open_air",
+        "name": "Атамекен Қазақстан картасы этно-мемориалдық кешені",
+        "name:ru": "Этно-мемориальный комплекс Карта Казахстана Атамекен",
+        "start_date": "2001-09-08",
+        "tourism": "museum",
+        "wikidata": "Q1454511",
+        "wikipedia": "kk:Атамекен (мұражай)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1460702136,
+      "center": {
+        "lat": 51.152019,
+        "lon": 71.4318117
+      },
+      "nodes": [
+        13397184828,
+        13397184829,
+        13397184830,
+        13397184831,
+        259994567,
+        259852298,
+        10143163273,
+        2637315056,
+        1776796660,
+        1776796659,
+        259994579,
+        2637315032,
+        1776796658,
+        2637315025,
+        2637315023,
+        10143163275,
+        2637315021,
+        259994584,
+        1776796723,
+        10148740141,
+        2637315001,
+        259994585,
+        10148740142,
+        2637314998,
+        2637314999,
+        13397184832,
+        13397184833,
+        13397184834,
+        13397184835,
+        13397184836,
+        13397184837,
+        13397184838,
+        13397184839,
+        13397184840,
+        13397184841,
+        13397184842,
+        13397184843,
+        13397184844,
+        13397184845,
+        13397184846,
+        13397184847,
+        13397184848,
+        4892177270,
+        4892177269,
+        4892177268,
+        4892177267,
+        4892177266,
+        4892177265,
+        4892177278,
+        13397184849,
+        13397184850,
+        13397184851,
+        13397184852,
+        13397184853,
+        13397184854,
+        13397184855,
+        13397184828
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Ататүрік саябағы",
+        "name:en": "Park Ataturk",
+        "name:ru": "Парк Ататюрка"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1461292510,
+      "center": {
+        "lat": 51.1104631,
+        "lon": 71.4364213
+      },
+      "nodes": [
+        13401561011,
+        13401561012,
+        13401561013,
+        13401561014,
+        13401561011
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1461445417,
+      "center": {
+        "lat": 51.1164062,
+        "lon": 71.4393441
+      },
+      "nodes": [
+        13403759190,
+        13403759191,
+        13403759192,
+        13403759193,
+        13403759190
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1461480272,
+      "center": {
+        "lat": 51.1193698,
+        "lon": 71.4402918
+      },
+      "nodes": [
+        13404024681,
+        13404024682,
+        13404024683,
+        13404024684,
+        13404024681
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1461751890,
+      "center": {
+        "lat": 51.1096352,
+        "lon": 71.4192278
+      },
+      "nodes": [
+        13408002453,
+        13408002454,
+        13408002455,
+        13408002456,
+        13408002453
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1462229151,
+      "center": {
+        "lat": 51.1142766,
+        "lon": 71.4305816
+      },
+      "nodes": [
+        13412540678,
+        13412540679,
+        13412540680,
+        13412540681,
+        13412540678
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1462229153,
+      "center": {
+        "lat": 51.114712,
+        "lon": 71.4300514
+      },
+      "nodes": [
+        12430639505,
+        13412540686,
+        13412540687,
+        12430639506,
+        12430639505
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1467734683,
+      "center": {
+        "lat": 51.114102,
+        "lon": 71.4160208
+      },
+      "nodes": [
+        13461731464,
+        13461731465,
+        13461731466,
+        13461731448,
+        13461731449,
+        13461731450,
+        13461731451,
+        13461731452,
+        13461731453,
+        13461731460,
+        13461731461,
+        13461731462,
+        13461731463,
+        13461731454,
+        13461731455,
+        13461731456,
+        13461731457,
+        13461731458,
+        13461731459,
+        13461731464
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1467734734,
+      "center": {
+        "lat": 51.1099972,
+        "lon": 71.4171855
+      },
+      "nodes": [
+        13461731577,
+        13461731578,
+        13461731579,
+        13461731580,
+        13461731577
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1467797214,
+      "center": {
+        "lat": 51.1200544,
+        "lon": 71.4608103
+      },
+      "nodes": [
+        13462282582,
+        13462282583,
+        13462282584,
+        13462282585,
+        13462282582
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1470780026,
+      "center": {
+        "lat": 51.135573,
+        "lon": 71.408849
+      },
+      "nodes": [
+        4922160308,
+        4922160038,
+        4922160256,
+        4922160267,
+        4922160308
+      ],
+      "tags": {
+        "leisure": "garden",
+        "name": "Дубовая аллея"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1488084865,
+      "center": {
+        "lat": 51.1310353,
+        "lon": 71.4499063
+      },
+      "nodes": [
+        13641642154,
+        13641642155,
+        13641642156,
+        13641642157,
+        13641642154
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490250447,
+      "center": {
+        "lat": 51.131559,
+        "lon": 71.4522487
+      },
+      "nodes": [
+        13659093608,
+        13659093609,
+        13659093610,
+        13659093611,
+        13659093612,
+        13659093613,
+        13659093608
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490250448,
+      "center": {
+        "lat": 51.1320733,
+        "lon": 71.452871
+      },
+      "nodes": [
+        13659093614,
+        13659093615,
+        13659093616,
+        13659093617,
+        13659093618,
+        13659093619,
+        13659093620,
+        13659093621,
+        13659093614
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254180,
+      "center": {
+        "lat": 51.1273064,
+        "lon": 71.4297467
+      },
+      "nodes": [
+        13659121716,
+        13659121717,
+        13659121718,
+        13659121719,
+        13659121716
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254182,
+      "center": {
+        "lat": 51.1270191,
+        "lon": 71.4296178
+      },
+      "nodes": [
+        13659121725,
+        13659121726,
+        13659121727,
+        13659121728,
+        13659121725
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254183,
+      "center": {
+        "lat": 51.1267354,
+        "lon": 71.4295049
+      },
+      "nodes": [
+        13659121729,
+        13659121730,
+        13659121731,
+        13659121732,
+        13659121729
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254184,
+      "center": {
+        "lat": 51.126502,
+        "lon": 71.4294025
+      },
+      "nodes": [
+        13659121733,
+        13659121734,
+        13659121735,
+        13659121736,
+        13659121733
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254191,
+      "center": {
+        "lat": 51.1264032,
+        "lon": 71.4300859
+      },
+      "nodes": [
+        13659121768,
+        13659121769,
+        13659121770,
+        13659121771,
+        13659121768
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254193,
+      "center": {
+        "lat": 51.1266449,
+        "lon": 71.4301385
+      },
+      "nodes": [
+        13659121775,
+        13659121776,
+        13659121777,
+        13659121778,
+        13659121775
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254194,
+      "center": {
+        "lat": 51.1269128,
+        "lon": 71.4302526
+      },
+      "nodes": [
+        13659121779,
+        13659121780,
+        13659121781,
+        13659121782,
+        13659121779
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1490254195,
+      "center": {
+        "lat": 51.1272046,
+        "lon": 71.4303576
+      },
+      "nodes": [
+        13659121783,
+        13659121784,
+        13659121785,
+        13659121786,
+        13659121783
+      ],
+      "tags": {
+        "leisure": "garden"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1504543670,
+      "center": {
+        "lat": 51.1291795,
+        "lon": 71.4158153
+      },
+      "nodes": [
+        13767468136,
+        13767468137,
+        13767468138,
+        13767468139,
+        13767468140,
+        13767468136
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1504543671,
+      "center": {
+        "lat": 51.1290426,
+        "lon": 71.4158215
+      },
+      "nodes": [
+        13767468142,
+        13767468145,
+        2678329367,
+        13767468144,
+        13767468143,
+        13767468142
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1510550567,
+      "center": {
+        "lat": 51.1164571,
+        "lon": 71.4194874
+      },
+      "nodes": [
+        13808607211,
+        13808607215,
+        13808607216,
+        13808607212,
+        13808607211
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1510550568,
+      "center": {
+        "lat": 51.1160092,
+        "lon": 71.4193156
+      },
+      "nodes": [
+        13808607214,
+        13808607217,
+        13808607218,
+        13808607213,
+        13808607214
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1510554097,
+      "center": {
+        "lat": 51.1249797,
+        "lon": 71.4262715
+      },
+      "nodes": [
+        13808628328,
+        13808628329,
+        13808628330,
+        13808628331,
+        13808628328
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1510554098,
+      "center": {
+        "lat": 51.125829,
+        "lon": 71.4261361
+      },
+      "nodes": [
+        13808628332,
+        13808628333,
+        13808628334,
+        13808628335,
+        13808628332
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1510554100,
+      "center": {
+        "lat": 51.1255654,
+        "lon": 71.4264942
+      },
+      "nodes": [
+        13808628339,
+        13808628340,
+        13808628341,
+        13808628342,
+        13808628339
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525461715,
+      "center": {
+        "lat": 51.1196759,
+        "lon": 71.4258499
+      },
+      "nodes": [
+        13904226725,
+        13904226726,
+        13904226727,
+        13904226710,
+        13904226711,
+        13904226712,
+        13904226713,
+        13904226714,
+        13904226720,
+        13904226721,
+        13904226722,
+        13904226723,
+        13904226724,
+        13904226715,
+        13904226716,
+        13904226717,
+        13904226718,
+        13904226719,
+        13904226725
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525461721,
+      "center": {
+        "lat": 51.1171571,
+        "lon": 71.4249865
+      },
+      "nodes": [
+        13904226733,
+        13904226734,
+        13353076662,
+        13904226735,
+        13904226736,
+        13353124232,
+        13904226733
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1526017110,
+      "center": {
+        "lat": 51.1146833,
+        "lon": 71.401669
+      },
+      "nodes": [
+        13909035160,
+        13909035161,
+        13909035162,
+        13909035163,
+        13909035160
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1526900363,
+      "center": {
+        "lat": 51.1291442,
+        "lon": 71.3946568
+      },
+      "nodes": [
+        13915790145,
+        13915790146,
+        13915790147,
+        13915790148,
+        13915790149,
+        13915790150,
+        13915790151,
+        13915790152,
+        13915790153,
+        13915790154,
+        13915790155,
+        13915790156,
+        13915790145
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868407,
+      "center": {
+        "lat": 51.1386693,
+        "lon": 71.4391116
+      },
+      "nodes": [
+        13923198418,
+        13923198419,
+        13923198420,
+        13923198421,
+        13923198418
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868408,
+      "center": {
+        "lat": 51.1385435,
+        "lon": 71.4391514
+      },
+      "nodes": [
+        13923198422,
+        13923198423,
+        13923198424,
+        13923198425,
+        13923198422
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868409,
+      "center": {
+        "lat": 51.138411,
+        "lon": 71.4391918
+      },
+      "nodes": [
+        13923198426,
+        13923198427,
+        13923198428,
+        13923198429,
+        13923198426
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868410,
+      "center": {
+        "lat": 51.1382686,
+        "lon": 71.4392384
+      },
+      "nodes": [
+        13923198430,
+        13923198431,
+        13923198432,
+        13923198433,
+        13923198430
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868411,
+      "center": {
+        "lat": 51.1381665,
+        "lon": 71.4396186
+      },
+      "nodes": [
+        13923198434,
+        13923198435,
+        13923198436,
+        13923198437,
+        13923198434
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868412,
+      "center": {
+        "lat": 51.1382083,
+        "lon": 71.4398815
+      },
+      "nodes": [
+        13923198438,
+        13923198439,
+        13923198440,
+        13923198441,
+        13923198438
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868413,
+      "center": {
+        "lat": 51.1382637,
+        "lon": 71.4402451
+      },
+      "nodes": [
+        13923198442,
+        13923198443,
+        13923198444,
+        13923198445,
+        13923198442
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868526,
+      "center": {
+        "lat": 51.1198933,
+        "lon": 71.4280488
+      },
+      "nodes": [
+        13923198802,
+        13923198803,
+        13923198804,
+        13923198805,
+        13923198802
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1527868532,
+      "center": {
+        "lat": 51.1173232,
+        "lon": 71.4274236
+      },
+      "nodes": [
+        13923198837,
+        13923198838,
+        13923198839,
+        13923198840,
+        13923198841,
+        13923198842,
+        13923198843,
+        13923198844,
+        13923198837
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1530378837,
+      "center": {
+        "lat": 51.1210348,
+        "lon": 71.4305979
+      },
+      "nodes": [
+        13947915925,
+        13947915926,
+        13947915927,
+        13947915928,
+        13947915929,
+        13947915930,
+        13947915925
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1530378839,
+      "center": {
+        "lat": 51.120901,
+        "lon": 71.4315636
+      },
+      "nodes": [
+        13947915932,
+        13947915933,
+        13947915934,
+        13947915935,
+        13947915936,
+        13947915937,
+        13947915932
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1530378843,
+      "center": {
+        "lat": 51.1227648,
+        "lon": 71.4234053
+      },
+      "nodes": [
+        13947915960,
+        13947915961,
+        13947915962,
+        13947915963,
+        13947915960
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1530378859,
+      "center": {
+        "lat": 51.1264594,
+        "lon": 71.4337272
+      },
+      "nodes": [
+        13947918432,
+        13947918433,
+        13947918434,
+        13947918435,
+        13947918432
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1530378860,
+      "center": {
+        "lat": 51.1267436,
+        "lon": 71.4332539
+      },
+      "nodes": [
+        13947918436,
+        13947918437,
+        13947918438,
+        13947918439,
+        13947918436
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1549054979,
+      "center": {
+        "lat": 51.1240421,
+        "lon": 71.4113351
+      },
+      "nodes": [
+        14089450785,
+        14089450786,
+        14089450787,
+        14089450788,
+        14089450785
+      ],
+      "tags": {
+        "leisure": "playground"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 15957444,
+      "center": {
+        "lat": 51.1548152,
+        "lon": 71.4195693
+      },
+      "members": [
+        {
+          "type": "way",
+          "ref": 120264226,
+          "role": "outer"
+        },
+        {
+          "type": "way",
+          "ref": 1180153749,
+          "role": "outer"
+        }
+      ],
+      "tags": {
+        "leisure": "park",
+        "name": "Астана саябағы",
+        "name:en": "Astana Park",
+        "name:kk": "Астана саябағы",
+        "name:ru": "Парк Астана",
+        "type": "multipolygon"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 16827715,
+      "center": {
+        "lat": 51.126709,
+        "lon": 71.4157675
+      },
+      "members": [
+        {
+          "type": "way",
+          "ref": 230400888,
+          "role": "outer"
+        },
+        {
+          "type": "way",
+          "ref": 1231622398,
+          "role": "inner"
+        }
+      ],
+      "tags": {
+        "addr:country": "KZ",
+        "addr:housenumber": "36",
+        "addr:street": "Қабанбай Батыр даңғылы",
+        "amenity": "place_of_worship",
+        "building": "mosque",
+        "building:levels": "7",
+        "name": "Әбу Насыр әл-Фараби мешіті",
+        "name:en": "Abu Nasir Al-Farabi Mosque",
+        "name:kk": "Әбу Насыр әл-Фараби мешіті",
+        "name:ru": "Мечеть Абу Насыра аль-Фараби",
+        "old_name": "Нұр-Астана мешіті",
+        "old_name:ar": "مسجد نور أستانا",
+        "old_name:en": "Nur-Astana Mosque",
+        "old_name:ja": "ヌル・アスタナ・モスク",
+        "old_name:kk": "Нұр-Астана мешіті",
+        "old_name:ru": "Мечеть «Нур-Астана»",
+        "religion": "muslim",
+        "roof:shape": "onion",
+        "type": "multipolygon",
+        "wikidata": "Q1813417"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 19990578,
+      "center": {
+        "lat": 51.1262747,
+        "lon": 71.434702
+      },
+      "members": [
+        {
+          "type": "way",
+          "ref": 609969234,
+          "role": "outer"
+        },
+        {
+          "type": "way",
+          "ref": 609969235,
+          "role": "outer"
+        }
+      ],
+      "tags": {
+        "leisure": "playground",
+        "type": "multipolygon"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 20588234,
+      "center": {
+        "lat": 51.1182735,
+        "lon": 71.4549042
+      },
+      "members": [
+        {
+          "type": "way",
+          "ref": 1106496460,
+          "role": "outer"
+        },
+        {
+          "type": "way",
+          "ref": 1106496461,
+          "role": "outer"
+        }
+      ],
+      "tags": {
+        "leisure": "playground",
+        "type": "multipolygon"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 21213420,
+      "center": {
+        "lat": 51.1281751,
+        "lon": 71.4233676
+      },
+      "members": [
+        {
+          "type": "way",
+          "ref": 1548706496,
+          "role": "outer"
+        },
+        {
+          "type": "way",
+          "ref": 1548706476,
+          "role": "inner"
+        },
+        {
+          "type": "way",
+          "ref": 1548706475,
+          "role": "inner"
+        },
+        {
+          "type": "way",
+          "ref": 1548706471,
+          "role": "inner"
+        },
+        {
+          "type": "way",
+          "ref": 1548706472,
+          "role": "inner"
+        }
+      ],
+      "tags": {
+        "leisure": "playground",
+        "type": "multipolygon"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 21213421,
+      "center": {
+        "lat": 51.1281896,
+        "lon": 71.4239549
+      },
+      "members": [
+        {
+          "type": "way",
+          "ref": 1548706515,
+          "role": "outer"
+        },
+        {
+          "type": "way",
+          "ref": 1548706474,
+          "role": "inner"
+        }
+      ],
+      "tags": {
+        "leisure": "playground",
+        "type": "multipolygon"
+      }
+    }
+  ]
+}
