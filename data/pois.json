@@ -1,0 +1,713 @@
+{
+  "schemaVersion": 1,
+  "zone": {
+    "id": "bayterek",
+    "name": "Бәйтерек и центр Астаны",
+    "center": {
+      "lat": 51.1283,
+      "lon": 71.4305
+    },
+    "radiusMeters": 2500
+  },
+  "source": {
+    "provider": "OpenStreetMap",
+    "importedAt": "2026-10-18T16:03:40.668Z",
+    "osmBaseTimestamp": "2026-10-18T15:50:20Z",
+    "attribution": "© OpenStreetMap contributors",
+    "licenseUrl": "https://www.openstreetmap.org/copyright"
+  },
+  "pois": [
+    {
+      "id": "osm:way:230401645",
+      "name": "Бәйтерек",
+      "names": {
+        "ru": "Байтерек",
+        "kk": "Бәйтерек",
+        "en": "Bayterek"
+      },
+      "category": "monument",
+      "description": "Монумент в пилотной зоне вокруг Бәйтерека. Адрес по OSM: Нұржол желек жолы, 14.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1282882,
+      "lon": 71.4304546,
+      "visitMinutes": 20,
+      "sourceUrl": "https://www.openstreetmap.org/way/230401645",
+      "osmType": "way",
+      "osmId": 230401645,
+      "tags": {
+        "access": "yes",
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "14",
+        "addr:street": "Нұржол желек жолы",
+        "building": "yes",
+        "building:levels": "27",
+        "historic": "monument",
+        "layer": "1",
+        "name": "Бәйтерек",
+        "name:de": "Bajterek-Turm",
+        "name:en": "Bayterek",
+        "name:ja": "バイテレック・タワー・タワー",
+        "name:kk": "Бәйтерек",
+        "name:ml": "ബൈറ്റെറെക് ടവർ",
+        "name:ru": "Байтерек",
+        "wikidata": "Q804210",
+        "wikipedia": "kk:Бәйтерек (монумент)",
+        "wikipedia:ru": "ru:Байтерек (монумент)"
+      }
+    },
+    {
+      "id": "osm:node:6408271985",
+      "name": "CrepeCafe",
+      "category": "cafe",
+      "description": "Кафе в пилотной зоне вокруг Бәйтерека. Примерно в 200 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1293821,
+      "lon": 71.4285934,
+      "visitMinutes": 35,
+      "sourceUrl": "https://www.openstreetmap.org/node/6408271985",
+      "osmType": "node",
+      "osmId": 6408271985,
+      "tags": {
+        "amenity": "cafe",
+        "contact:email": "info@crepecafe.kz",
+        "contact:facebook": "https://www.facebook.com/crepecafekz",
+        "contact:instagram": "https://www.instagram.com/crepecafe_kz",
+        "contact:phone": "+7 771 949 4949",
+        "contact:website": "https://crepecafe.kz",
+        "name": "CrepeCafe",
+        "opening_hours": "Mo-Fr 08:00-00:00; Sa-Su 09:00-00:00",
+        "operator": "AZAKI2019"
+      }
+    },
+    {
+      "id": "osm:node:10564988185",
+      "name": "Degirmen",
+      "category": "cafe",
+      "description": "Кафе в пилотной зоне вокруг Бәйтерека. Примерно в 200 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1285659,
+      "lon": 71.4333254,
+      "visitMinutes": 35,
+      "sourceUrl": "https://www.openstreetmap.org/node/10564988185",
+      "osmType": "node",
+      "osmId": 10564988185,
+      "tags": {
+        "amenity": "cafe",
+        "contact:email": "marketing@degirmen.kz",
+        "contact:phone": "+7 708 377 7778",
+        "contact:website": "http://degirmen.kz/",
+        "name": "Degirmen",
+        "opening_hours": "Mo-Su 08:00-00:00"
+      }
+    },
+    {
+      "id": "osm:node:9047331880",
+      "name": "Starbucks",
+      "names": {
+        "en": "Starbucks"
+      },
+      "category": "cafe",
+      "description": "Кофейня в пилотной зоне вокруг Бәйтерека. Примерно в 400 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1280727,
+      "lon": 71.4254906,
+      "visitMinutes": 35,
+      "sourceUrl": "https://www.openstreetmap.org/node/9047331880",
+      "osmType": "node",
+      "osmId": 9047331880,
+      "tags": {
+        "amenity": "cafe",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "brand:wikipedia": "en:Starbucks",
+        "contact:email": "CSupport@alshaya.kz",
+        "contact:instagram": "https://instagram.com/starbuckskz",
+        "contact:phone": "+7 727 339 9860;+7 800 0802185",
+        "contact:website": "https://www.starbucks.com.kz/",
+        "cuisine": "coffee_shop",
+        "name": "Starbucks",
+        "name:en": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "opening_hours": "Mo-Su 09:00-23:00",
+        "operator": "\"Shaya Kazakhstan\"",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "id": "osm:node:12520559589",
+      "name": "Лепим и варим",
+      "category": "cafe",
+      "description": "Кафе в пилотной зоне вокруг Бәйтерека. Примерно в 400 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1279246,
+      "lon": 71.4254505,
+      "visitMinutes": 35,
+      "sourceUrl": "https://www.openstreetmap.org/node/12520559589",
+      "osmType": "node",
+      "osmId": 12520559589,
+      "tags": {
+        "amenity": "cafe",
+        "contact:phone": "+7 707 180 7400",
+        "contact:website": "https://lepimivarim.ru",
+        "cuisine": "russian",
+        "name": "Лепим и варим",
+        "opening_hours": "Mo-Su 10:00-22:00"
+      }
+    },
+    {
+      "id": "osm:way:230358854",
+      "name": "Сквер",
+      "category": "park",
+      "description": "Сквер в пилотной зоне вокруг Бәйтерека. Примерно в 500 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.127997,
+      "lon": 71.4235705,
+      "visitMinutes": 20,
+      "sourceUrl": "https://www.openstreetmap.org/way/230358854",
+      "osmType": "way",
+      "osmId": 230358854,
+      "tags": {
+        "leisure": "park",
+        "name": "Сквер"
+      }
+    },
+    {
+      "id": "osm:node:2691137163",
+      "name": "Gymboree",
+      "category": "playground",
+      "description": "Объект с тегами детской площадки и ухода за детьми в пилотной зоне вокруг Бәйтерека. Примерно в 600 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1289248,
+      "lon": 71.4220016,
+      "visitMinutes": 25,
+      "sourceUrl": "https://www.openstreetmap.org/node/2691137163",
+      "osmType": "node",
+      "osmId": 2691137163,
+      "tags": {
+        "amenity": "childcare",
+        "leisure": "playground",
+        "name": "Gymboree"
+      }
+    },
+    {
+      "id": "osm:way:230358847",
+      "name": "Көрме",
+      "names": {
+        "ru": "Корме",
+        "en": "Korme"
+      },
+      "category": "gallery",
+      "description": "Галерея в пилотной зоне вокруг Бәйтерека. Примерно в 700 м по прямой от Бәйтерека (по координатам OSM). Адрес по OSM: Достық көшесі, 3.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1286406,
+      "lon": 71.4203796,
+      "visitMinutes": 45,
+      "sourceUrl": "https://www.openstreetmap.org/way/230358847",
+      "osmType": "way",
+      "osmId": 230358847,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "3",
+        "addr:street": "Достық көшесі",
+        "building": "yes",
+        "building:levels": "6",
+        "name": "Көрме",
+        "name:en": "Korme",
+        "name:es": "Korme",
+        "name:ru": "Корме",
+        "toilets:wheelchair": "no",
+        "tourism": "gallery",
+        "wheelchair": "limited"
+      }
+    },
+    {
+      "id": "osm:node:2388707906",
+      "name": "Астана-Экспо КС",
+      "category": "gallery",
+      "description": "Галерея в пилотной зоне вокруг Бәйтерека. Примерно в 900 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1294931,
+      "lon": 71.4182513,
+      "visitMinutes": 45,
+      "sourceUrl": "https://www.openstreetmap.org/node/2388707906",
+      "osmType": "node",
+      "osmId": 2388707906,
+      "tags": {
+        "amenity": "community_centre",
+        "contact:email": "office@astana-expo.com",
+        "contact:fax": "+7(7172) 52-43-03",
+        "contact:phone": "+7(7172) 52-42-33",
+        "contact:website": "http://www.astana-expo.com",
+        "name": "Астана-Экспо КС",
+        "tourism": "gallery"
+      }
+    },
+    {
+      "id": "osm:way:1460537088",
+      "name": "Astana Musical",
+      "names": {
+        "en": "Astana Musical"
+      },
+      "category": "theatre",
+      "description": "Театр в пилотной зоне вокруг Бәйтерека. Примерно в 1000 м по прямой от Бәйтерека (по координатам OSM). Адрес по OSM: Мәңгілік Ел даңғылы, 10/1.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1227533,
+      "lon": 71.4417645,
+      "visitMinutes": 20,
+      "sourceUrl": "https://www.openstreetmap.org/way/1460537088",
+      "osmType": "way",
+      "osmId": 1460537088,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "10/1",
+        "addr:street": "Мәңгілік Ел даңғылы",
+        "alt_name": "Қазақстан Орталық концерт залы",
+        "alt_name:ru": "Центральный концертный зал Казахстан",
+        "amenity": "theatre",
+        "architect": "Манфреди Николетти",
+        "building": "civic",
+        "email": "info@qazaqconcert.kz",
+        "name": "Astana Musical",
+        "name:en": "Astana Musical",
+        "phone": "+77172705256",
+        "start_date": "2009",
+        "website": "https://qazaqconcert.kz/",
+        "wikidata": "Q573362",
+        "wikipedia": "kk:Қазақстан Орталық концерт залы",
+        "wikipedia:ru": "ru:Казахстан (концертный зал)"
+      }
+    },
+    {
+      "id": "osm:way:69232075",
+      "name": "Жетісу саябағы",
+      "names": {
+        "ru": "Парк Жетысу",
+        "kk": "Жетісу саябағы",
+        "en": "Zhetysu Park"
+      },
+      "category": "park",
+      "description": "Парк в пилотной зоне вокруг Бәйтерека. Примерно в 1000 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1359887,
+      "lon": 71.4384501,
+      "visitMinutes": 40,
+      "sourceUrl": "https://www.openstreetmap.org/way/69232075",
+      "osmType": "way",
+      "osmId": 69232075,
+      "tags": {
+        "barrier": "fence",
+        "int_name": "Jetisu",
+        "leisure": "park",
+        "name": "Жетісу саябағы",
+        "name:en": "Zhetysu Park",
+        "name:kk": "Жетісу саябағы",
+        "name:ru": "Парк Жетысу",
+        "wikidata": "Q104866925",
+        "wikipedia": "ru:Жетысу (парк)"
+      }
+    },
+    {
+      "id": "osm:relation:16827715",
+      "name": "Әбу Насыр әл-Фараби мешіті",
+      "names": {
+        "ru": "Мечеть Абу Насыра аль-Фараби",
+        "kk": "Әбу Насыр әл-Фараби мешіті",
+        "en": "Abu Nasir Al-Farabi Mosque"
+      },
+      "category": "place_of_worship",
+      "description": "Мечеть в пилотной зоне вокруг Бәйтерека. Примерно в 1000 м по прямой от Бәйтерека (по координатам OSM). Адрес по OSM: Қабанбай Батыр даңғылы, 36.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.126709,
+      "lon": 71.4157675,
+      "visitMinutes": 25,
+      "sourceUrl": "https://www.openstreetmap.org/relation/16827715",
+      "osmType": "relation",
+      "osmId": 16827715,
+      "tags": {
+        "addr:country": "KZ",
+        "addr:housenumber": "36",
+        "addr:street": "Қабанбай Батыр даңғылы",
+        "amenity": "place_of_worship",
+        "building": "mosque",
+        "building:levels": "7",
+        "name": "Әбу Насыр әл-Фараби мешіті",
+        "name:en": "Abu Nasir Al-Farabi Mosque",
+        "name:kk": "Әбу Насыр әл-Фараби мешіті",
+        "name:ru": "Мечеть Абу Насыра аль-Фараби",
+        "old_name": "Нұр-Астана мешіті",
+        "old_name:ar": "مسجد نور أستانا",
+        "old_name:en": "Nur-Astana Mosque",
+        "old_name:ja": "ヌル・アスタナ・モスク",
+        "old_name:kk": "Нұр-Астана мешіті",
+        "old_name:ru": "Мечеть «Нур-Астана»",
+        "religion": "muslim",
+        "roof:shape": "onion",
+        "type": "multipolygon",
+        "wikidata": "Q1813417"
+      }
+    },
+    {
+      "id": "osm:way:734514013",
+      "name": "Сызықтық саябақ",
+      "names": {
+        "ru": "Линейный парк",
+        "kk": "Сызықтық саябақ"
+      },
+      "category": "park",
+      "description": "Парк в пилотной зоне вокруг Бәйтерека. Примерно в 1100 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1185681,
+      "lon": 71.4266471,
+      "visitMinutes": 40,
+      "sourceUrl": "https://www.openstreetmap.org/way/734514013",
+      "osmType": "way",
+      "osmId": 734514013,
+      "tags": {
+        "int_name": "Sızıqtıq sayabaq",
+        "leisure": "park",
+        "name": "Сызықтық саябақ",
+        "name:kk": "Сызықтық саябақ",
+        "name:ru": "Линейный парк"
+      }
+    },
+    {
+      "id": "osm:way:1296051287",
+      "name": "Корей бақшасы",
+      "names": {
+        "ru": "Корейский сад"
+      },
+      "category": "garden",
+      "description": "Сад в пилотной зоне вокруг Бәйтерека. Примерно в 1200 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1384204,
+      "lon": 71.4362282,
+      "visitMinutes": 30,
+      "sourceUrl": "https://www.openstreetmap.org/way/1296051287",
+      "osmType": "way",
+      "osmId": 1296051287,
+      "tags": {
+        "leisure": "garden",
+        "name": "Корей бақшасы",
+        "name:fr": "Jardin coréen",
+        "name:ru": "Корейский сад"
+      }
+    },
+    {
+      "id": "osm:way:37884583",
+      "name": "Ғашықтар саябағы",
+      "names": {
+        "ru": "Парк влюбленных",
+        "kk": "Ғашықтар саябағы",
+        "en": "Lovers Park"
+      },
+      "category": "park",
+      "description": "Парк в пилотной зоне вокруг Бәйтерека. Примерно в 1500 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1314922,
+      "lon": 71.4092097,
+      "visitMinutes": 40,
+      "sourceUrl": "https://www.openstreetmap.org/way/37884583",
+      "osmType": "way",
+      "osmId": 37884583,
+      "tags": {
+        "leisure": "park",
+        "name": "Ғашықтар саябағы",
+        "name:en": "Lovers Park",
+        "name:kk": "Ғашықтар саябағы",
+        "name:ru": "Парк влюбленных"
+      }
+    },
+    {
+      "id": "osm:way:1363058986",
+      "name": "Триатлон саябағы",
+      "names": {
+        "ru": "Триатлон парк",
+        "kk": "Триатлон саябағы",
+        "en": "Triathlon park"
+      },
+      "category": "park",
+      "description": "Парк в пилотной зоне вокруг Бәйтерека. Примерно в 1600 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1352766,
+      "lon": 71.4497779,
+      "visitMinutes": 40,
+      "sourceUrl": "https://www.openstreetmap.org/way/1363058986",
+      "osmType": "way",
+      "osmId": 1363058986,
+      "tags": {
+        "addr:city": "Astana",
+        "int_name": "Trïatlon sayabağı",
+        "leisure": "park",
+        "name": "Триатлон саябағы",
+        "name:de": "Triathlonpark",
+        "name:en": "Triathlon park",
+        "name:kk": "Триатлон саябағы",
+        "name:ru": "Триатлон парк"
+      }
+    },
+    {
+      "id": "osm:node:13340040665",
+      "name": "Жетігенші",
+      "category": "artwork",
+      "description": "Статуя в пилотной зоне вокруг Бәйтерека. Примерно в 1600 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1346692,
+      "lon": 71.4106104,
+      "visitMinutes": 15,
+      "sourceUrl": "https://www.openstreetmap.org/node/13340040665",
+      "osmType": "node",
+      "osmId": 13340040665,
+      "tags": {
+        "artist_name": "М.Мансурова;Т.Ермекова",
+        "artwork_type": "statue",
+        "name": "Жетігенші",
+        "tourism": "artwork"
+      }
+    },
+    {
+      "id": "osm:way:917478479",
+      "name": "Астана Опера",
+      "names": {
+        "ru": "Астана Опера",
+        "en": "Astana Opera"
+      },
+      "category": "theatre",
+      "description": "Театр в пилотной зоне вокруг Бәйтерека. Примерно в 1600 м по прямой от Бәйтерека (по координатам OSM). Адрес по OSM: Қонаев көшесі, 1.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1354512,
+      "lon": 71.410753,
+      "visitMinutes": 20,
+      "sourceUrl": "https://www.openstreetmap.org/way/917478479",
+      "osmType": "way",
+      "osmId": 917478479,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:housenumber": "1",
+        "addr:street": "Қонаев көшесі",
+        "amenity": "theatre",
+        "building": "civic",
+        "name": "Астана Опера",
+        "name:en": "Astana Opera",
+        "name:ru": "Астана Опера",
+        "website": "https://astanaopera.kz/",
+        "wikidata": "Q21371563",
+        "wikimedia_commons": "Category:Astana Opera",
+        "wikipedia": "en:Astana Opera"
+      }
+    },
+    {
+      "id": "osm:way:1470780026",
+      "name": "Дубовая аллея",
+      "category": "garden",
+      "description": "Сад в пилотной зоне вокруг Бәйтерека. Примерно в 1700 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.135573,
+      "lon": 71.408849,
+      "visitMinutes": 30,
+      "sourceUrl": "https://www.openstreetmap.org/way/1470780026",
+      "osmType": "way",
+      "osmId": 1470780026,
+      "tags": {
+        "leisure": "garden",
+        "name": "Дубовая аллея"
+      }
+    },
+    {
+      "id": "osm:way:963855443",
+      "name": "Назарбаев орталығы-2",
+      "names": {
+        "ru": "Назарбаев центр-2",
+        "kk": "Назарбаев орталығы-2",
+        "en": "Nazarbayev Center 2"
+      },
+      "category": "museum",
+      "description": "Музей в пилотной зоне вокруг Бәйтерека. Примерно в 1700 м по прямой от Бәйтерека (по координатам OSM). Адрес по OSM: Әлихан Бөкейхан көшесі, 1а.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1146527,
+      "lon": 71.4421493,
+      "visitMinutes": 60,
+      "sourceUrl": "https://www.openstreetmap.org/way/963855443",
+      "osmType": "way",
+      "osmId": 963855443,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "1а",
+        "addr:street": "Әлихан Бөкейхан көшесі",
+        "building": "yes",
+        "fee": "no",
+        "name": "Назарбаев орталығы-2",
+        "name:de": "Nasarbajew-Zentrum 2",
+        "name:en": "Nazarbayev Center 2",
+        "name:kk": "Назарбаев орталығы-2",
+        "name:ru": "Назарбаев центр-2",
+        "tourism": "museum"
+      }
+    },
+    {
+      "id": "osm:way:1449322339",
+      "name": "Динопарк",
+      "category": "attraction",
+      "description": "Достопримечательность в пилотной зоне вокруг Бәйтерека. Примерно в 1900 м по прямой от Бәйтерека (по координатам OSM). В OSM указан тег размещения в помещении.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1324374,
+      "lon": 71.4044883,
+      "visitMinutes": 45,
+      "sourceUrl": "https://www.openstreetmap.org/way/1449322339",
+      "osmType": "way",
+      "osmId": 1449322339,
+      "tags": {
+        "indoor": "room",
+        "level": "4",
+        "name": "Динопарк",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "id": "osm:way:1449322354",
+      "name": "Fame City",
+      "category": "theme_park",
+      "description": "Парк развлечений в пилотной зоне вокруг Бәйтерека. Примерно в 1900 м по прямой от Бәйтерека (по координатам OSM). В OSM указан тег размещения в помещении.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1325344,
+      "lon": 71.4038802,
+      "visitMinutes": 75,
+      "sourceUrl": "https://www.openstreetmap.org/way/1449322354",
+      "osmType": "way",
+      "osmId": 1449322354,
+      "tags": {
+        "indoor": "area",
+        "level": "4",
+        "name": "Fame City",
+        "tourism": "theme_park"
+      }
+    },
+    {
+      "id": "osm:node:5918121388",
+      "name": "Рақымжан Қошқарбаев",
+      "names": {
+        "ru": "Ракымжан Кошкарбаев",
+        "en": "Rakhimzhan Koshkarbaev"
+      },
+      "category": "memorial",
+      "description": "Мемориал в пилотной зоне вокруг Бәйтерека. Примерно в 2000 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1298506,
+      "lon": 71.4590741,
+      "visitMinutes": 15,
+      "sourceUrl": "https://www.openstreetmap.org/node/5918121388",
+      "osmType": "node",
+      "osmId": 5918121388,
+      "tags": {
+        "historic": "memorial",
+        "memorial": "statue",
+        "name": "Рақымжан Қошқарбаев",
+        "name:en": "Rakhimzhan Koshkarbaev",
+        "name:ru": "Ракымжан Кошкарбаев"
+      }
+    },
+    {
+      "id": "osm:node:5126825313",
+      "name": "Астаналық Цирк",
+      "names": {
+        "ru": "Столичный Цирк",
+        "en": "City Circus"
+      },
+      "category": "arts_centre",
+      "description": "Центр искусств в пилотной зоне вокруг Бәйтерека. Примерно в 2000 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1450693,
+      "lon": 71.4189112,
+      "visitMinutes": 25,
+      "sourceUrl": "https://www.openstreetmap.org/node/5126825313",
+      "osmType": "node",
+      "osmId": 5126825313,
+      "tags": {
+        "amenity": "arts_centre",
+        "name": "Астаналық Цирк",
+        "name:en": "City Circus",
+        "name:ru": "Столичный Цирк"
+      }
+    },
+    {
+      "id": "osm:node:455447665",
+      "name": "Бауыржан Момышұлы",
+      "names": {
+        "ru": "Бауыржану Момышулы"
+      },
+      "category": "monument",
+      "description": "Монумент в пилотной зоне вокруг Бәйтерека. Примерно в 2200 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "category_template",
+      "lat": 51.1345953,
+      "lon": 71.4596617,
+      "visitMinutes": 20,
+      "sourceUrl": "https://www.openstreetmap.org/node/455447665",
+      "osmType": "node",
+      "osmId": 455447665,
+      "tags": {
+        "historic": "monument",
+        "name": "Бауыржан Момышұлы",
+        "name:ru": "Бауыржану Момышулы"
+      }
+    },
+    {
+      "id": "osm:way:240921034",
+      "name": "Ailand",
+      "names": {
+        "ru": "Ailand",
+        "kk": "Ailand",
+        "en": "Ailand"
+      },
+      "category": "attraction",
+      "description": "Достопримечательность в пилотной зоне вокруг Бәйтерека. Примерно в 2400 м по прямой от Бәйтерека (по координатам OSM). Адрес по OSM: Қорғалжын тас жолы, 2.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1481229,
+      "lon": 71.4167693,
+      "visitMinutes": 60,
+      "sourceUrl": "https://www.openstreetmap.org/way/240921034",
+      "osmType": "way",
+      "osmId": 240921034,
+      "tags": {
+        "addr:city": "Астана",
+        "addr:country": "KZ",
+        "addr:housenumber": "2",
+        "addr:street": "Қорғалжын тас жолы",
+        "building": "yes",
+        "building:levels": "3",
+        "name": "Ailand",
+        "name:en": "Ailand",
+        "name:kk": "Ailand",
+        "name:ru": "Ailand",
+        "opening_hours": "Mo-Su 10:00-22:00",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "id": "osm:way:1460700597",
+      "name": "Атамекен Қазақстан картасы этно-мемориалдық кешені",
+      "names": {
+        "ru": "Этно-мемориальный комплекс Карта Казахстана Атамекен"
+      },
+      "category": "museum",
+      "description": "Музей под открытым небом в пилотной зоне вокруг Бәйтерека. Примерно в 2500 м по прямой от Бәйтерека (по координатам OSM).",
+      "descriptionSource": "osm_tags",
+      "lat": 51.1492984,
+      "lon": 71.4180805,
+      "visitMinutes": 60,
+      "sourceUrl": "https://www.openstreetmap.org/way/1460700597",
+      "osmType": "way",
+      "osmId": 1460700597,
+      "tags": {
+        "museum": "open_air",
+        "name": "Атамекен Қазақстан картасы этно-мемориалдық кешені",
+        "name:ru": "Этно-мемориальный комплекс Карта Казахстана Атамекен",
+        "start_date": "2001-09-08",
+        "tourism": "museum",
+        "wikidata": "Q1454511",
+        "wikipedia": "kk:Атамекен (мұражай)"
+      }
+    }
+  ]
+}

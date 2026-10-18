@@ -1,0 +1,28 @@
+{
+  "name": "smart-city-mini-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "worker:dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "secrets:publish": "node scripts/publish-secrets.mjs",
+    "bot:configure": "node scripts/configure-telegram.mjs",
+    "collect:poi": "node scripts/collect-poi.mjs",
+    "data:check": "node scripts/validate-poi.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261018.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.151.1"
+  }
+}
