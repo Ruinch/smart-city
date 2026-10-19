@@ -25,14 +25,28 @@ describe('Telegram Mini App initData verification', () => {
     expect(await verifyTelegramInitData(signed, botToken, now)).toEqual({ userId: '12345', firstName: 'A' })
   })
 
+  it('includes Telegram signature in the bot-token HMAC check string', async () => {
+    const fields = {
+      auth_date: String(now),
+      query_id: 'AAExampleQuery',
+      signature: 'telegram-ed25519-signature_example',
+      user: JSON.stringify({ id: 12345, first_name: 'A' }),
+    }
+    const signed = await signInitData(fields)
+    expect(await verifyTelegramInitData(signed, botToken, now)).toEqual({ userId: '12345', firstName: 'A' })
+    expect(await verifyTelegramInitData(signed.replace('signature_example', 'signature_changed'), botToken, now)).toBeNull()
+  })
+
   it('rejects tampering and duplicate signed fields', async () => {
     const signed = await signInitData({ auth_date: String(now), user: JSON.stringify({ id: 12345 }) })
     expect(await verifyTelegramInitData(signed.replace('12345', '99999'), botToken, now)).toBeNull()
     expect(await verifyTelegramInitData(`${signed}&auth_date=${now}`, botToken, now)).toBeNull()
   })
 
-  it('rejects stale and future launch data', async () => {
-    const signed = await signInitData({ auth_date: String(now - 3601), user: JSON.stringify({ id: 12345 }) })
+  it('accepts an open webview beyond one hour, but rejects data older than 24 hours and future data', async () => {
+    const openWebview = await signInitData({ auth_date: String(now - 3601), user: JSON.stringify({ id: 12345 }) })
+    expect(await verifyTelegramInitData(openWebview, botToken, now)).toEqual({ userId: '12345', firstName: undefined })
+    const signed = await signInitData({ auth_date: String(now - 86_401), user: JSON.stringify({ id: 12345 }) })
     expect(await verifyTelegramInitData(signed, botToken, now)).toBeNull()
     const future = await signInitData({ auth_date: String(now + 61), user: JSON.stringify({ id: 12345 }) })
     expect(await verifyTelegramInitData(future, botToken, now)).toBeNull()

@@ -20,10 +20,12 @@ if (!vars.TELEGRAM_BOT_TOKEN || !vars.OPENAI_API_KEY) {
 
 const timestamp = String(Math.floor(Date.now() / 1000))
 const user = JSON.stringify({ id: 999000001, first_name: 'Local Smoke' })
-const check = ['auth_date=' + timestamp, 'user=' + user].join('\n')
+// Recent Telegram launches also include `signature` in the bot-token HMAC payload.
+const signature = 'synthetic_telegram_signature'
+const check = ['auth_date=' + timestamp, 'signature=' + signature, 'user=' + user].join('\n')
 const secret = createHmac('sha256', 'WebAppData').update(vars.TELEGRAM_BOT_TOKEN).digest()
 const hash = createHmac('sha256', secret).update(check).digest('hex')
-const initData = new URLSearchParams({ auth_date: timestamp, user, hash }).toString()
+const initData = new URLSearchParams({ auth_date: timestamp, signature, user, hash }).toString()
 const endpoint = process.argv[2] || 'http://127.0.0.1:8787'
 
 const scenarios = [

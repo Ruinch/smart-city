@@ -11,7 +11,7 @@ const token = '123456:TEST_TOKEN'
 async function validInitData(): Promise<string> {
   const encoder = new TextEncoder()
   const user = JSON.stringify({ id: 24680, first_name: 'Test' })
-  const signedFields = { auth_date: String(now), user }
+  const signedFields = { auth_date: String(now), signature: 'telegram-ed25519-signature_example', user }
   const sign = async (key: Uint8Array, value: string) => {
     const buffer = new ArrayBuffer(key.byteLength)
     new Uint8Array(buffer).set(key)
@@ -19,7 +19,7 @@ async function validInitData(): Promise<string> {
     return new Uint8Array(await crypto.subtle.sign('HMAC', imported, encoder.encode(value)))
   }
   const secret = await sign(encoder.encode('WebAppData'), token)
-  const checkString = `auth_date=${now}\nuser=${user}`
+  const checkString = `auth_date=${now}\nsignature=${signedFields.signature}\nuser=${user}`
   const digest = await sign(secret, checkString)
   const hash = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('')
   return new URLSearchParams({ ...signedFields, hash }).toString()

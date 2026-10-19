@@ -34,7 +34,7 @@ export async function verifyTelegramInitData(
   raw: string,
   botToken: string,
   nowSeconds = Math.floor(Date.now() / 1000),
-  maxAgeSeconds = 3600,
+  maxAgeSeconds = 24 * 3600,
 ): Promise<TelegramIdentity | null> {
   if (!raw || raw.length > 16_384 || !botToken) return null
 
@@ -56,9 +56,10 @@ export async function verifyTelegramInitData(
     return null
   }
 
-  // `signature` is for Telegram's separate Ed25519 third-party verification.
+  // Bot-token HMAC signs every received field except `hash`. Telegram's newer
+  // `signature` field is excluded only by the separate Ed25519 third-party flow.
   const dataCheckString = [...params.entries()]
-    .filter(([key]) => key !== 'hash' && key !== 'signature')
+    .filter(([key]) => key !== 'hash')
     .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`)
     .join('\n')

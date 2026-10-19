@@ -746,7 +746,7 @@ planner.addEventListener('submit', async (event) => {
       signal: controller.signal,
     })
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) throw new Error('Сессия Telegram устарела. Откройте приложение через бота ещё раз.')
+      if (response.status === 401 || response.status === 403) throw new Error('Не удалось подтвердить запуск в Telegram. Полностью закройте окно приложения и откройте его снова через @smart_city_ryadombot.')
       if (response.status === 429) throw new Error('Слишком много запросов. Подождите немного и попробуйте снова.')
       throw new Error('Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.')
     }
