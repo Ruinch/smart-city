@@ -54,6 +54,13 @@ const categoryLabels: Record<string, string> = {
   monument: 'Памятник', memorial: 'Мемориал', attraction: 'Достопримечательность',
   arts_centre: 'Центр искусств', playground: 'Детская площадка',
   nature_reserve: 'Природный парк', lake: 'Озеро', place_of_worship: 'Культовое место',
+  biergarten: 'Пивной сад', community_centre: 'Общественный центр',
+  food_court: 'Фудкорт', ice_cream: 'Мороженое', planetarium: 'Планетарий',
+  coffee: 'Магазин кофе', gift: 'Магазин подарков', art: 'Арт-магазин',
+  fast_food: 'Быстрый перекус', confectionery: 'Кондитерская', mall: 'Торговый центр',
+  zoo: 'Зоопарк', bowling_alley: 'Боулинг', escape_game: 'Квест',
+  fitness_centre: 'Фитнес-центр', marina: 'Пристань', sports_centre: 'Спортивный центр',
+  stadium: 'Стадион', water_park: 'Аквапарк', archaeological_site: 'Археологический памятник',
 }
 
 app.innerHTML = `
@@ -85,6 +92,8 @@ app.innerHTML = `
           <button type="button" data-example="Хочу в клуб: музыка, танцы и движная ночь">Клуб и танцы</button>
           <button type="button" data-example="Тихое кафе, где можно попить кофе и почитать книгу">Кофе и книга</button>
           <button type="button" data-example="Прогулка с друзьями по интересным местам Астаны">С друзьями</button>
+          <button type="button" data-example="Хочу боулинг или квест с друзьями, а потом перекусить">Боулинг или квест</button>
+          <button type="button" data-example="Покажи необычные памятники и интересные места для прогулки">Необычная прогулка</button>
         </div>
 
         <div class="form-divider"></div>
@@ -184,6 +193,7 @@ const state: {
 let requestVersion = 0
 let activeRecommendation: AbortController | null = null
 let mapController: RecommendationsMapController | null = null
+const seenPlaceIds = new Set<string>()
 
 function setTheme(): void {
   document.documentElement.dataset.theme = telegram?.colorScheme === 'dark' ? 'dark' : 'light'
@@ -257,6 +267,7 @@ function clearResults(): void {
   mapController?.destroy()
   mapController = null
   state.stops = []
+  seenPlaceIds.clear()
   if (state.isLoading) setLoading(false)
   results.hidden = true
   results.replaceChildren()
@@ -436,7 +447,7 @@ function validateForm(): { text: string; group: number; budgetKzt?: number } | n
   return { text, group, budgetKzt: amount }
 }
 
-function makeRequest(validated: { text: string; group: number; budgetKzt?: number }): { initData: string; request: WalkRequest & { groupSize: number } } {
+function makeRequest(validated: { text: string; group: number; budgetKzt?: number }, excludePlaceIds: string[] = []): { initData: string; request: WalkRequest & { groupSize: number } } {
   const request: WalkRequest & { groupSize: number } = {
     cityId: 'astana',
     scope: state.scope,
@@ -447,6 +458,7 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
     groupSize: validated.group,
   }
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
+  if (excludePlaceIds.length) request.excludePlaceIds = excludePlaceIds
   if (state.coordinates) {
     request.latitude = state.coordinates.latitude
     request.longitude = state.coordinates.longitude
@@ -454,11 +466,11 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
   return { initData: telegram?.initData ?? '', request }
 }
 
-function setLoading(value: boolean): void {
+function setLoading(value: boolean, loadingLabel = 'Ищем маршрут…'): void {
   state.isLoading = value
   submitButton.disabled = value
   planner.setAttribute('aria-busy', String(value))
-  submitLabel.textContent = value ? 'Ищем маршрут…' : 'Составить маршрут'
+  submitLabel.textContent = value ? loadingLabel : 'Составить маршрут'
 }
 
 function showLoading(): void {
@@ -488,6 +500,55 @@ function addFact(parent: HTMLElement, text: string): void {
   const fact = document.createElement('span')
   fact.textContent = text
   parent.appendChild(fact)
+}
+
+function formatPriceDate(value: string): string | null {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date)
+}
+
+function createPriceBlock(item: Recommendation): HTMLElement | null {
+  const evidence = item.priceEvidence
+  if (!evidence || !safeUrl(evidence.sourceUrl) || !Number.isFinite(evidence.minKzt) || evidence.minKzt < 0) return null
+  const checkedAt = formatPriceDate(evidence.checkedAt)
+  if (!checkedAt) return null
+  if (evidence.qualifier === 'range' && (!Number.isFinite(evidence.maxKzt) || (evidence.maxKzt ?? 0) < evidence.minKzt)) return null
+
+  const unit = evidence.unit === 'entry' ? 'Вход' : evidence.unit === 'average_bill' ? 'Средний чек' : 'Одна позиция'
+  const amount = evidence.qualifier === 'range'
+    ? `${formatKzt(evidence.minKzt)}–${formatKzt(evidence.maxKzt!)}`
+    : evidence.qualifier === 'from' ? `от ${formatKzt(evidence.minKzt)}` : formatKzt(evidence.minKzt)
+  const block = document.createElement('div')
+  block.className = 'place-price'
+  const value = document.createElement('strong')
+  value.className = 'price-value'
+  value.textContent = `${unit}: ${amount}`
+  const meta = document.createElement('div')
+  meta.className = 'price-meta'
+  const date = document.createElement('span')
+  date.textContent = `Проверено ${checkedAt}`
+  const source = createLink('Источник цены ↗', evidence.sourceUrl, 'price-source')
+  appendNodes(meta, date)
+  if (source) meta.appendChild(source)
+  appendNodes(block, value, meta)
+  if (evidence.unit === 'item') {
+    const note = document.createElement('span')
+    note.className = 'price-note'
+    note.textContent = 'Цена одной позиции, не всего посещения.'
+    block.appendChild(note)
+  }
+  const plannedBudget = Number(budget.value)
+  if (Number.isFinite(plannedBudget) && plannedBudget > 0 && evidence.minKzt > plannedBudget
+    && evidence.unit !== 'item') {
+    const note = document.createElement('span')
+    note.className = 'price-note'
+    note.textContent = evidence.unit === 'entry'
+      ? 'Указанная цена билета выше вашего бюджета на человека.'
+      : 'Опубликованный средний чек выше вашего бюджета на человека.'
+    block.appendChild(note)
+  }
+  return block
 }
 
 function showMapPreview(item: Recommendation): void {
@@ -541,13 +602,14 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   why.textContent = item.why
   const facts = document.createElement('div')
   facts.className = 'place-facts'
+  const priceBlock = createPriceBlock(item)
   if (typeof item.travelMinutesApprox === 'number') addFact(facts, `≈ ${formatMinutes(item.travelMinutesApprox)} ${travelModeLabel(item.travelMode)}`)
   else if (typeof item.walkMinutes === 'number') addFact(facts, `≈ ${formatMinutes(item.walkMinutes)} пешком`)
   else addFact(facts, 'Время дороги неизвестно')
   if (typeof item.visitMinutes === 'number') addFact(facts, `≈ ${formatMinutes(item.visitMinutes)} на месте`)
   if (item.estimatedCostKzt) {
-    addFact(facts, `Расходы ≈ ${formatKzt(item.estimatedCostKzt.min)}–${formatKzt(item.estimatedCostKzt.max)}`)
-  } else addFact(facts, 'Стоимость неизвестна')
+    addFact(facts, `Расходы на дорогу ≈ ${formatKzt(item.estimatedCostKzt.min)}–${formatKzt(item.estimatedCostKzt.max)}`)
+  } else if (!priceBlock) addFact(facts, 'Стоимость посещения неизвестна')
   if (item.hoursStatus) addFact(facts, item.hoursStatus)
   const action = document.createElement('div')
   action.className = 'place-action'
@@ -581,6 +643,7 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   links.className = 'place-links'
   for (const [label, value, className] of [
     ['Маршрут до места ↗', item.routeUrl, 'map-link'],
+    ['Сайт из OSM ↗', item.venueWebsite, 'source-link'],
     ['Источник места ↗', item.sourceUrl, 'source-link'],
     ['Источник времени ↗', item.travelSourceUrl, 'source-link'],
     ['Источник стоимости ↗', item.costSourceUrl, 'source-link'],
@@ -588,7 +651,9 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
     const link = createLink(label, value, className)
     if (link) links.appendChild(link)
   }
-  appendNodes(card, top, name, why, facts, action)
+  appendNodes(card, top, name, why, facts)
+  if (priceBlock) card.appendChild(priceBlock)
+  card.appendChild(action)
   if (evidenceBlock.childElementCount) card.appendChild(evidenceBlock)
   card.appendChild(links)
   return card
@@ -601,7 +666,20 @@ function validPoint(point: unknown): point is MapCoordinate {
     && typeof value.lon === 'number' && Number.isFinite(value.lon) && Math.abs(value.lon) <= 180
 }
 
-function showResults(response: RouteResponse, selectedRoute = 0): void {
+function rememberShownStops(routes: RoutePlan[]): void {
+  if (state.scope !== 'city') return
+  for (const route of routes.slice(0, 3)) {
+    for (const stop of route.stops.slice(0, 3)) seenPlaceIds.add(stop.id)
+  }
+}
+
+function recentExcludedPlaceIds(): string[] {
+  return [...seenPlaceIds]
+    .filter((id) => /^osm:(?:node|way|relation):[1-9]\d{0,12}$/.test(id))
+    .slice(-36)
+}
+
+function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = false): void {
   mapController?.destroy()
   mapController = null
   results.hidden = false
@@ -612,6 +690,7 @@ function showResults(response: RouteResponse, selectedRoute = 0): void {
     showError(response.summary || 'По вашему запросу пока не нашлось подтверждённых мест. Попробуйте описать интересы иначе или выделить больше времени.')
     return
   }
+  rememberShownStops(routes)
   state.stops = route.stops.slice(0, 3)
 
   const heading = document.createElement('div')
@@ -635,22 +714,35 @@ function showResults(response: RouteResponse, selectedRoute = 0): void {
   if (routeLink) heading.appendChild(routeLink)
   results.appendChild(heading)
 
-  if (state.scope === 'day_trip' && routes.length > 1) {
+  if (routes.length > 1) {
+    const variantSection = document.createElement('section')
+    variantSection.className = 'route-variants'
+    const variantHeading = document.createElement('h3')
+    variantHeading.textContent = state.scope === 'day_trip' ? 'Варианты поездки' : 'Варианты маршрута'
     const variants = document.createElement('div')
     variants.className = 'trip-variants'
     variants.setAttribute('role', 'group')
-    variants.setAttribute('aria-label', 'Варианты поездки из Астаны')
+    variants.setAttribute('aria-label', variantHeading.textContent)
     routes.slice(0, 3).forEach((candidate, index) => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'trip-variant'
       button.classList.toggle('is-selected', candidate === route)
       button.setAttribute('aria-pressed', String(candidate === route))
-      button.textContent = candidate.title
-      button.addEventListener('click', () => showResults(response, index))
+      const number = document.createElement('span')
+      number.className = 'variant-number'
+      number.textContent = `${state.scope === 'day_trip' ? 'Поездка' : 'Маршрут'} ${index + 1}`
+      const name = document.createElement('span')
+      name.className = 'variant-name'
+      name.textContent = state.scope === 'city'
+        ? candidate.stops[0]?.name || `Вариант ${index + 1}`
+        : candidate.title || candidate.stops[0]?.name || `Вариант ${index + 1}`
+      appendNodes(button, number, name)
+      button.addEventListener('click', () => showResults(response, index, true))
       variants.appendChild(button)
     })
-    results.appendChild(variants)
+    appendNodes(variantSection, variantHeading, variants)
+    results.appendChild(variantSection)
   }
 
   const layout = document.createElement('div')
@@ -703,6 +795,23 @@ function showResults(response: RouteResponse, selectedRoute = 0): void {
     note.textContent = response.note
     results.appendChild(note)
   }
+  if (state.scope === 'city') {
+    const exploration = document.createElement('div')
+    exploration.className = 'more-ideas'
+    const moreButton = document.createElement('button')
+    moreButton.type = 'button'
+    moreButton.className = 'more-ideas-button'
+    moreButton.textContent = 'Ещё идеи →'
+    moreButton.setAttribute('aria-describedby', 'moreIdeasStatus')
+    const status = document.createElement('p')
+    status.id = 'moreIdeasStatus'
+    status.className = 'more-ideas-status'
+    status.setAttribute('role', 'status')
+    status.setAttribute('aria-live', 'polite')
+    moreButton.addEventListener('click', () => { void requestMoreIdeas(moreButton, status) })
+    appendNodes(exploration, moreButton, status)
+    results.appendChild(exploration)
+  }
 
   const markers = state.stops.filter((item): item is Recommendation & MapCoordinate => validPoint(item))
     .map((item) => ({ id: item.id, name: item.name, lat: item.lat, lon: item.lon, kind: item.kind, category: item.category, sourceUrl: item.sourceUrl }))
@@ -718,7 +827,71 @@ function showResults(response: RouteResponse, selectedRoute = 0): void {
       if (item) showMapPreview(item)
     },
   })
-  scrollToResults()
+  if (focusVariant) {
+    results.querySelector<HTMLButtonElement>('.trip-variant.is-selected')?.focus({ preventScroll: true })
+  } else scrollToResults()
+}
+
+async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement): Promise<void> {
+  if (state.scope !== 'city' || state.isLoading) return
+  const validated = validateForm()
+  if (!validated) return
+  if (!telegram?.initData) {
+    status.textContent = 'Откройте приложение через бота в Telegram и попробуйте снова.'
+    return
+  }
+  setLoading(true, 'Ищем ещё…')
+  button.disabled = true
+  button.textContent = 'Ищем идеи…'
+  status.textContent = 'Ищем другие места по тем же условиям.'
+  const controller = new AbortController()
+  const version = ++requestVersion
+  activeRecommendation = controller
+  const timeout = window.setTimeout(() => controller.abort(), 45_000)
+  let exhausted = false
+  try {
+    const response = await fetch('/api/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(makeRequest(validated, recentExcludedPlaceIds())),
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) throw new Error('Сессия Telegram устарела. Откройте приложение через бота заново.')
+      if (response.status === 429) throw new Error('Слишком много запросов. Подождите немного и попробуйте снова.')
+      throw new Error('Не удалось найти новые идеи. Попробуйте чуть позже.')
+    }
+    const data: RouteResponse = await response.json()
+    if (version !== requestVersion) return
+    if (!data || !Array.isArray(data.routes)) throw new Error('Ответ сервера неполный. Попробуйте ещё раз.')
+    const hasStops = data.routes.some((route) => Array.isArray(route.stops) && route.stops.length > 0)
+    if (!hasStops) {
+      exhausted = true
+      status.textContent = 'Новых мест пока не нашлось. Попробуйте изменить запрос или параметры.'
+      return
+    }
+    showResults(data)
+    const newHeading = results.querySelector<HTMLHeadingElement>('.results-heading h2')
+    if (newHeading) {
+      newHeading.tabIndex = -1
+      newHeading.focus({ preventScroll: true })
+    }
+  } catch (error) {
+    if (version !== requestVersion) return
+    status.textContent = error instanceof DOMException && error.name === 'AbortError'
+      ? 'Поиск занял слишком много времени. Попробуйте ещё раз.'
+      : error instanceof Error ? error.message : 'Не удалось найти новые идеи. Попробуйте ещё раз.'
+  } finally {
+    window.clearTimeout(timeout)
+    if (version === requestVersion) {
+      activeRecommendation = null
+      setLoading(false)
+      if (button.isConnected) {
+        button.disabled = exhausted
+        button.textContent = 'Ещё идеи →'
+      }
+    }
+  }
 }
 
 planner.addEventListener('submit', async (event) => {

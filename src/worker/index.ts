@@ -1,19 +1,24 @@
 import snapshotJson from '../../data/astana-dynamic-fallback.json'
 import tripsJson from '../../data/astana-trips.json'
+import exclusionsJson from '../../data/astana-place-exclusions.json'
 import type { CityCatalog, Poi, PoiCatalog, RecommendRequest, RecommendResponse, TripCatalog, WalkRequest } from '../shared/types'
 import { constantTimeEqual, verifyTelegramInitData } from './auth'
 import { distanceMeters } from './recommend'
 import { rankTrips, toTripRecommendation } from './trips'
-import { ASTANA_CENTER, ASTANA_RADIUS_METERS, assembleRoute, discoverPlaces,
+import { ASTANA_CENTER, ASTANA_RADIUS_METERS, discoverPlaces,
   insideAstana, matchesVenueName, needsLiveRefresh, quotedVenueName, rankDynamicPlaces,
   resolveNamedArea, searchIntentWithAI, selectStopsWithAI,
   type DynamicPlace } from './dynamic'
 import { attachEvidence, searchVenueEvidence } from './web-evidence'
+import { buildRouteVariants } from './route-variants'
+import { attachPriceEvidence, researchVenuePrices } from './price-research'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
 const snapshotLandmarks: DynamicPlace[] = snapshot.landmarks.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
 const tripCatalog = tripsJson as unknown as TripCatalog
+const excludedCategories = new Set(exclusionsJson.exclusions.map((item) => `${item.id}|${item.category}`))
+const usablePlace = (place: DynamicPlace): boolean => !excludedCategories.has(`${place.id}|${place.category}`)
 const city: CityCatalog = {
   id: 'astana', name: 'Астана', center: ASTANA_CENTER,
   radiusMeters: ASTANA_RADIUS_METERS, pois: [],
@@ -125,6 +130,12 @@ function validateRecommendBody(value: unknown): RecommendRequest {
   if (groupSize !== undefined && (!Number.isSafeInteger(groupSize) || (groupSize as number) < 1 || (groupSize as number) > 12)) {
     throw new HttpError(400, 'Укажите от 1 до 12 человек.')
   }
+  const excludePlaceIds = rawRequest.excludePlaceIds
+  if (excludePlaceIds !== undefined && (!Array.isArray(excludePlaceIds) || excludePlaceIds.length > 36
+    || excludePlaceIds.some((id) => typeof id !== 'string' || !/^osm:(?:node|way|relation):[1-9]\d{0,12}$/.test(id))
+    || new Set(excludePlaceIds).size !== excludePlaceIds.length)) {
+    throw new HttpError(400, 'Некорректный список уже показанных мест.')
+  }
 
   const latitude = rawRequest.latitude
   const longitude = rawRequest.longitude
@@ -152,6 +163,7 @@ function validateRecommendBody(value: unknown): RecommendRequest {
   }
   if (budgetKzt !== undefined) walkRequest.budgetKzt = budgetKzt as number
   if (groupSize !== undefined) walkRequest.groupSize = groupSize as number
+  if (Array.isArray(excludePlaceIds) && excludePlaceIds.length) walkRequest.excludePlaceIds = excludePlaceIds as string[]
   if (hasLatitude) {
     walkRequest.latitude = latitude as number
     walkRequest.longitude = longitude as number
@@ -174,11 +186,13 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
   }
 }
 
-function cityBudgetNote(budgetKzt: number | undefined): string {
+function cityBudgetNote(budgetKzt: number | undefined, researchedPrices = 0): string {
   if (budgetKzt === undefined) return ''
   return budgetKzt === 0
     ? 'При нулевом бюджете исключены коммерческие категории, но бесплатность остальных мест не подтверждена.'
-    : 'Цены городских мест не проверены, поэтому маршрут не отфильтрован по указанной сумме.'
+    : researchedPrices > 0
+      ? 'Подтверждённые цены билетов и средние чеки учтены при порядке вариантов; неизвестные расходы и полная стоимость маршрута не позволяют гарантировать соответствие бюджету.'
+      : 'Цены городских мест не проверены, поэтому маршрут не отфильтрован по указанной сумме.'
 }
 
 function outsideZoneResponse(text: string, scope: WalkRequest['scope']): RecommendResponse {
@@ -264,39 +278,45 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     : namedArea ? { lat: namedArea.lat, lon: namedArea.lon } : city.center
   const categories = new Set<string>(intent.categories)
   const exactName = quotedVenueName(body.request.text)
-  const nearbySnapshot = snapshotPlaces.filter((place) => insideAstana(place)
+  const nearbySnapshot = snapshotPlaces.filter((place) => usablePlace(place) && insideAstana(place)
     && ((categories.has(place.category) && distanceMeters(origin, place) <= 25_000)
       || (exactName && matchesVenueName(place.name, exactName))))
   const live = nearbySnapshot.length < 2 || needsLiveRefresh(body.request.text)
     ? await discoverPlaces(origin, intent.categories, exactName) : null
   const merged = new Map<string, DynamicPlace>(nearbySnapshot.map((place) => [place.id, place]))
-  for (const place of live ?? []) merged.set(place.id, place)
+  for (const place of live ?? []) if (usablePlace(place)) merged.set(place.id, place)
   const places = [...merged.values()]
   if (!places.length && live === null) return json({ error: 'Поиск мест временно недоступен. Попробуйте позже.' }, 503)
+  const previouslyShown = new Set(body.request.excludePlaceIds ?? [])
   const candidates = rankDynamicPlaces(places, body.request, intent, origin)
+    .filter((place) => !previouslyShown.has(place.id))
   if (!candidates.length) return json(noPlacesResponse(body.request, city))
-  const [aiIds, findings] = await Promise.all([
-    selectStopsWithAI(env.OPENAI_API_KEY, body.request, intent, candidates, origin),
-    searchVenueEvidence(env.OPENAI_API_KEY, body.request, candidates.slice(0, 6), env.RECOMMEND_RATE),
-  ])
+  const aiIds = await selectStopsWithAI(env.OPENAI_API_KEY, body.request, intent, candidates, origin)
   const byId = new Map(candidates.map((poi) => [poi.id, poi]))
-  const evidenceIds = findings.map((item) => item.id)
-  const priorityIds = [...new Set(intent.theme === 'nightlife'
-    ? [...aiIds, ...evidenceIds] : [...evidenceIds, ...aiIds])]
-  const selected = [...priorityIds.map((id) => byId.get(id)).filter((poi): poi is typeof candidates[number] => !!poi),
-    ...candidates.filter((poi) => !priorityIds.includes(poi.id))]
-  const route = assembleRoute(body.request, intent, selected, origin, namedArea?.name)
-  if (!route) return json(noPlacesResponse(body.request, city))
-  attachEvidence(route.stops, findings)
+  const selected = [...aiIds.map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi),
+    ...candidates.filter((poi) => !aiIds.includes(poi.id))]
+  const routes = buildRouteVariants(body.request, intent, selected, origin, namedArea?.name)
+  if (!routes.length) return json(noPlacesResponse(body.request, city))
+  const selectedPlaces = [...new Set(routes.flatMap((candidate) => candidate.stops.map((stop) => stop.id)))]
+    .map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
+  const [findings, prices] = await Promise.all([
+    searchVenueEvidence(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
+    researchVenuePrices(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
+  ])
+  const allStops = routes.flatMap((candidate) => candidate.stops)
+  attachEvidence(allStops, findings)
+  attachPriceEvidence(routes, prices, body.request.budgetKzt)
+  const route = routes[0]
   const result: RecommendResponse = {
     summary: `${route.title}: ${route.stops.length} ${route.stops.length === 1 ? 'место' : 'места'} по вашему запросу${namedArea ? `, от ${namedArea.name}` : ''}.`,
     recommendations: route.stops,
-    routes: [route],
+    routes,
     note: `Основа поиска — выгрузка OpenStreetMap от ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Дополнено живым поиском Overpass.' : ''} `
       + (body.request.transport === 'walk'
-        ? 'Время пешком приблизительное, расстояние между точками — по прямой; обратный путь не учтён. Цены, свободные места и актуальные часы работы не проверены.'
-        : 'Время дороги, стоимость, свободные места и актуальные часы работы не проверены. Расстояние — по прямой.')
-      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt)}`),
+        ? 'Время пешком приблизительное, расстояние между точками — по прямой; обратный путь не учтён.'
+        : 'Время дороги не проверено. Расстояние — по прямой.')
+      + ` ${prices.length ? 'Отдельные опубликованные цены показаны с источниками; остальные расходы неизвестны.' : 'Цены не подтверждены.'} Свободные места и актуальные часы работы проверьте перед визитом.`
+      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt, prices.length)}`),
   }
   return json(result)
 }

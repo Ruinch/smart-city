@@ -95,11 +95,23 @@ export interface WalkRequest {
   text: string
   /** Number of people travelling together. Capacity remains unverified. */
   groupSize?: number
+  /** Previously shown OSM places to skip when asking for more ideas. */
+  excludePlaceIds?: string[]
 }
 
 export interface RecommendRequest {
   initData: string
   request: WalkRequest
+}
+
+/** A published venue price found at request time, not a total outing estimate. */
+export interface PriceEvidence {
+  minKzt: number
+  maxKzt?: number
+  unit: 'entry' | 'average_bill' | 'item'
+  qualifier: 'exact' | 'from' | 'range'
+  checkedAt: string
+  sourceUrl: string
 }
 
 export interface Recommendation {
@@ -114,6 +126,7 @@ export interface Recommendation {
   travelMinutesApprox?: number
   distanceKmApprox?: number
   estimatedCostKzt?: { min: number; max: number }
+  priceEvidence?: PriceEvidence
   travelSourceUrl?: string
   costSourceUrl?: string
   durationSourceUrl?: string
@@ -126,6 +139,8 @@ export interface Recommendation {
   visitMinutes?: number
   hoursStatus?: string
   sourceUrl: string
+  /** Website recorded for this place by the source catalog; availability is unverified. */
+  venueWebsite?: string
   routeUrl: string
   approximate?: boolean
   /** Position in the generated itinerary, starting at one. */

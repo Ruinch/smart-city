@@ -252,10 +252,14 @@ a { color: inherit; }
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.trip-variants { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 18px; }
-.trip-variant { flex: 1 0 155px; max-width: 260px; min-height: 48px; padding: 10px 12px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 650; text-align: left; }
+.route-variants { margin: 23px 0 19px; }
+.route-variants h3 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+.trip-variants { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; padding: 0 0 5px; scroll-snap-type: x proximity; }
+.trip-variant { display: grid; align-content: start; gap: 5px; flex: 1 0 166px; max-width: 280px; min-height: 74px; padding: 11px 12px; border: 1px solid var(--control-border); border-radius: 9px; background: var(--surface); color: var(--ink); text-align: left; scroll-snap-align: start; transition: border-color 120ms ease, background-color 120ms ease; }
 .trip-variant:hover { border-color: var(--brand); }
 .trip-variant.is-selected { border-color: var(--brand); background: var(--brand-soft); }
+.variant-number { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.variant-name { font-size: 14px; font-weight: 700; line-height: 1.3; text-wrap: balance; }
 .route-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .98fr); gap: 24px; align-items: start; }
 .route-map-panel, .route-stops { min-width: 0; }
 .route-map-panel { position: sticky; top: 14px; padding: 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
@@ -284,6 +288,11 @@ a { color: inherit; }
 .place-why { margin: 0; font-size: 14px; line-height: 1.55; text-wrap: pretty; }
 .place-facts { display: flex; flex-wrap: wrap; gap: 5px 0; margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .place-facts span:not(:first-child)::before { padding: 0 7px; color: var(--control-border); content: "·"; }
+.place-price { display: grid; gap: 3px; margin-top: 12px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); }
+.price-value { font-size: 14px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.price-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.price-source { display: inline-flex; min-height: 44px; align-items: center; color: var(--brand); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.price-note { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .place-action { margin-top: 13px; padding: 10px 12px; border-left: 2px solid var(--brand); background: var(--surface-soft); }
 .place-action span { color: var(--brand); font-size: 12px; font-weight: 700; }
 .place-action p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
@@ -296,6 +305,12 @@ a { color: inherit; }
 .place-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .place-links .source-link { color: var(--muted); font-weight: 600; }
 .results-note { max-width: 800px; margin: 15px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.more-ideas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 15px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+.more-ideas-button { min-height: 46px; padding: 9px 16px; border: 1px solid var(--brand); border-radius: 9px; background: var(--surface); color: var(--brand); font-size: 14px; font-weight: 700; transition: background-color 120ms ease, color 120ms ease; }
+.more-ideas-button:hover:not(:disabled) { background: var(--brand-soft); }
+.more-ideas-button:disabled { opacity: .65; }
+.more-ideas-status { flex: 1 1 210px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.more-ideas-status:empty { display: none; }
 .message-state { max-width: 860px; margin: 0 auto; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .message-state h2 { margin: 0 0 5px; font-size: 19px; }
 .message-state p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
@@ -357,5 +372,5 @@ a { color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .example-row button, .choice-button, .submit-button { transition: none; }
+  .example-row button, .choice-button, .submit-button, .trip-variant, .more-ideas-button { transition: none; }
 }

@@ -47,6 +47,8 @@ for (const scenario of scenarios) {
   const stops = routes[0]?.stops ?? []
   const status = response.status + ' ' + scenario.label
   const names = stops.map((stop) => stop.name + ' [' + stop.category + ']').join(' → ')
-  process.stdout.write(status + ': ' + (names || payload.summary || payload.error || 'empty') + '\n')
+  const sourcedPrices = routes.flatMap((route) => route.stops).filter((stop) => stop.priceEvidence).length
+  process.stdout.write(status + ': ' + (names || payload.summary || payload.error || 'empty')
+    + ` (${routes.length} вариантов, ${sourcedPrices} цен с источником)` + '\n')
   if (!response.ok || routes.length === 0 || stops.length === 0) process.exitCode = 1
 }

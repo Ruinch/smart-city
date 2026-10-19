@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { vi } from 'vitest'
 import snapshot from '../../data/astana-dynamic-fallback.json'
 import worker from './index'
 import { ASTANA_CENTER, assembleRoute, buildOverpassQuery, needsLiveRefresh, parseOverpassPlaces, quotedVenueName,
@@ -45,11 +46,13 @@ describe('Worker API integration', () => {
   it('accepts signed Telegram launch data and builds an ordered route from sourced Astana places', async () => {
     const { response, body } = await recommend({ text: 'Хочу кофе и почитать книгу', groupSize: 3, minutes: 180 })
     expect(response.status).toBe(200)
-    expect(body.routes).toHaveLength(1)
+    expect(body.routes!.length).toBeGreaterThan(1)
+    expect(body.routes!.length).toBeLessThanOrEqual(3)
     const route = body.routes![0]
     expect(route.stops.length).toBeGreaterThan(0)
     expect(route.stops.length).toBeLessThanOrEqual(3)
     expect(body.recommendations).toEqual(route.stops)
+    expect(new Set(body.routes!.map((variant) => variant.stops[0].id)).size).toBe(body.routes!.length)
     expect(route.stops.map((stop) => stop.stopOrder)).toEqual(route.stops.map((_, index) => index + 1))
     expect(route.stops.every((stop) => stop.cityId === 'astana' && stop.kind === 'place')).toBe(true)
     expect(route.stops.every((stop) => stop.sourceProvider === 'OpenStreetMap'
@@ -91,7 +94,7 @@ describe('Worker API integration', () => {
   it('uses a named Astana landmark as the route origin', async () => {
     const { response, body } = await recommend({ text: 'Кофе у Mega Silk Way', minutes: 120 })
     expect(response.status).toBe(200)
-    expect(body.routes).toHaveLength(1)
+    expect(body.routes!.length).toBeGreaterThan(0)
     expect(body.routes![0].origin?.name).toMatch(/mega silk way|мега силк/i)
     expect(body.routes![0].origin?.lat).toBeGreaterThan(51)
     expect(body.routes![0].origin?.lon).toBeGreaterThan(71)
@@ -162,7 +165,31 @@ describe('Worker API integration', () => {
     expect((await invalid({ groupSize: 1.5 })).status).toBe(400)
     expect((await invalid({ budgetKzt: -1 })).status).toBe(400)
     expect((await invalid({ cityId: 'almaty' })).status).toBe(400)
+    expect((await invalid({ excludePlaceIds: ['some arbitrary value'] })).status).toBe(400)
     expect((await recommend({ groupSize: 12 })).response.status).toBe(200)
+  })
+
+  it('finds a fresh set of places after the visitor asks for more ideas', async () => {
+    const options = { text: 'Кофе и книга', minutes: 180 }
+    const first = await recommend(options)
+    const seen = [...new Set(first.body.routes!.flatMap((route) => route.stops.map((stop) => stop.id)))]
+    expect(seen.length).toBeGreaterThan(1)
+    const next = await recommend({ ...options, excludePlaceIds: seen })
+    expect(next.response.status).toBe(200)
+    expect(next.body.routes!.length).toBeGreaterThan(0)
+    expect(next.body.routes!.flatMap((route) => route.stops).every((stop) => !seen.includes(stop.id))).toBe(true)
+  })
+
+  it('does not recommend an OSM water park whose closure has a public source', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }),
+      { headers: { 'Content-Type': 'application/json' } })))
+    try {
+      const { response, body } = await recommend({ text: 'Хочу в аквапарк', minutes: 240 })
+      expect(response.status).toBe(200)
+      expect(body.routes?.flatMap((route) => route.stops).some((stop) => stop.id === 'osm:node:10168968309')).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('keeps the budget promise honest when city prices are unknown', async () => {

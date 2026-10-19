@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "exclusions": [
+    {
+      "id": "osm:node:10168968309",
+      "category": "water_park",
+      "reason": "The Ailand water park stopped operating on 2025-09-01; the complex is being rebuilt for a different format.",
+      "sourceUrl": "https://www.gov.kz/org/astana-nura/press/news/details/1047434?lang=ru",
+      "checkedAt": "2026-10-19"
+    }
+  ]
+}
