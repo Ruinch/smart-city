@@ -18,11 +18,13 @@ export interface MapCoordinate {
 export interface RecommendationsMapOptions {
   markers: MapMarker[]
   center?: MapCoordinate
+  routeLine?: MapCoordinate[]
+  schematic?: boolean
   onSelect?: (id: string) => void
 }
 
 export interface RecommendationsMapController {
-  update(markers: MapMarker[], center?: MapCoordinate): void
+  update(markers: MapMarker[], center?: MapCoordinate, routeLine?: MapCoordinate[], schematic?: boolean): void
   select(id: string): void
   destroy(): void
 }
@@ -53,6 +55,14 @@ function cleanMarkers(markers: MapMarker[]): MapMarker[] {
     seen.add(marker.id)
     return true
   })
+}
+
+function cleanRouteLine(points: MapCoordinate[] | undefined): MapCoordinate[] {
+  const valid = (points ?? []).filter(validCoordinate)
+  const limit = 1500
+  if (valid.length <= limit) return valid
+  return Array.from({ length: limit }, (_, index) =>
+    valid[Math.round(index * (valid.length - 1) / (limit - 1))])
 }
 
 function project(point: MapCoordinate, zoom: number): Pixel {
@@ -95,7 +105,7 @@ export function mountRecommendationsMap(
 ): RecommendationsMapController {
   const root = document.createElement('section')
   root.className = 'rec-map'
-  root.setAttribute('aria-label', 'Карта рекомендаций')
+  root.setAttribute('aria-label', 'Карта маршрута')
 
   const viewport = document.createElement('div')
   viewport.className = 'rec-map__viewport'
@@ -106,6 +116,19 @@ export function mountRecommendationsMap(
   const tileLayer = document.createElement('div')
   tileLayer.className = 'rec-map__tiles'
   tileLayer.setAttribute('aria-hidden', 'true')
+  const routeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  routeSvg.classList.add('rec-map__route')
+  routeSvg.setAttribute('aria-hidden', 'true')
+  const routeHalo = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  routeHalo.classList.add('rec-map__route-halo')
+  const routePath = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  routePath.classList.add('rec-map__route-path')
+  const routeStart = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  routeStart.classList.add('rec-map__route-start')
+  routeStart.setAttribute('r', '6')
+  routeSvg.appendChild(routeHalo)
+  routeSvg.appendChild(routePath)
+  routeSvg.appendChild(routeStart)
   const markerLayer = document.createElement('div')
   markerLayer.className = 'rec-map__markers'
   const clusterLayer = document.createElement('div')
@@ -133,6 +156,7 @@ export function mountRecommendationsMap(
   attribution.textContent = '© OpenStreetMap contributors'
 
   viewport.appendChild(tileLayer)
+  viewport.appendChild(routeSvg)
   viewport.appendChild(markerLayer)
   viewport.appendChild(clusterLayer)
   viewport.appendChild(controlLayer)
@@ -145,7 +169,7 @@ export function mountRecommendationsMap(
   const fallbackDetails = document.createElement('details')
   fallbackDetails.className = 'rec-map__details'
   const fallbackSummary = document.createElement('summary')
-  fallbackSummary.textContent = 'Список мест'
+  fallbackSummary.textContent = 'Остановки маршрута'
   const fallbackList = document.createElement('nav')
   fallbackList.className = 'rec-map__list'
   fallbackList.setAttribute('aria-label', 'Точки на карте')
@@ -158,6 +182,8 @@ export function mountRecommendationsMap(
   container.replaceChildren(root)
 
   let markers = cleanMarkers(options.markers)
+  let routeLine = cleanRouteLine(options.routeLine)
+  let schematic = options.schematic ?? true
   let preferredCenter = validCoordinate(options.center) ? options.center : undefined
   let center: MapCoordinate = preferredCenter ?? markers[0] ?? { lat: 51.1283, lon: 71.4305 }
   let zoom = 14
@@ -179,7 +205,7 @@ export function mountRecommendationsMap(
   }
 
   function fitMarkers(): void {
-    const points: MapCoordinate[] = [...markers]
+    const points: MapCoordinate[] = [...markers, ...routeLine]
     if (preferredCenter) points.push(preferredCenter)
     if (points.length === 0) return
     const { width, height } = viewportSize()
@@ -317,11 +343,37 @@ export function mountRecommendationsMap(
     }
   }
 
+  function renderRouteLine(centerPixel: Pixel, width: number, height: number): void {
+    if (routeLine.length < 2) {
+      routeSvg.style.display = 'none'
+      return
+    }
+    routeSvg.style.display = ''
+    routeSvg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+    routeSvg.setAttribute('width', String(width))
+    routeSvg.setAttribute('height', String(height))
+    routeSvg.classList.toggle('is-schematic', schematic)
+    const world = TILE_SIZE * 2 ** zoom
+    const positions = routeLine.map((point) => {
+      const pixel = project(point, zoom)
+      let deltaX = pixel.x - centerPixel.x
+      if (deltaX > world / 2) deltaX -= world
+      if (deltaX < -world / 2) deltaX += world
+      return { x: width / 2 + deltaX, y: height / 2 + pixel.y - centerPixel.y }
+    })
+    const path = positions.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
+    routeHalo.setAttribute('d', path)
+    routePath.setAttribute('d', path)
+    routeStart.setAttribute('cx', positions[0].x.toFixed(1))
+    routeStart.setAttribute('cy', positions[0].y.toFixed(1))
+  }
+
   function render(): void {
     if (destroyed) return
     const { width, height } = viewportSize()
     const centerPixel = project(center, zoom)
     renderTiles(centerPixel, width, height)
+    renderRouteLine(centerPixel, width, height)
     renderMarkers(centerPixel, width, height)
     zoomIn.disabled = zoom >= MAX_ZOOM
     zoomOut.disabled = zoom <= MIN_ZOOM
@@ -376,12 +428,12 @@ export function mountRecommendationsMap(
   function rebuildMarkerControls(): void {
     markerLayer.replaceChildren()
     fallbackList.replaceChildren()
-    fallbackSummary.textContent = 'Список мест (' + markers.length + ')'
+    fallbackSummary.textContent = 'Остановки маршрута (' + markers.length + ')'
     markerButtons.clear()
     listButtons.clear()
     markers.forEach((marker, index) => {
       const isTrip = marker.kind === 'trip'
-      const label = (isTrip ? 'Показать маршрут: ' : 'Показать карточку: ') + marker.name
+      const label = (isTrip ? 'Показать поездку: ' : 'Показать остановку: ') + marker.name
       const pin = makeButton('rec-map__marker', label, String(index + 1))
       pin.title = marker.name
       pin.classList.toggle('is-trip', isTrip)
@@ -489,8 +541,10 @@ export function mountRecommendationsMap(
   fitMarkers()
 
   return {
-    update(nextMarkers, nextCenter) {
+    update(nextMarkers, nextCenter, nextRouteLine, nextSchematic) {
       markers = cleanMarkers(nextMarkers)
+      routeLine = cleanRouteLine(nextRouteLine)
+      schematic = nextSchematic ?? true
       preferredCenter = validCoordinate(nextCenter) ? nextCenter : undefined
       if (!markers.some((marker) => marker.id === selectedId)) selectedId = ''
       failure.hidden = true

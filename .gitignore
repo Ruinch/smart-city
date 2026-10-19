@@ -10,3 +10,5 @@ dist/
 coverage/
 *.local
 .taste-skill/
+__pycache__/
+*.pyc

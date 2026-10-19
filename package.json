@@ -11,6 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "worker:dev": "wrangler dev",
+    "smoke:local": "node scripts/smoke-local.mjs",
     "deploy": "npm run build && wrangler deploy",
     "secrets:publish": "node scripts/publish-secrets.mjs",
     "bot:configure": "node scripts/configure-telegram.mjs",

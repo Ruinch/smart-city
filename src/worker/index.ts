@@ -1,16 +1,22 @@
-import catalogJson from '../../data/pois.json'
+import snapshotJson from '../../data/astana-dynamic-fallback.json'
 import tripsJson from '../../data/astana-trips.json'
-import type { CityCatalog, MapPlace, PoiCatalog, RecommendRequest, RecommendResponse, TripCatalog, WalkRequest } from '../shared/types'
-import { chooseWithAI } from './ai'
+import type { CityCatalog, Poi, PoiCatalog, RecommendRequest, RecommendResponse, TripCatalog, WalkRequest } from '../shared/types'
 import { constantTimeEqual, verifyTelegramInitData } from './auth'
-import { distanceMeters, pickDiverse, rankCandidates, toRecommendation, type Candidate } from './recommend'
+import { distanceMeters } from './recommend'
 import { rankTrips, toTripRecommendation } from './trips'
+import { ASTANA_CENTER, ASTANA_RADIUS_METERS, assembleRoute, discoverPlaces,
+  insideAstana, matchesVenueName, needsLiveRefresh, quotedVenueName, rankDynamicPlaces,
+  resolveNamedArea, searchIntentWithAI, selectStopsWithAI,
+  type DynamicPlace } from './dynamic'
+import { attachEvidence, searchVenueEvidence } from './web-evidence'
 
-const catalog = catalogJson as unknown as PoiCatalog
+const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
+const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
+const snapshotLandmarks: DynamicPlace[] = snapshot.landmarks.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
 const tripCatalog = tripsJson as unknown as TripCatalog
 const city: CityCatalog = {
-  id: 'astana', name: 'Астана', center: catalog.zone.center,
-  radiusMeters: catalog.zone.radiusMeters, pois: catalog.pois,
+  id: 'astana', name: 'Астана', center: ASTANA_CENTER,
+  radiusMeters: ASTANA_RADIUS_METERS, pois: [],
 }
 const MAX_BODY_BYTES = 16_384
 
@@ -115,6 +121,10 @@ function validateRecommendBody(value: unknown): RecommendRequest {
   if (budgetKzt !== undefined && (!Number.isSafeInteger(budgetKzt) || (budgetKzt as number) < 0 || (budgetKzt as number) > 10_000_000)) {
     throw new HttpError(400, 'Укажите бюджет от 0 до 10 000 000 ₸.')
   }
+  const groupSize = rawRequest.groupSize
+  if (groupSize !== undefined && (!Number.isSafeInteger(groupSize) || (groupSize as number) < 1 || (groupSize as number) > 12)) {
+    throw new HttpError(400, 'Укажите от 1 до 12 человек.')
+  }
 
   const latitude = rawRequest.latitude
   const longitude = rawRequest.longitude
@@ -128,8 +138,7 @@ function validateRecommendBody(value: unknown): RecommendRequest {
 
   const landmarkId = rawRequest.landmarkId
   if (landmarkId !== undefined && (typeof landmarkId !== 'string'
-    || (landmarkId !== city.id && landmarkId !== catalog.zone.id
-      && !catalog.pois.some((poi) => poi.id === landmarkId)))) {
+    || (landmarkId !== city.id && !snapshotLandmarks.some((poi) => poi.id === landmarkId)))) {
     throw new HttpError(400, 'Неизвестная стартовая точка.')
   }
 
@@ -142,6 +151,7 @@ function validateRecommendBody(value: unknown): RecommendRequest {
     text: rawRequest.text.trim(),
   }
   if (budgetKzt !== undefined) walkRequest.budgetKzt = budgetKzt as number
+  if (groupSize !== undefined) walkRequest.groupSize = groupSize as number
   if (hasLatitude) {
     walkRequest.latitude = latitude as number
     walkRequest.longitude = longitude as number
@@ -155,23 +165,32 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
   return {
     summary: trip
       ? `Из ${city.name} пока нет загородных вариантов с проверенными данными, подходящих выбранным условиям.`
-      : `В пилотном каталоге центра Астаны пока нет точек, подходящих для выбранного времени и условий.`,
+      : 'По вашему запросу не нашлось подходящих точек OpenStreetMap в Астане для выбранного времени.',
     recommendations: [],
+    routes: [],
     note: appendUnverifiedPreferenceNote(trip
       ? 'Попробуйте увеличить время или выбрать автомобиль. Цены и время дороги показываются только при наличии источника.'
-      : 'Попробуйте увеличить время, изменить тему или выбрать другой старт.', request.text),
+      : `Попробуйте увеличить время, изменить пожелание или выбрать другой старт. Полнота данных OpenStreetMap зависит от разметки мест. ${cityBudgetNote(request.budgetKzt)}`, request.text),
   }
+}
+
+function cityBudgetNote(budgetKzt: number | undefined): string {
+  if (budgetKzt === undefined) return ''
+  return budgetKzt === 0
+    ? 'При нулевом бюджете исключены коммерческие категории, но бесплатность остальных мест не подтверждена.'
+    : 'Цены городских мест не проверены, поэтому маршрут не отфильтрован по указанной сумме.'
 }
 
 function outsideZoneResponse(text: string, scope: WalkRequest['scope']): RecommendResponse {
   return {
     summary: scope === 'day_trip'
       ? 'Старт поездки находится слишком далеко от центра Астаны для подбора из этого города.'
-      : `Пока я подбираю прогулки только в пилотной зоне «${catalog.zone.name}». Ваш старт находится за её пределами.`,
+      : 'Старт находится за пределами Астаны. Выберите точку в городе.',
     recommendations: [],
+    routes: [],
     note: appendUnverifiedPreferenceNote(scope === 'day_trip'
       ? 'Выберите старт в центре Астаны или отключите геолокацию.'
-      : 'Выберите старт у Бәйтерека, чтобы посмотреть варианты в каталоге.', text),
+      : 'Выберите старт в Астане или отключите геолокацию.', text),
   }
 }
 
@@ -197,26 +216,6 @@ function appendUnverifiedPreferenceNote(base: string, text: string): string {
   return [base, unverifiedPreferenceNote(text)].filter(Boolean).join(' ')
 }
 
-function orderedCandidates(candidates: Candidate[], aiSelections: Awaited<ReturnType<typeof chooseWithAI>>): Array<{ candidate: Candidate; selection?: typeof aiSelections[number] }> {
-  const byId = new Map(candidates.map((candidate) => [candidate.poi.id, candidate]))
-  const selected: Array<{ candidate: Candidate; selection?: typeof aiSelections[number] }> = []
-  const seen = new Set<string>()
-  for (const choice of aiSelections) {
-    const candidate = byId.get(choice.id)
-    if (!candidate || seen.has(choice.id)) continue
-    seen.add(choice.id)
-    selected.push({ candidate, selection: choice })
-    if (selected.length === 3) return selected
-  }
-  for (const candidate of pickDiverse(candidates, 12)) {
-    if (seen.has(candidate.poi.id)) continue
-    seen.add(candidate.poi.id)
-    selected.push({ candidate })
-    if (selected.length === 3) break
-  }
-  return selected
-}
-
 async function recommend(request: Request, env: Env): Promise<Response> {
   if (!env.TELEGRAM_BOT_TOKEN) return json({ error: 'Сервис временно не настроен.' }, 503)
   const body = validateRecommendBody(await readJson(request))
@@ -229,53 +228,75 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   }
 
   if (body.request.latitude !== undefined && body.request.longitude !== undefined
-    && distanceMeters({ lat: body.request.latitude, lon: body.request.longitude }, city.center)
-      > (body.request.scope === 'day_trip' ? 30_000 : city.radiusMeters)) {
+    && !insideAstana({ lat: body.request.latitude, lon: body.request.longitude })) {
     return json(outsideZoneResponse(body.request.text, body.request.scope))
-  }
-
-  if (requestsVerifiedOpenNow(body.request.text)) {
-    return json({
-      summary: 'Я не могу подтвердить, какие места открыты прямо сейчас: в каталоге нет проверенных актуальных часов работы.',
-      recommendations: [],
-      note: appendUnverifiedPreferenceNote('Измените запрос или проверьте часы у конкретного места перед визитом.', body.request.text),
-    } satisfies RecommendResponse)
   }
 
   if (body.request.scope === 'day_trip') {
     const candidates = rankTrips(tripCatalog.trips, city, body.request)
     if (candidates.length === 0) return json(noPlacesResponse(body.request, city))
     const recommendations = candidates.slice(0, 3).map((candidate) => toTripRecommendation(candidate, city, body.request))
+    const tripOrigin = body.request.latitude !== undefined && body.request.longitude !== undefined
+      ? { lat: body.request.latitude, lon: body.request.longitude } : city.center
+    const routes = recommendations.map((item) => ({
+      id: `route-${item.id}`, title: item.name,
+      summary: 'Отдельная поездка из Астаны. Время дороги и расходы могут быть неизвестны.',
+      stops: [{ ...item, stopOrder: 1 }], routeUrl: item.routeUrl, origin: tripOrigin,
+    }))
     return json({
       summary: `Из ${city.name}: ${recommendations.length} ${recommendations.length === 1 ? 'идея' : 'идеи'} для поездки за город. Проверьте дорогу, стоимость и условия перед выездом.`,
       recommendations,
+      routes,
       note: appendUnverifiedPreferenceNote('Поездки показаны как отдельные варианты, а не единый маршрут. Если цена или время дороги не указаны, соответствие вашему бюджету или времени не подтверждено.'
-        + (body.request.intents.includes('child') ? ' Условия поездки с детьми не проверены.' : ''), body.request.text),
+        + (body.request.intents.includes('child') ? ' Условия поездки с детьми не проверены.' : '')
+        + ((body.request.groupSize ?? 1) > 1 ? ` Наличие мест для ${body.request.groupSize} человек не подтверждено.` : ''), body.request.text),
     } satisfies RecommendResponse)
   }
 
-  const cityRequest = body.request.landmarkId === 'astana'
-    ? { ...body.request, landmarkId: catalog.zone.id }
-    : body.request
-  const ranking = rankCandidates(catalog, cityRequest)
-  if (ranking.candidates.length === 0) return json(noPlacesResponse(body.request, city))
-
-  const aiSelections = env.OPENAI_API_KEY && body.request.transport === 'walk'
-    ? await chooseWithAI(env.OPENAI_API_KEY, body.request, ranking.candidates)
-    : []
-  const choices = orderedCandidates(ranking.candidates, aiSelections)
-  const recommendations = choices.map(({ candidate, selection }) =>
-    toRecommendation(candidate, ranking.origin, cityRequest, selection),
-  )
+  const intent = await searchIntentWithAI(env.OPENAI_API_KEY, body.request)
+  const namedArea = body.request.latitude === undefined
+    ? (body.request.landmarkId && body.request.landmarkId !== city.id
+      ? snapshotLandmarks.find((place) => place.id === body.request.landmarkId) ?? null
+      : resolveNamedArea(body.request.text, intent.areaHint, snapshotLandmarks))
+    : null
+  const origin = body.request.latitude !== undefined && body.request.longitude !== undefined
+    ? { lat: body.request.latitude, lon: body.request.longitude }
+    : namedArea ? { lat: namedArea.lat, lon: namedArea.lon } : city.center
+  const categories = new Set<string>(intent.categories)
+  const exactName = quotedVenueName(body.request.text)
+  const nearbySnapshot = snapshotPlaces.filter((place) => insideAstana(place)
+    && ((categories.has(place.category) && distanceMeters(origin, place) <= 25_000)
+      || (exactName && matchesVenueName(place.name, exactName))))
+  const live = nearbySnapshot.length < 2 || needsLiveRefresh(body.request.text)
+    ? await discoverPlaces(origin, intent.categories, exactName) : null
+  const merged = new Map<string, DynamicPlace>(nearbySnapshot.map((place) => [place.id, place]))
+  for (const place of live ?? []) merged.set(place.id, place)
+  const places = [...merged.values()]
+  if (!places.length && live === null) return json({ error: 'Поиск мест временно недоступен. Попробуйте позже.' }, 503)
+  const candidates = rankDynamicPlaces(places, body.request, intent, origin)
+  if (!candidates.length) return json(noPlacesResponse(body.request, city))
+  const [aiIds, findings] = await Promise.all([
+    selectStopsWithAI(env.OPENAI_API_KEY, body.request, intent, candidates, origin),
+    searchVenueEvidence(env.OPENAI_API_KEY, body.request, candidates.slice(0, 6), env.RECOMMEND_RATE),
+  ])
+  const byId = new Map(candidates.map((poi) => [poi.id, poi]))
+  const evidenceIds = findings.map((item) => item.id)
+  const priorityIds = [...new Set(intent.theme === 'nightlife'
+    ? [...aiIds, ...evidenceIds] : [...evidenceIds, ...aiIds])]
+  const selected = [...priorityIds.map((id) => byId.get(id)).filter((poi): poi is typeof candidates[number] => !!poi),
+    ...candidates.filter((poi) => !priorityIds.includes(poi.id))]
+  const route = assembleRoute(body.request, intent, selected, origin, namedArea?.name)
+  if (!route) return json(noPlacesResponse(body.request, city))
+  attachEvidence(route.stops, findings)
   const result: RecommendResponse = {
-    summary: `Вот ${recommendations.length} ${recommendations.length === 1 ? 'вариант' : 'варианта'} для прогулки в центре Астаны от ${ranking.originLabel}. Каждый вариант рассчитан отдельно.`,
-    recommendations,
-    note: appendUnverifiedPreferenceNote(
-      body.request.transport === 'walk'
-        ? 'Время пешком приблизительное; обратный путь не учтён. Цены, доступность и часы работы не проверены. Данные о точках — OpenStreetMap.'
-        : 'Время дороги на выбранном транспорте и цены не проверены; время посещения — ориентир. Данные о точках — OpenStreetMap.',
-      body.request.text,
-    ),
+    summary: `${route.title}: ${route.stops.length} ${route.stops.length === 1 ? 'место' : 'места'} по вашему запросу${namedArea ? `, от ${namedArea.name}` : ''}.`,
+    recommendations: route.stops,
+    routes: [route],
+    note: `Основа поиска — выгрузка OpenStreetMap от ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Дополнено живым поиском Overpass.' : ''} `
+      + (body.request.transport === 'walk'
+        ? 'Время пешком приблизительное, расстояние между точками — по прямой; обратный путь не учтён. Цены, свободные места и актуальные часы работы не проверены.'
+        : 'Время дороги, стоимость, свободные места и актуальные часы работы не проверены. Расстояние — по прямой.')
+      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt)}`),
   }
   return json(result)
 }
@@ -304,7 +325,7 @@ async function telegramWebhook(request: Request, env: Env): Promise<Response> {
   }
 
   const appUrl = safeMiniAppUrl(env.MINI_APP_URL)
-  const greeting = 'Привет! Помогу выбрать прогулку в центре Астаны или поездку из Астаны за город. Укажите время, бюджет и способ передвижения — покажу варианты на карте с источниками.'
+  const greeting = 'Привет! Опишите, куда хочется пойти в Астане: ночной клуб, кофе с книгой, музей или прогулка. Укажите время и размер компании — соберу маршрут из мест на карте. Бюджет можно добавить, но цены заведений не всегда известны.'
   return json({
     method: 'sendMessage',
     chat_id: chat.id,
@@ -319,22 +340,15 @@ export default {
     try {
       if (pathname === '/api/health') {
         if (request.method !== 'GET') return json({ error: 'Метод не поддерживается.' }, 405)
-        return json({ status: 'ok', cities: 1, catalogSize: catalog.pois.length + tripCatalog.trips.length })
+        return json({ status: 'ok', cities: 1, discovery: 'osm-snapshot-and-live-search',
+          snapshotSize: snapshot.pois.length, snapshotDate: snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt })
       }
       if (pathname === '/api/catalog') {
         if (request.method !== 'GET') return json({ error: 'Метод не поддерживается.' }, 405)
-        const places: MapPlace[] = catalog.pois.map((poi) => ({
-          id: poi.id, name: poi.name, category: poi.category, cityId: 'astana', kind: 'place' as const,
-          lat: poi.lat, lon: poi.lon, sourceUrl: `https://www.openstreetmap.org/${poi.osmType}/${poi.osmId}`,
-        }))
-        places.push(...tripCatalog.trips.map((trip) => ({
-          id: trip.id, name: trip.name, category: trip.category, cityId: trip.cityId, kind: 'trip' as const,
-          lat: trip.lat, lon: trip.lon, sourceUrl: `https://www.openstreetmap.org/${trip.osmType}/${trip.osmId}`,
-        })))
         return json({
-          cities: [{ id: 'astana', name: 'Астана', center: catalog.zone.center, radiusMeters: catalog.zone.radiusMeters, poiCount: catalog.pois.length }],
-          places,
-          source: catalog.source,
+          cities: [{ id: 'astana', name: 'Астана', center: city.center, radiusMeters: city.radiusMeters, poiCount: 0 }],
+          places: [],
+          source: snapshot.source,
         })
       }
       if (pathname === '/api/recommend') {

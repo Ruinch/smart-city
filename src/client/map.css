@@ -26,6 +26,7 @@
 }
 
 .rec-map__tiles,
+.rec-map__route,
 .rec-map__markers,
 .rec-map__clusters {
   position: absolute;
@@ -33,6 +34,14 @@
 }
 
 .rec-map__tiles { z-index: 0; }
+.rec-map__route { z-index: 1; overflow: visible; pointer-events: none; }
+.rec-map__route-halo,
+.rec-map__route-path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.rec-map__route-halo { stroke: var(--surface); stroke-width: 8px; opacity: .9; }
+.rec-map__route-path { stroke: var(--brand); stroke-width: 4px; }
+.rec-map__route.is-schematic .rec-map__route-halo,
+.rec-map__route.is-schematic .rec-map__route-path { stroke-dasharray: 5 10; }
+.rec-map__route-start { fill: var(--surface); stroke: var(--brand); stroke-width: 3px; }
 .rec-map__markers { z-index: 2; pointer-events: none; }
 .rec-map__clusters { z-index: 3; pointer-events: none; }
 

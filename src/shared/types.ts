@@ -93,6 +93,8 @@ export interface WalkRequest {
   minutes: number
   intents: Intent[]
   text: string
+  /** Number of people travelling together. Capacity remains unverified. */
+  groupSize?: number
 }
 
 export interface RecommendRequest {
@@ -126,6 +128,27 @@ export interface Recommendation {
   sourceUrl: string
   routeUrl: string
   approximate?: boolean
+  /** Position in the generated itinerary, starting at one. */
+  stopOrder?: number
+  /** Optional sourced claim verified separately from the OSM location. */
+  evidence?: Array<{ claim: string; sourceUrl: string }>
+  sourceProvider?: 'OpenStreetMap' | 'Overture Maps'
+}
+
+/** A route is an ordered itinerary selected at request time from sourced places. */
+export interface RoutePlan {
+  id: string
+  title: string
+  summary: string
+  stops: Recommendation[]
+  routeUrl: string
+  /** Start actually used by the server, including a matched named area. */
+  origin?: { lat: number; lon: number; name?: string }
+  /** Walking and visit estimate only; omitted when travel time is unknown. */
+  totalMinutesApprox?: number
+  /** Straight-line distance between stops, never a road distance. */
+  distanceKmApprox?: number
+  geometry?: Array<{ lat: number; lon: number }>
 }
 
 export interface MapPlace {
@@ -142,5 +165,6 @@ export interface MapPlace {
 export interface RecommendResponse {
   summary: string
   recommendations: Recommendation[]
+  routes?: RoutePlan[]
   note?: string
 }
