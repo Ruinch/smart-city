@@ -85,4 +85,12 @@ describe('out-of-town trip guardrails', () => {
     expect(rankTrips([paidMuseum, openAirMuseum], city, { ...request, intents: ['outdoors'] })
       .map(({ trip: item }) => item.id)).toEqual(['botai'])
   })
+
+  it('uses the chosen out-of-city heading before proposing a trip', () => {
+    const east = { lat: city.center.lat, lon: city.center.lon + 1 }
+    const eastTrip: Trip = { ...trip, id: 'east-trip', lat: east.lat, lon: east.lon }
+    const ranked = rankTrips([trip, eastTrip], city,
+      { ...request, text: '', targetArea: east })
+    expect(ranked.map(({ trip: item }) => item.id)).toEqual(['east-trip'])
+  })
 })

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { vi } from 'vitest'
 import snapshot from '../../data/astana-dynamic-fallback.json'
-import worker from './index'
+import worker, { scarceSearchCategories } from './index'
 import { ASTANA_CENTER, assembleRoute, buildOverpassQuery, needsLiveRefresh, parseOverpassPlaces, quotedVenueName,
   type DynamicPlace } from './dynamic'
 import type { RecommendResponse, WalkRequest } from '../shared/types'
+import { onCityHeading } from './direction'
 
 const now = Math.floor(Date.now() / 1000)
 const token = '123456:TEST_TOKEN'
@@ -38,8 +39,16 @@ function requestBody(request: Partial<WalkRequest> = {}, initData?: string) {
 }
 
 async function recommend(request: Partial<WalkRequest> = {}): Promise<{ response: Response; body: RecommendResponse }> {
-  const response = await worker.fetch(requestBody(request, await validInitData()), { TELEGRAM_BOT_TOKEN: token })
-  return { response, body: await response.json() as RecommendResponse }
+  // Route integration tests use the saved OSM snapshot; live Overpass behavior has its own test.
+  const liveFetch = globalThis.fetch
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }),
+    { status: 200, headers: { 'content-type': 'application/json' } })))
+  try {
+    const response = await worker.fetch(requestBody(request, await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    return { response, body: await response.json() as RecommendResponse }
+  } finally {
+    vi.stubGlobal('fetch', liveFetch)
+  }
 }
 
 describe('Worker API integration', () => {
@@ -141,6 +150,13 @@ describe('Worker API integration', () => {
     expect(needsLiveRefresh('Что нового открылось сегодня?')).toBe(true)
     expect(needsLiveRefresh('Покажи «точное название места»')).toBe(true)
     expect(needsLiveRefresh('Кофе и книга')).toBe(false)
+  })
+
+  it('refreshes sparse niche categories even when they are fifth or sixth in the request', () => {
+    const scarce = scarceSearchCategories(
+      ['cafe', 'library', 'park', 'museum', 'nightclub', 'escape_game'], [])
+    expect(scarce).toContain('nightclub')
+    expect(scarce).toContain('escape_game')
   })
 
   it('looks up a quoted name across OSM categories while rejecting unsafe query text', () => {
@@ -251,6 +267,23 @@ describe('Worker API integration', () => {
     expect(long.body.routes!.every((route) => route.stops.length === 1
       && route.stops[0].kind === 'trip' && route.stops[0].timeStatus === 'unknown')).toBe(true)
     expect(long.body.routes![0].routeUrl).toContain('travelmode=driving')
+  })
+
+  it('validates the rough destination and keeps walking stops on the selected heading', async () => {
+    const targetArea = { lat: ASTANA_CENTER.lat, lon: ASTANA_CENTER.lon + .07 }
+    const { response, body } = await recommend({ text: 'Хочу кофе', minutes: 240, targetArea })
+    expect(response.status).toBe(200)
+    expect(body.routes?.length).toBeGreaterThan(0)
+    expect(body.routes?.[0].stops.every((stop) => stop.lat !== undefined && stop.lon !== undefined
+      && onCityHeading(ASTANA_CENTER, targetArea, { lat: stop.lat, lon: stop.lon }, 'walk'))).toBe(true)
+    expect(body.note).toContain('Ориентир использован')
+
+    const invalidCity = await worker.fetch(requestBody({ targetArea: { lat: 53.1, lon: 70.3 } },
+      await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(invalidCity.status).toBe(400)
+    const invalidTrip = await worker.fetch(requestBody({ scope: 'day_trip', transport: 'car',
+      targetArea: { lat: 58, lon: 71.4 } }, await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(invalidTrip.status).toBe(400)
   })
 
   it('rejects unsigned webhook calls and serves a /start launch button only with the secret', async () => {

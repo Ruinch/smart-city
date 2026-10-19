@@ -97,6 +97,50 @@
 
 .rec-map__start-point[hidden] { display: none; }
 
+.rec-map__target-area {
+  position: absolute;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 10px;
+  transform: translate(-50%, calc(-100% - 9px));
+  border: 2px solid #b17c23;
+  border-radius: 12px;
+  background: #fff9e9;
+  color: #563b18;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.rec-map__target-area::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #b17c23;
+}
+
+.rec-map__target-area::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 7px);
+  bottom: -8px;
+  border-right: 7px solid transparent;
+  border-left: 7px solid transparent;
+  border-top: 8px solid #b17c23;
+}
+
+.rec-map__target-area[hidden] { display: none; }
+
+.rec-map__viewport.is-selecting-target { cursor: crosshair; }
+.rec-map__viewport.is-selecting-target.is-dragging { cursor: grabbing; }
+
 .rec-map__tile {
   position: absolute;
   display: block;

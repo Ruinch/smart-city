@@ -1,5 +1,5 @@
 import type { Recommendation, WalkRequest } from '../shared/types'
-import { ASTANA_CENTER, insideAstana } from '../shared/astana'
+import { ASTANA_CENTER, insideAstana, insideTripPlanningArea } from '../shared/astana'
 import { mountRecommendationsMap, type MapCoordinate, type RecommendationsMapController } from './map'
 import './style.css'
 
@@ -51,6 +51,16 @@ if (!app) throw new Error('Missing application root')
 
 type Language = 'ru' | 'kk' | 'en'
 const languageNames: Record<Language, string> = { ru: 'Русский', kk: 'Қазақша', en: 'English' }
+const compassNames: Record<Language, readonly string[]> = {
+  ru: ['севера', 'северо-востока', 'востока', 'юго-востока', 'юга', 'юго-запада', 'запада', 'северо-запада'],
+  kk: ['солтүстікке', 'солтүстік-шығысқа', 'шығысқа', 'оңтүстік-шығысқа', 'оңтүстікке', 'оңтүстік-батысқа', 'батысқа', 'солтүстік-батысқа'],
+  en: ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'],
+}
+const compassLabels: Record<Language, readonly string[]> = {
+  ru: ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад'],
+  kk: ['солтүстік', 'солтүстік-шығыс', 'шығыс', 'оңтүстік-шығыс', 'оңтүстік', 'оңтүстік-батыс', 'батыс', 'солтүстік-батыс'],
+  en: compassNames.en,
+}
 const ruMessages = {
   skip: 'К содержимому', mapRegion: 'Карта Астаны и маршрута', map: 'Карта Астаны', brand: 'Рядом — маршруты из Астаны', astana: 'Астана', mapActions: 'Управление картой', recenter: 'Показать начало маршрута', fit: 'Показать весь маршрут', osm: '© участники OpenStreetMap', license: 'Лицензия', data: 'О данных', planner: 'Планировщик маршрута', expandPanel: 'Развернуть панель', collapsePanel: 'Свернуть панель', expandRoute: 'Развернуть маршрут', collapseRoute: 'Свернуть маршрут', heading: 'Куда хочется?', subtitle: 'Расскажите, какой вечер или прогулку вы задумали.', backRoute: '← К маршруту', interest: 'Что вам интересно', promptHint: 'Опишите настроение, места и детали своими словами.', promptPlaceholder: 'Например, тихое кафе с книгой или танцы до ночи', examples: 'Примеры запросов', exampleClub: 'Клуб и танцы', exampleClubPrompt: 'Хочу в клуб: музыка, танцы и движная ночь', exampleCoffee: 'Кофе и книга', exampleCoffeePrompt: 'Тихое кафе, где можно попить кофе и почитать книгу', exampleFriends: 'С друзьями', exampleFriendsPrompt: 'Прогулка с друзьями по интересным местам Астаны', where: 'Где искать', whereRoute: 'Где искать маршрут', inAstana: 'В Астане', fromCity: 'Поездка из города', duration: 'Сколько времени есть', durationAria: 'Время вместе с дорогой', transport: 'Как доберётесь', transportAria: 'Способ передвижения', budget: 'Бюджет на человека, ₸', noLimit: 'Без ограничения', budgetHint: 'Цены многих мест неизвестны. 0 ₸ уберёт кафе, клубы и магазины, но бесплатность оставшихся мест не проверена.', group: 'Сколько вас будет', groupHint: 'От 1 до 12 человек.', locationButton: 'Взять мою геопозицию', locationDefault: 'Без геопозиции начнём от центра Астаны.', submit: 'Составить маршрут', readyRoute: 'Готовый маршрут', language: 'Язык интерфейса', fromAstana: 'Из Астаны', allDay: 'Весь день', walk: 'Пешком', transit: 'Транспорт', car: 'На машине', walkLower: 'пешком', transitLower: 'на транспорте', carLower: 'на машине', perPerson: 'на чел.', personOne: 'человек', personMany: 'чел.', stopsOne: 'остановка', stopsFew: 'остановки', stopsMany: 'остановок', hoursShort: 'ч', minutesShort: 'мин', tripTransportHint: 'Для поездок из Астаны пока доступна машина. Время дороги, расходы и часы работы проверьте перед выездом.', walkTransportHint: 'Время пешком ориентировочное. Часы работы и условия места проверьте перед выходом.', otherTransportHint: 'Время на выбранном транспорте может быть неизвестно. Проверьте дорогу во внешней карте.', locationLoading: 'Запрашиваем геопозицию…', locationUnavailable: 'Геопозиция недоступна. Начнём от центра Астаны.', locationDenied: 'Доступ к геопозиции не получен. Начнём от центра Астаны.', locationFar: 'Вы далеко от Астаны. Начнём маршрут от центра города.', locationFound: 'Начнём маршрут от вашей геопозиции.', promptError: 'Опишите, какой маршрут вам нужен, хотя бы в нескольких словах.', groupError: 'Укажите число от 1 до 12.', budgetError: 'Укажите сумму от 0 до 10 000 000 ₸ или оставьте поле пустым.', loadingRoute: 'Ищем маршрут…', searchingPlaces: 'Ищем подходящие места', searchDescription: 'Проверяем реальные места и собираем маршрут. Это может занять до минуты.', routeNotReady: 'Маршрут пока не готов', edit: 'Изменить запрос', entry: 'Вход', averageBill: 'Средний чек', oneItem: 'Одна позиция', fromPrice: 'от {amount}', checked: 'Проверено {date}', priceSource: 'Источник цены ↗', itemPriceNote: 'Цена одной позиции, не всего посещения.', entryOverBudget: 'Указанная цена билета выше вашего бюджета на человека.', billOverBudget: 'Опубликованный средний чек выше вашего бюджета на человека.', trip: 'Поездка', stop: 'Остановка', place: 'Место', source: 'Источник ↗', onMap: 'На карте ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} на месте', unknownTravel: 'Время дороги неизвестно', roadCost: 'Расходы на дорогу ≈ {min}–{max}', unknownCost: 'Стоимость посещения неизвестна', whatToDo: 'Что здесь сделать', aiCaveat: 'Идея создана ИИ; детали места проверьте перед выходом.', evidence: 'Подробности в источниках', directions: 'Маршрут до места ↗', osmWebsite: 'Сайт из OSM ↗', placeSource: 'Источник места ↗', timeSource: 'Источник времени ↗', costSource: 'Источник стоимости ↗', noPlaces: 'По вашему запросу пока не нашлось подтверждённых мест. Попробуйте описать интересы иначе или выделить больше времени.', cityRoute: 'Маршрут по Астане', astanaTrip: 'Поездка из Астаны', yourRoute: 'Ваш маршрут', walkAndStops: '≈ {time} пешком и на местах', openRoute: 'Открыть весь маршрут ↗', tripVariants: 'Варианты поездки', routeVariants: 'Варианты маршрута', route: 'Маршрут', variant: 'Вариант', roadLine: 'Линия показывает рассчитанный путь. Перед дорогой проверьте его во внешней карте.', dottedLine: 'Пунктир показывает порядок остановок, а не дорогу по улицам. Точный путь откройте во внешней карте.', stopsOrder: 'Остановки по порядку', moreIdeas: 'Ещё идеи →', openInTelegram: 'Откройте приложение через бота в Telegram и попробуйте снова.', loadingMore: 'Ищем ещё…', searchingIdeas: 'Ищем идеи…', otherPlaces: 'Ищем другие места по тем же условиям.', telegramExpired: 'Сессия Telegram устарела. Откройте приложение через бота заново.', rateLimit: 'Слишком много запросов. Подождите немного и попробуйте снова.', newIdeasError: 'Не удалось найти новые идеи. Попробуйте чуть позже.', incomplete: 'Ответ сервера неполный. Попробуйте ещё раз.', noNewPlaces: 'Новых мест пока не нашлось. Попробуйте изменить запрос или параметры.', searchTimeoutShort: 'Поиск занял слишком много времени. Попробуйте ещё раз.', newIdeasRetry: 'Не удалось найти новые идеи. Попробуйте ещё раз.', telegramRequired: 'Для составления маршрута откройте приложение через бота в Telegram. Так мы сможем безопасно обработать ваш запрос.', telegramInvalid: 'Не удалось подтвердить запуск в Telegram. Полностью закройте окно приложения и откройте его снова через @smart_city_ryadombot.', serviceError: 'Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.', searchTimeout: 'Поиск занял слишком много времени. Проверьте соединение и попробуйте ещё раз.', unknownError: 'Произошла ошибка. Попробуйте ещё раз.', languageChange: 'Язык изменён. Составьте маршрут заново, чтобы описание тоже было на новом языке.',
   startTitle: 'Откуда начнём?',
@@ -68,6 +78,25 @@ const ruMessages = {
   startUnavailable: 'Геопозиция недоступна. Выберите точку на карте.',
   startDenied: 'Доступ к геопозиции не получен. Выберите точку на карте.',
   startLoading: 'Определяем геопозицию…',
+  targetTitle: 'В какую сторону?',
+  targetAny: 'Любое направление',
+  targetMap: 'Выбрать на карте',
+  targetCancel: 'Отменить выбор',
+  targetHint: 'Укажите примерную область. Конкретные места подберём по вашему запросу.',
+  targetSelectedHint: 'Это ориентир, а не точный финиш маршрута.',
+  targetPickInstruction: 'Коснитесь карты в той стороне, куда хотите отправиться. Карту можно двигать.',
+  targetOutside: 'Для прогулки выберите точку в Астане.',
+  targetFar: 'Для поездки выберите область не дальше 350 км от Астаны.',
+  targetNear: 'Рядом со стартом',
+  targetToward: 'В сторону {direction}',
+  targetTowardCenter: 'Центр → {direction}',
+  targetNearCenter: 'Рядом с центром',
+  targetDistance: '≈ {distance} км по прямой',
+  targetCenterCaveat: 'Если в запросе указан другой старт, маршрут пойдёт от него.',
+  routeDirectionTitle: 'Куда ведёт маршрут',
+  routeDirectionHint: 'Реальную дорогу проверьте на карте.',
+  routeDirectionNear: 'Последняя остановка рядом со стартом.',
+  durationScaleHint: 'Пеший путь оценочный; время дороги на транспорте может быть неизвестно.',
 } as const
 type MessageKey = keyof typeof ruMessages
 const messages: Record<Language, Record<MessageKey, string>> = {
@@ -89,6 +118,25 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     startUnavailable: 'Геолокация қолжетімсіз. Картадан нүктені таңдаңыз.',
     startDenied: 'Геолокацияға рұқсат берілмеді. Картадан нүктені таңдаңыз.',
     startLoading: 'Геолокация анықталуда…',
+    targetTitle: 'Қай бағытқа?',
+    targetAny: 'Кез келген бағыт',
+    targetMap: 'Картадан таңдау',
+    targetCancel: 'Таңдауды тоқтату',
+    targetHint: 'Шамамен қай аймаққа барғыңыз келетінін көрсетіңіз. Нақты орындарды сұрауыңызға сай таңдаймыз.',
+    targetSelectedHint: 'Бұл бағдар ғана, бағыттың нақты соңғы нүктесі емес.',
+    targetPickInstruction: 'Барғыңыз келетін бағыттағы картаны түртіңіз. Картаны жылжытуға болады.',
+    targetOutside: 'Серуен үшін Астана ішіндегі нүктені таңдаңыз.',
+    targetFar: 'Сапар үшін Астанадан 350 км-ден аспайтын аймақты таңдаңыз.',
+    targetNear: 'Бастау нүктесіне жақын',
+    targetToward: 'Бағыт: {direction}',
+    targetTowardCenter: 'Орталық → {direction}',
+    targetNearCenter: 'Орталыққа жақын',
+    targetDistance: 'Түзу сызықпен ≈ {distance} км',
+    targetCenterCaveat: 'Сұрауда басқа бастау нүктесі көрсетілсе, бағыт сол жерден басталады.',
+    routeDirectionTitle: 'Бағыт қай жаққа апарады',
+    routeDirectionHint: 'Нақты жолды картадан тексеріңіз.',
+    routeDirectionNear: 'Соңғы аялдама бастау нүктесіне жақын.',
+    durationScaleHint: 'Жаяу жол шамамен есептеледі; көлікпен жүру уақыты белгісіз болуы мүмкін.',
   },
   en: {
     skip: 'Skip to content', mapRegion: 'Astana map and route', map: 'Map of Astana', brand: 'Ryadom — routes from Astana', astana: 'Astana', mapActions: 'Map controls', recenter: 'Show route starting point', fit: 'Show full route', osm: '© OpenStreetMap contributors', license: 'License', data: 'About the data', planner: 'Route planner', expandPanel: 'Expand panel', collapsePanel: 'Collapse panel', expandRoute: 'Expand route', collapseRoute: 'Collapse route', heading: 'Where to?', subtitle: 'Tell us what kind of outing or evening you have in mind.', backRoute: '← Back to route', interest: 'What interests you?', promptHint: 'Describe the mood, places and details that matter to you.', promptPlaceholder: 'For example, a quiet café for reading or dancing all night', examples: 'Example requests', exampleClub: 'Clubs and dancing', exampleClubPrompt: 'I want a club with music, dancing and a lively night', exampleCoffee: 'Coffee and a book', exampleCoffeePrompt: 'A quiet café where I can drink coffee and read a book', exampleFriends: 'With friends', exampleFriendsPrompt: 'A walk with friends around interesting places in Astana', where: 'Search area', whereRoute: 'Where to look for a route', inAstana: 'In Astana', fromCity: 'Trip from the city', duration: 'Time available', durationAria: 'Time including travel', transport: 'How will you travel?', transportAria: 'Transport mode', budget: 'Budget per person, ₸', noLimit: 'No limit', budgetHint: 'Prices are unknown for many places. 0 ₸ excludes cafés, clubs and shops, but the remaining places have not been confirmed free.', group: 'How many people?', groupHint: 'Between 1 and 12 people.', locationButton: 'Use my location', locationDefault: 'Without your location, we start from central Astana.', submit: 'Build a route', readyRoute: 'Your route', language: 'Interface language', fromAstana: 'From Astana', allDay: 'All day', walk: 'Walk', transit: 'Public transport', car: 'Car', walkLower: 'on foot', transitLower: 'by public transport', carLower: 'by car', perPerson: 'per person', personOne: 'person', personMany: 'people', stopsOne: 'stop', stopsFew: 'stops', stopsMany: 'stops', hoursShort: 'h', minutesShort: 'min', tripTransportHint: 'Trips from Astana currently require a car. Check travel time, costs and opening hours before you leave.', walkTransportHint: 'Walking times are approximate. Check opening hours and venue conditions before leaving.', otherTransportHint: 'Travel time by your chosen transport may be unknown. Check directions in an external map.', locationLoading: 'Requesting location…', locationUnavailable: 'Location unavailable. We will start from central Astana.', locationDenied: 'Location access was not granted. We will start from central Astana.', locationFar: 'You are far from Astana. We will start from the city center.', locationFound: 'We will start from your location.', promptError: 'Describe the route you want in at least a few words.', groupError: 'Enter a number from 1 to 12.', budgetError: 'Enter an amount from 0 to 10,000,000 ₸ or leave the field empty.', loadingRoute: 'Finding a route…', searchingPlaces: 'Finding places that fit', searchDescription: 'We are checking real places and planning a route. This may take up to a minute.', routeNotReady: 'Route is not ready yet', edit: 'Edit request', entry: 'Admission', averageBill: 'Average bill', oneItem: 'One item', fromPrice: 'from {amount}', checked: 'Checked {date}', priceSource: 'Price source ↗', itemPriceNote: 'This is the price of one item, not the full visit.', entryOverBudget: 'The listed ticket price exceeds your budget per person.', billOverBudget: 'The published average bill exceeds your budget per person.', trip: 'Trip', stop: 'Stop', place: 'Place', source: 'Source ↗', onMap: 'On map ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} at this stop', unknownTravel: 'Travel time unknown', roadCost: 'Travel cost ≈ {min}–{max}', unknownCost: 'Visit cost unknown', whatToDo: 'What to do here', aiCaveat: 'This idea was generated by AI; check venue details before leaving.', evidence: 'Details in sources', directions: 'Directions to place ↗', osmWebsite: 'Website from OSM ↗', placeSource: 'Place source ↗', timeSource: 'Time source ↗', costSource: 'Cost source ↗', noPlaces: 'No verified places matched your request yet. Try describing your interests differently or allowing more time.', cityRoute: 'Route in Astana', astanaTrip: 'Trip from Astana', yourRoute: 'Your route', walkAndStops: '≈ {time} walking and at stops', openRoute: 'Open full route ↗', tripVariants: 'Trip options', routeVariants: 'Route options', route: 'Route', variant: 'Option', roadLine: 'The line shows a calculated route. Check it in an external map before traveling.', dottedLine: 'The dotted line shows stop order, not a street route. Open precise directions in an external map.', stopsOrder: 'Stops in order', moreIdeas: 'More ideas →', openInTelegram: 'Open this app through the Telegram bot and try again.', loadingMore: 'Finding more…', searchingIdeas: 'Finding ideas…', otherPlaces: 'Looking for different places with the same settings.', telegramExpired: 'Your Telegram session has expired. Reopen the app through the bot.', rateLimit: 'Too many requests. Wait a moment and try again.', newIdeasError: 'Could not find new ideas. Please try again later.', incomplete: 'The server response was incomplete. Please try again.', noNewPlaces: 'No new places found yet. Try changing your request or settings.', searchTimeoutShort: 'The search took too long. Please try again.', newIdeasRetry: 'Could not find new ideas. Please try again.', telegramRequired: 'To build a route, open the app through the Telegram bot. This lets us process your request securely.', telegramInvalid: 'Could not verify the Telegram launch. Close the app completely and reopen it through @smart_city_ryadombot.', serviceError: 'The service is temporarily unavailable. Please try again in a few seconds.', searchTimeout: 'The search took too long. Check your connection and try again.', unknownError: 'Something went wrong. Please try again.', languageChange: 'Language changed. Build the route again so its description uses the new language.',
@@ -107,6 +155,25 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     startUnavailable: 'Location unavailable. Pick a point on the map.',
     startDenied: 'Location access was not granted. Pick a point on the map.',
     startLoading: 'Finding your location…',
+    targetTitle: 'Which direction?',
+    targetAny: 'Anywhere',
+    targetMap: 'Choose on map',
+    targetCancel: 'Cancel selection',
+    targetHint: 'Pick an approximate area. We will choose actual places based on your request.',
+    targetSelectedHint: 'This is a guide, not an exact route endpoint.',
+    targetPickInstruction: 'Tap the map in the direction you want to explore. You can move the map.',
+    targetOutside: 'Choose a point in Astana for a city walk.',
+    targetFar: 'Choose an area within 350 km of Astana for a trip.',
+    targetNear: 'Near the starting point',
+    targetToward: 'Towards {direction}',
+    targetTowardCenter: 'Center → {direction}',
+    targetNearCenter: 'Near the center',
+    targetDistance: '≈ {distance} km in a straight line',
+    targetCenterCaveat: 'If your request names another start, the route will begin there.',
+    routeDirectionTitle: 'Where this route heads',
+    routeDirectionHint: 'Check the actual road on the map.',
+    routeDirectionNear: 'The final stop is near your starting point.',
+    durationScaleHint: 'Walking time is approximate; travel time by transport may be unknown.',
   },
 }
 function matchLanguage(value: string | undefined): Language | null {
@@ -229,6 +296,24 @@ app.innerHTML = `
             <button id="resetStartButton" type="button" hidden>Сбросить</button>
           </div>
         </div>
+        <div id="targetPicker" class="target-picker" role="group" aria-labelledby="targetLabel">
+          <div class="target-heading">
+            <span class="target-compass" aria-hidden="true">↑</span>
+            <div class="target-heading-copy">
+              <span id="targetLabel">В какую сторону?</span>
+              <strong id="targetValue">Любое направление</strong>
+            </div>
+          </div>
+          <p id="targetHint" class="target-hint">Укажите примерную область. Конкретные места подберём по вашему запросу.</p>
+          <div class="target-actions">
+            <button id="targetPickButton" class="start-button" type="button" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              <span id="targetPickButtonLabel">Выбрать на карте</span>
+            </button>
+            <button id="targetResetButton" type="button" hidden>Сбросить</button>
+          </div>
+          <p id="targetStatus" class="target-status" role="status" hidden></p>
+        </div>
         <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="advancedSettings">
           <span id="settingsSummary">Астана · 2 ч · пешком · 1 человек</span>
           <span class="settings-chevron" aria-hidden="true">⌄</span>
@@ -243,8 +328,11 @@ app.innerHTML = `
           </div>
           <div class="settings-grid">
           <fieldset class="field-group">
-            <legend>Сколько времени есть</legend>
-            <div id="durationChoices" class="choice-row" aria-label="Время вместе с дорогой"></div>
+            <legend id="durationLegend">Сколько времени есть</legend>
+            <div class="duration-topline"><output id="durationValue" for="durationRange">2 ч</output></div>
+            <input id="durationRange" class="duration-range" type="range" min="1" max="24" step="1" value="2" aria-labelledby="durationLegend" aria-describedby="durationScaleHint" />
+            <div class="duration-ticks" aria-hidden="true"><span>1</span><span>6</span><span>12</span><span>18</span><span>24 ч</span></div>
+            <p id="durationScaleHint" class="field-hint">Пеший путь оценочный; время дороги на транспорте может быть неизвестно.</p>
           </fieldset>
           <fieldset class="field-group">
             <legend>Как доберётесь</legend>
@@ -301,6 +389,14 @@ const startValue = requiredElement<HTMLElement>('#startValue')
 const deviceButton = requiredElement<HTMLButtonElement>('#deviceButton')
 const mapPickButton = requiredElement<HTMLButtonElement>('#mapPickButton')
 const resetStartButton = requiredElement<HTMLButtonElement>('#resetStartButton')
+const targetValue = requiredElement<HTMLElement>('#targetValue')
+const targetHint = requiredElement<HTMLElement>('#targetHint')
+const targetStatus = requiredElement<HTMLElement>('#targetStatus')
+const targetPickButton = requiredElement<HTMLButtonElement>('#targetPickButton')
+const targetResetButton = requiredElement<HTMLButtonElement>('#targetResetButton')
+const targetCompass = requiredElement<HTMLElement>('.target-compass')
+const durationRange = requiredElement<HTMLInputElement>('#durationRange')
+const durationValue = requiredElement<HTMLOutputElement>('#durationValue')
 const mapPickHint = requiredElement<HTMLElement>('#mapPickHint')
 const shell = requiredElement<HTMLElement>('.app-shell')
 const sheetHandle = requiredElement<HTMLButtonElement>('#sheetHandle')
@@ -321,6 +417,7 @@ const state: {
   transport: Transport
   minutes: number
   coordinates: MapCoordinate | null
+  targetArea: MapCoordinate | null
   startSource: 'center' | 'device' | 'map'
   isLoading: boolean
   stops: Recommendation[]
@@ -329,6 +426,7 @@ const state: {
   transport: 'walk',
   minutes: 120,
   coordinates: null,
+  targetArea: null,
   startSource: 'center',
   isLoading: false,
   stops: [],
@@ -341,7 +439,66 @@ let currentRouteOrigin: MapCoordinate | null = null
 const seenPlaceIds = new Set<string>()
 let startMessageKey: MessageKey = 'startCenterStatus'
 let pickingStart = false
+let pickingTarget = false
+let targetStatusKey: MessageKey | null = null
 let locationAttemptId = 0
+let durationChangedByUser = false
+
+function distanceKm(a: MapCoordinate, b: MapCoordinate): number {
+  const radians = Math.PI / 180
+  const deltaLat = (b.lat - a.lat) * radians
+  const deltaLon = (b.lon - a.lon) * radians
+  const h = Math.sin(deltaLat / 2) ** 2
+    + Math.cos(a.lat * radians) * Math.cos(b.lat * radians) * Math.sin(deltaLon / 2) ** 2
+  return 6_371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+function bearingDegrees(a: MapCoordinate, b: MapCoordinate): number {
+  const radians = Math.PI / 180
+  const deltaLon = (b.lon - a.lon) * radians
+  const y = Math.sin(deltaLon) * Math.cos(b.lat * radians)
+  const x = Math.cos(a.lat * radians) * Math.sin(b.lat * radians)
+    - Math.sin(a.lat * radians) * Math.cos(b.lat * radians) * Math.cos(deltaLon)
+  return (Math.atan2(y, x) / radians + 360) % 360
+}
+
+function renderMapPickHint(): void {
+  mapPickHint.textContent = t(pickingTarget ? (targetStatusKey ?? 'targetPickInstruction') : 'startPickInstruction')
+  mapPickHint.hidden = !pickingStart && !pickingTarget
+}
+
+function renderTargetPicker(): void {
+  requiredElement<HTMLElement>('#targetLabel').textContent = t('targetTitle')
+  requiredElement<HTMLElement>('#targetPickButtonLabel').textContent = t(pickingTarget ? 'targetCancel' : 'targetMap')
+  targetResetButton.textContent = t('startReset')
+  targetResetButton.hidden = !state.targetArea && !pickingTarget
+  targetPickButton.classList.toggle('is-selected', pickingTarget || !!state.targetArea)
+  targetPickButton.setAttribute('aria-pressed', String(pickingTarget || !!state.targetArea))
+  targetStatus.hidden = !targetStatusKey
+  targetStatus.textContent = targetStatusKey ? t(targetStatusKey) : ''
+  if (!state.targetArea) {
+    targetValue.textContent = t('targetAny')
+    targetHint.textContent = t('targetHint')
+    targetCompass.style.removeProperty('--bearing')
+    targetCompass.classList.remove('has-target')
+  } else {
+    const from = origin()
+    const distance = distanceKm(from, state.targetArea)
+    const bearing = bearingDegrees(from, state.targetArea)
+    const compassIndex = Math.round(bearing / 45) % 8
+    const direction = state.startSource === 'center'
+      ? compassLabels[language][compassIndex] : compassNames[language][compassIndex]
+    targetValue.textContent = distance < .4
+      ? t(state.startSource === 'center' ? 'targetNearCenter' : 'targetNear')
+      : t(state.startSource === 'center' ? 'targetTowardCenter' : 'targetToward', { direction })
+    const rounded = distance < 10 ? Math.round(distance * 10) / 10 : Math.round(distance)
+    const formatter = new Intl.NumberFormat(language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU', { maximumFractionDigits: 1 })
+    targetHint.textContent = `${t('targetDistance', { distance: formatter.format(rounded) })}. ${t('targetSelectedHint')}${state.startSource === 'center' ? ` ${t('targetCenterCaveat')}` : ''}`
+    targetCompass.style.setProperty('--bearing', `${bearing}deg`)
+    targetCompass.classList.add('has-target')
+  }
+  renderMapPickHint()
+}
 
 function renderStartPicker(): void {
   requiredElement<HTMLElement>('#startLabel').textContent = t('startTitle')
@@ -355,8 +512,7 @@ function renderStartPicker(): void {
   deviceButton.setAttribute('aria-pressed', String(state.startSource === 'device'))
   mapPickButton.setAttribute('aria-pressed', String(pickingStart || state.startSource === 'map'))
   locationStatus.textContent = t(startMessageKey)
-  mapPickHint.textContent = t('startPickInstruction')
-  mapPickHint.hidden = !pickingStart
+  renderMapPickHint()
 }
 
 function applyTranslations(): void {
@@ -378,7 +534,8 @@ function applyTranslations(): void {
     ['.example-row [data-example="coffee"]', 'exampleCoffee'],
     ['.example-row [data-example="friends"]', 'exampleFriends'],
     ['.scope-row .field-label', 'where'], ['[data-scope="city"]', 'inAstana'],
-    ['[data-scope="day_trip"]', 'fromCity'], ['.settings-grid .field-group:first-child legend', 'duration'],
+    ['[data-scope="day_trip"]', 'fromCity'], ['#durationLegend', 'duration'],
+    ['#durationScaleHint', 'durationScaleHint'],
     ['.settings-grid .field-group:nth-child(2) legend', 'transport'], ['.budget-group label', 'budget'],
     ['#budgetHint', 'budgetHint'], ['.group-size-group label', 'group'],
     ['#groupSizeHint', 'groupHint'],
@@ -394,7 +551,7 @@ function applyTranslations(): void {
     ['#recenterButton', 'aria-label', 'recenter'], ['#recenterButton', 'title', 'recenter'],
     ['#fitButton', 'aria-label', 'fit'], ['#fitButton', 'title', 'fit'],
     ['#routeSheet', 'aria-label', 'planner'], ['.example-row', 'aria-label', 'examples'],
-    ['.scope-switch', 'aria-label', 'whereRoute'], ['#durationChoices', 'aria-label', 'durationAria'],
+    ['.scope-switch', 'aria-label', 'whereRoute'],
     ['#transportChoices', 'aria-label', 'transportAria'], ['#results', 'aria-label', 'readyRoute'],
     ['#languageSelect', 'aria-label', 'language'],
   ]
@@ -404,9 +561,10 @@ function applyTranslations(): void {
   const exampleKeys: Array<[string, MessageKey]> = [['club', 'exampleClubPrompt'], ['coffee', 'exampleCoffeePrompt'], ['friends', 'exampleFriendsPrompt']]
   for (const [id, key] of exampleKeys) document.querySelector(`[data-example="${id}"]`)?.setAttribute('data-example-text', t(key))
   renderStartPicker()
+  renderTargetPicker()
   requiredElement<HTMLAnchorElement>('#privacyLink').href = `/privacy.html?lang=${language}`
   mapController?.setLanguage(language)
-  renderDurationChoices()
+  renderDurationSlider()
   renderTransportChoices()
   updateSettingsSummary()
   setSheetMode(shell.dataset.sheet as SheetMode)
@@ -430,7 +588,7 @@ function updateSettingsSummary(): void {
   const count = Number(groupSize.value) || 1
   const people = `${count} ${count === 1 ? t('personOne') : t('personMany')}`
   const money = budget.value.trim() === '' ? '' : ` · ${formatKzt(Number(budget.value))} ${t('perPerson')}`
-  settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${state.minutes === 1440 ? t('allDay') : formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
+  settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
 }
 
 interface SheetDrag {
@@ -633,32 +791,23 @@ function clearResults(): void {
   if (shell.dataset.sheet === 'results' || shell.dataset.sheet === 'peek-results' || shell.dataset.sheet === 'loading') setSheetMode('expanded')
 }
 
-function renderDurationChoices(): void {
-  const options = state.scope === 'city' ? [60, 120, 240, 360] : [480, 720, 1440]
-  const row = requiredElement<HTMLElement>('#durationChoices')
-  row.replaceChildren()
-  for (const minutes of options) {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = 'choice-button'
-    button.textContent = minutes === 1440 ? t('allDay') : formatMinutes(minutes)
-    button.dataset.minutes = String(minutes)
-    const selected = state.minutes === minutes
-    button.classList.toggle('is-selected', selected)
-    button.setAttribute('aria-pressed', String(selected))
-    button.addEventListener('click', () => {
-      state.minutes = minutes
-      row.querySelectorAll<HTMLButtonElement>('button').forEach((candidate) => {
-        const active = candidate === button
-        candidate.classList.toggle('is-selected', active)
-        candidate.setAttribute('aria-pressed', String(active))
-      })
-      clearResults()
-      updateSettingsSummary()
-    })
-    row.appendChild(button)
-  }
+function renderDurationSlider(): void {
+  const hours = state.minutes / 60
+  durationRange.value = String(hours)
+  durationRange.style.setProperty('--duration-progress', `${(hours - 1) / 23 * 100}%`)
+  durationRange.setAttribute('aria-valuetext', formatMinutes(state.minutes))
+  durationValue.value = formatMinutes(state.minutes)
 }
+
+durationRange.addEventListener('input', () => {
+  durationChangedByUser = true
+  const minutes = Number(durationRange.value) * 60
+  if (state.minutes === minutes) return
+  state.minutes = minutes
+  if (currentRouteOrigin !== null || state.isLoading || !results.hidden) clearResults()
+  renderDurationSlider()
+  updateSettingsSummary()
+})
 
 function renderTransportChoices(): void {
   const options: Array<[Transport, string]> = state.scope === 'city'
@@ -700,17 +849,25 @@ function updateTransportHint(): void {
 }
 
 function setScope(scope: Scope): void {
+  if (scope === state.scope) return
   state.scope = scope
-  state.minutes = scope === 'city' ? 120 : 720
+  targetStatusKey = null
+  if (!durationChangedByUser) state.minutes = scope === 'city' ? 120 : 720
   state.transport = scope === 'city' ? 'walk' : 'car'
+  if (scope === 'city' && state.targetArea && !insideAstana(state.targetArea)) {
+    state.targetArea = null
+    targetStatusKey = 'targetOutside'
+    mapController?.setTargetArea(undefined)
+  }
   document.querySelectorAll<HTMLButtonElement>('[data-scope]').forEach((button) => {
     const selected = button.dataset.scope === scope
     button.classList.toggle('is-selected', selected)
     button.setAttribute('aria-pressed', String(selected))
   })
-  renderDurationChoices()
+  renderDurationSlider()
   renderTransportChoices()
   clearResults()
+  renderTargetPicker()
   updateSettingsSummary()
 }
 
@@ -756,12 +913,18 @@ function setStartPoint(point: MapCoordinate | null, source: 'center' | 'device' 
   mapController?.setStartPoint(origin())
   mapController?.focus(origin())
   renderStartPicker()
+  renderTargetPicker()
 }
 
 function requestDeviceLocation(): void {
   const attemptId = ++locationAttemptId
   pickingStart = false
   mapController?.setStartPointSelectionMode(false)
+  if (pickingTarget) {
+    pickingTarget = false
+    mapController?.setTargetAreaSelectionMode(false)
+    renderTargetPicker()
+  }
   deviceButton.disabled = true
   startMessageKey = 'startLoading'
   renderStartPicker()
@@ -824,6 +987,11 @@ deviceButton.addEventListener('click', requestDeviceLocation)
 mapPickButton.addEventListener('click', () => {
   locationAttemptId += 1
   deviceButton.disabled = false
+  if (pickingTarget) {
+    pickingTarget = false
+    mapController?.setTargetAreaSelectionMode(false)
+    renderTargetPicker()
+  }
   pickingStart = !pickingStart
   mapController?.setStartPointSelectionMode(pickingStart)
   startMessageKey = pickingStart ? 'startPickInstruction' : startStatusForSource()
@@ -831,6 +999,31 @@ mapPickButton.addEventListener('click', () => {
   renderStartPicker()
 })
 resetStartButton.addEventListener('click', () => setStartPoint(null, 'center'))
+
+function setTargetArea(point: MapCoordinate | null): void {
+  pickingTarget = false
+  mapController?.setTargetAreaSelectionMode(false)
+  state.targetArea = point
+  targetStatusKey = null
+  mapController?.setTargetArea(point ?? undefined)
+  clearResults()
+  renderTargetPicker()
+}
+
+targetPickButton.addEventListener('click', () => {
+  if (pickingStart) {
+    pickingStart = false
+    mapController?.setStartPointSelectionMode(false)
+    startMessageKey = startStatusForSource()
+    renderStartPicker()
+  }
+  pickingTarget = !pickingTarget
+  targetStatusKey = null
+  mapController?.setTargetAreaSelectionMode(pickingTarget)
+  if (pickingTarget) setSheetMode('peek')
+  renderTargetPicker()
+})
+targetResetButton.addEventListener('click', () => setTargetArea(null))
 
 function validateForm(): { text: string; group: number; budgetKzt?: number } | null {
   budget.setCustomValidity('')
@@ -873,6 +1066,7 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
   }
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
   if (excludePlaceIds.length) request.excludePlaceIds = excludePlaceIds
+  if (state.targetArea) request.targetArea = { ...state.targetArea }
   if (state.coordinates) {
     request.latitude = state.coordinates.lat
     request.longitude = state.coordinates.lon
@@ -1099,6 +1293,36 @@ function recentExcludedPlaceIds(): string[] {
     .slice(-36)
 }
 
+function createRouteDirection(from: MapCoordinate, to: MapCoordinate): HTMLElement {
+  const distance = distanceKm(from, to)
+  const bearing = bearingDegrees(from, to)
+  const direction = compassNames[language][Math.round(bearing / 45) % 8]
+  const card = document.createElement('div')
+  card.className = 'route-direction'
+  const arrow = document.createElement('span')
+  arrow.className = 'route-direction-arrow'
+  arrow.setAttribute('aria-hidden', 'true')
+  arrow.style.setProperty('--bearing', `${bearing}deg`)
+  arrow.textContent = '↑'
+  const copy = document.createElement('div')
+  copy.className = 'route-direction-copy'
+  const label = document.createElement('span')
+  label.textContent = t('routeDirectionTitle')
+  const value = document.createElement('strong')
+  value.textContent = distance < .4 ? t('targetNear') : t('targetToward', { direction })
+  const detail = document.createElement('small')
+  if (distance < .4) detail.textContent = t('routeDirectionNear')
+  else {
+    const rounded = distance < 10 ? Math.round(distance * 10) / 10 : Math.round(distance)
+    const formatted = new Intl.NumberFormat(language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU',
+      { maximumFractionDigits: 1 }).format(rounded)
+    detail.textContent = `${t('targetDistance', { distance: formatted })}. ${t('routeDirectionHint')}`
+  }
+  appendNodes(copy, label, value, detail)
+  appendNodes(card, arrow, copy)
+  return card
+}
+
 function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = false): void {
   results.hidden = false
   results.replaceChildren()
@@ -1110,6 +1334,8 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   }
   rememberShownStops(routes)
   state.stops = route.stops.slice(0, 3)
+  const routeOrigin = validPoint(route.origin) ? route.origin : origin()
+  const lastStop = state.stops.filter((item): item is Recommendation & MapCoordinate => validPoint(item)).slice(-1)[0]
 
   const heading = document.createElement('div')
   heading.className = 'results-heading'
@@ -1128,6 +1354,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     addFact(meta, t('walkAndStops', { time: formatMinutes(route.totalMinutesApprox) }))
   }
   appendNodes(heading, eyebrow, title, summary, meta)
+  if (lastStop) heading.appendChild(createRouteDirection(routeOrigin, lastStop))
   const routeLink = createLink(t('openRoute'), route.routeUrl, 'route-link')
   if (routeLink) heading.appendChild(routeLink)
   const editButton = document.createElement('button')
@@ -1215,7 +1442,6 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
 
   const markers = state.stops.filter((item): item is Recommendation & MapCoordinate => validPoint(item))
     .map((item) => ({ id: item.id, name: item.name, lat: item.lat, lon: item.lon, kind: item.kind, category: item.category, sourceUrl: item.sourceUrl }))
-  const routeOrigin = validPoint(route.origin) ? route.origin : origin()
   const routeLine = geometryIsRoad ? geometry : [routeOrigin, ...markers]
   currentRouteOrigin = routeOrigin
   mapController?.update(markers, routeOrigin, routeLine, !geometryIsRoad)
@@ -1357,6 +1583,20 @@ mapController = mountRecommendationsMap(requiredElement<HTMLElement>('#map'), {
       return
     }
     setStartPoint(point, 'map')
+  },
+  onTargetAreaSelect: (point) => {
+    if (!pickingTarget) return
+    if (state.scope === 'city' && !insideAstana(point)) {
+      targetStatusKey = 'targetOutside'
+      renderTargetPicker()
+      return
+    }
+    if (state.scope === 'day_trip' && !insideTripPlanningArea(point)) {
+      targetStatusKey = 'targetFar'
+      renderTargetPicker()
+      return
+    }
+    setTargetArea(point)
   },
 })
 applyTranslations()

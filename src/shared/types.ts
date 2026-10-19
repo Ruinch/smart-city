@@ -92,6 +92,8 @@ export interface WalkRequest {
   budgetKzt?: number
   latitude?: number
   longitude?: number
+  /** Optional rough heading/end area. Used only for the current request, not as a required stop. */
+  targetArea?: { lat: number; lon: number }
   landmarkId?: string
   minutes: number
   intents: Intent[]

@@ -1,6 +1,7 @@
 import type { CityCatalog, Recommendation, Trip, WalkRequest } from '../shared/types'
 import { routeUrl } from './recommend'
 import { languageOf, pick } from './i18n'
+import { onTripHeading, tripDirectionScore } from './direction'
 
 const TRIP_KEYWORDS: Record<string, string[]> = {
   viewpoint: ['смотров', 'панорам', 'вид', 'природ'],
@@ -48,9 +49,12 @@ export function rankTrips(trips: Trip[], city: CityCatalog, request: WalkRequest
   if (transport === 'walk') return []
 
   const normalizedText = request.text.normalize('NFKC').toLocaleLowerCase('ru')
+  const origin = request.latitude !== undefined && request.longitude !== undefined
+    ? { lat: request.latitude, lon: request.longitude } : city.center
   const ranked: TripCandidate[] = []
   for (const trip of trips) {
     if (trip.cityId !== city.id) continue
+    if (request.targetArea && !onTripHeading(origin, request.targetArea, trip)) continue
     // Unknown road times must never make a distant trip look like a short walk.
     // These are conservative planning gates, not claims about actual driving.
     const planningMinimum = trip.durationClass === 'half_day' && sourceUrl(trip.durationSourceUrl) ? 240 : 480
@@ -82,6 +86,7 @@ export function rankTrips(trips: Trip[], city: CityCatalog, request: WalkRequest
     const score = (matchesText ? 30 : 0)
       + (totalMinutesApprox !== undefined ? 10 : 0)
       + (status === 'within' ? 8 : 0)
+      + (request.targetArea ? tripDirectionScore(origin, request.targetArea, trip) : 0)
       - (positiveEstimate(trip.travel.roadKmApprox, trip.travel.sourceUrl) ?? 0) * 0.02
     ranked.push({ trip, travelMinutesApprox, totalMinutesApprox, budgetStatus: status, score })
   }

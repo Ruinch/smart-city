@@ -55,7 +55,7 @@ describe('broader Astana retrieval', () => {
     const candidates = [...cafes, ...libraries, ...bookshops]
     const shortlist = shortlistCandidatesForAI(candidates,
       { theme: 'reading', categories: ['cafe', 'library', 'bookshop'] })
-    expect(shortlist).toHaveLength(24)
+    expect(shortlist).toHaveLength(36)
     expect(shortlist[0].id).toBe(cafes[0].id)
     expect(shortlist.filter((candidate) => candidate.category === 'library')).toHaveLength(3)
     expect(shortlist.filter((candidate) => candidate.category === 'bookshop')).toHaveLength(2)
@@ -68,5 +68,17 @@ describe('broader Astana retrieval', () => {
       categories: ['bowling_alley' as const, 'water_park' as const, 'monument' as const] }
     const ranked = rankDynamicPlaces(input, request('Боулинг и памятники', { budgetKzt: 0 }), intent, ASTANA_CENTER)
     expect(ranked.map((candidate) => candidate.category)).toEqual(['monument'])
+  })
+
+  it('keeps a requested venue in the chosen heading and excludes a cross-city detour', () => {
+    const target = { lat: ASTANA_CENTER.lat, lon: ASTANA_CENTER.lon + .07 }
+    const inDirection = { ...place(301, 'cafe'), lat: ASTANA_CENTER.lat, lon: ASTANA_CENTER.lon + .03 }
+    const opposite = { ...place(302, 'cafe'), lat: ASTANA_CENTER.lat, lon: ASTANA_CENTER.lon - .03 }
+    const offCorridor = { ...place(303, 'cafe'), lat: ASTANA_CENTER.lat + .04,
+      lon: ASTANA_CENTER.lon + .03 }
+    const ranked = rankDynamicPlaces([opposite, offCorridor, inDirection],
+      request('Хочу кофе', { minutes: 240, targetArea: target }),
+      { theme: 'reading', categories: ['cafe'] }, ASTANA_CENTER)
+    expect(ranked.map((candidate) => candidate.id)).toEqual([inDirection.id])
   })
 })

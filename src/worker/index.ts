@@ -8,11 +8,14 @@ import { rankTrips, toTripRecommendation } from './trips'
 import { ASTANA_CENTER, ASTANA_RADIUS_METERS, discoverPlaces,
   insideAstana, matchesVenueName, needsLiveRefresh, quotedVenueName, rankDynamicPlaces,
   resolveNamedArea, searchIntentWithAI, selectStopsWithAI,
-  type DynamicPlace } from './dynamic'
+  type DynamicPlace, type SearchCategory } from './dynamic'
 import { attachEvidence, searchVenueEvidence } from './web-evidence'
 import { buildRouteVariants } from './route-variants'
 import { attachPriceEvidence, researchVenuePrices } from './price-research'
 import { countPeople, countPlaces, languageOf, pick, placeName } from './i18n'
+import { insideTripPlanningArea } from '../shared/astana'
+import { directionMetrics } from './direction'
+import { onCityHeading } from './direction'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
@@ -20,6 +23,11 @@ const snapshotLandmarks: DynamicPlace[] = snapshot.landmarks.map((poi) => ({ ...
 const tripCatalog = tripsJson as unknown as TripCatalog
 const excludedCategories = new Set(exclusionsJson.exclusions.map((item) => `${item.id}|${item.category}`))
 const usablePlace = (place: DynamicPlace): boolean => !excludedCategories.has(`${place.id}|${place.category}`)
+export function scarceSearchCategories(categories: SearchCategory[], nearby: DynamicPlace[]): SearchCategory[] {
+  const counts = new Map<string, number>()
+  for (const place of nearby) counts.set(place.category, (counts.get(place.category) ?? 0) + 1)
+  return categories.filter((category, index) => (counts.get(category) ?? 0) < (index === 0 ? 5 : 2))
+}
 const city: CityCatalog = {
   id: 'astana', name: 'Астана', center: ASTANA_CENTER,
   radiusMeters: ASTANA_RADIUS_METERS, pois: [],
@@ -170,6 +178,22 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
     throw new HttpError(400, pick(language, 'Некорректные координаты.', 'Координаталар қате.', 'Invalid coordinates.'))
   }
 
+  const targetArea = rawRequest.targetArea === undefined ? undefined : record(rawRequest.targetArea)
+  if (rawRequest.targetArea !== undefined && (!targetArea
+    || typeof targetArea.lat !== 'number' || !Number.isFinite(targetArea.lat)
+    || typeof targetArea.lon !== 'number' || !Number.isFinite(targetArea.lon)
+    || targetArea.lat < -90 || targetArea.lat > 90 || targetArea.lon < -180 || targetArea.lon > 180)) {
+    throw new HttpError(400, pick(language, 'Некорректный ориентир маршрута.',
+      'Бағыт бағдары қате көрсетілген.', 'Invalid route heading.'))
+  }
+  if (targetArea && !(scope === 'city' ? insideAstana(targetArea as { lat: number; lon: number })
+    : insideTripPlanningArea(targetArea as { lat: number; lon: number }))) {
+    throw new HttpError(400, pick(language,
+      scope === 'city' ? 'Выберите ориентир в пределах Астаны.' : 'Выберите ориентир не дальше 350 км от Астаны.',
+      scope === 'city' ? 'Бағдарды Астана ішінде таңдаңыз.' : 'Бағдарды Астанадан 350 км-ден жақын таңдаңыз.',
+      scope === 'city' ? 'Choose a heading within Astana.' : 'Choose a heading within 350 km of Astana.'))
+  }
+
   const landmarkId = rawRequest.landmarkId
   if (landmarkId !== undefined && (typeof landmarkId !== 'string'
     || (landmarkId !== city.id && !snapshotLandmarks.some((poi) => poi.id === landmarkId)))) {
@@ -192,6 +216,7 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
     walkRequest.latitude = latitude as number
     walkRequest.longitude = longitude as number
   }
+  if (targetArea) walkRequest.targetArea = { lat: targetArea.lat as number, lon: targetArea.lon as number }
   if (typeof landmarkId === 'string') walkRequest.landmarkId = landmarkId
   return { initData: body.initData, request: walkRequest }
 }
@@ -200,7 +225,15 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
   const trip = request.scope === 'day_trip'
   const language = languageOf(request)
   return {
-    summary: trip
+    summary: request.targetArea
+      ? trip
+        ? pick(language, 'В выбранном направлении пока нет подходящей поездки с проверенными данными.',
+          'Таңдалған бағытта дерегі тексерілген қолайлы сапар табылмады.',
+          'No sourced trip matched the selected heading.')
+        : pick(language, 'В выбранном направлении не нашлось подходящих мест для этого времени и запроса.',
+          'Таңдалған бағытта осы уақыт пен сұрауға сай орын табылмады.',
+          'No suitable places matched this heading, time and request.')
+      : trip
       ? pick(language, `Из ${city.name} пока нет загородных вариантов с проверенными данными, подходящих выбранным условиям.`,
         'Таңдалған шарттарға сай дерегі тексерілген қала сыртындағы нұсқалар табылмады.',
         'No sourced trips from Astana matched your selected conditions.')
@@ -209,7 +242,11 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
         'No OpenStreetMap places in Astana matched your request and available time.'),
     recommendations: [],
     routes: [],
-    note: appendUnverifiedPreferenceNote(trip
+    note: appendUnverifiedPreferenceNote(request.targetArea
+      ? pick(language, 'Попробуйте сдвинуть ориентир, увеличить время или убрать направление. Ориентир задаёт примерную сторону движения, не точный адрес прибытия.',
+        'Бағдарды жылжытып, уақытты ұлғайтып немесе бағыт таңдауын алып көріңіз. Ол нақты жету мекенжайы емес.',
+        'Move the heading, allow more time or clear it. It indicates a rough direction, not an exact arrival address.')
+      : trip
       ? pick(language, 'Попробуйте увеличить время или выбрать автомобиль. Цены и время дороги показываются только при наличии источника.',
         'Уақытты көбейтіп немесе көлікпен жүруді таңдап көріңіз. Бағалар мен жол уақыты тек дереккөзі болса көрсетіледі.',
         'Try allowing more time or choosing a car. Prices and travel times appear only when a source is available.')
@@ -328,7 +365,11 @@ async function recommend(request: Request, env: Env): Promise<Response> {
         + ((body.request.groupSize ?? 1) > 1 ? ` ${pick(language,
           `Наличие мест для ${countPeople(language, body.request.groupSize!)} не подтверждено.`,
           `${countPeople(language, body.request.groupSize!)} орын бар екені расталмаған.`,
-          `Availability for ${countPeople(language, body.request.groupSize!)} has not been verified.`)}` : ''),
+          `Availability for ${countPeople(language, body.request.groupSize!)} has not been verified.`)}` : '')
+        + (body.request.targetArea ? ` ${pick(language,
+          'Выбранный ориентир использован как примерное направление; поездка может завершиться в другой точке.',
+          'Таңдалған бағдар шамамен бағыт ретінде қолданылды; сапар басқа жерде аяқталуы мүмкін.',
+          'The selected area guided the rough direction; the trip may end elsewhere.')}` : ''),
       body.request.text, language),
     } satisfies RecommendResponse)
   }
@@ -345,10 +386,15 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const categories = new Set<string>(intent.categories)
   const exactName = quotedVenueName(body.request.text)
   const nearbySnapshot = snapshotPlaces.filter((place) => usablePlace(place) && insideAstana(place)
-    && ((categories.has(place.category) && distanceMeters(origin, place) <= 25_000)
+    && ((categories.has(place.category) && distanceMeters(origin, place) <= (body.request.targetArea ? 50_000 : 25_000))
       || (exactName && matchesVenueName(place.name, exactName))))
-  const live = nearbySnapshot.length < 2 || needsLiveRefresh(body.request.text)
-    ? await discoverPlaces(origin, intent.categories, exactName) : null
+  const nearbyInHeading = body.request.targetArea
+    ? nearbySnapshot.filter((place) => onCityHeading(origin, body.request.targetArea!, place, body.request.transport))
+    : nearbySnapshot
+  const scarceCategories = scarceSearchCategories(intent.categories, nearbyInHeading)
+  const live = scarceCategories.length > 0 || needsLiveRefresh(body.request.text)
+    ? await discoverPlaces(body.request.targetArea ?? origin,
+      scarceCategories.length ? scarceCategories : intent.categories, exactName) : null
   const merged = new Map<string, DynamicPlace>(nearbySnapshot.map((place) => [place.id, place]))
   for (const place of live ?? []) if (usablePlace(place)) merged.set(place.id, place)
   const places = [...merged.values()]
@@ -362,7 +408,11 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   if (!candidates.length) return json(noPlacesResponse(body.request, city))
   const aiIds = await selectStopsWithAI(env.OPENAI_API_KEY, body.request, intent, candidates, origin)
   const byId = new Map(candidates.map((poi) => [poi.id, poi]))
-  const selected = [...aiIds.map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi),
+  const aiSelected = aiIds.map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
+  if (body.request.targetArea) aiSelected.sort((left, right) =>
+    (directionMetrics(origin, body.request.targetArea!, left)?.progress ?? 0)
+    - (directionMetrics(origin, body.request.targetArea!, right)?.progress ?? 0))
+  const selected = [...aiSelected,
     ...candidates.filter((poi) => !aiIds.includes(poi.id))]
   const routes = buildRouteVariants(body.request, intent, selected, origin,
     namedArea ? placeName(namedArea, language) : undefined)
@@ -404,7 +454,11 @@ async function recommend(request: Request, env: Env): Promise<Response> {
       + ` ${pick(language, 'Свободные места и актуальные часы работы проверьте перед визитом.',
         'Барар алдында бос орындар мен өзекті жұмыс уақытын тексеріңіз.',
         'Check availability and current opening hours before visiting.')}`
-      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt, prices.length, language)}`),
+      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt, prices.length, language)}`)
+      + (body.request.targetArea ? ` ${pick(language,
+        'Ориентир использован для направления остановок; маршрут может не закончиться точно в этой точке.',
+        'Бағдар аялдамалар бағытын таңдауға қолданылды; бағыт дәл сол нүктеде аяқталмауы мүмкін.',
+        'The selected area guided the stop order; the route may not end at that exact point.')}` : ''),
   }
   return json(result)
 }
