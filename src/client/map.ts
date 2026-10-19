@@ -205,6 +205,12 @@ export function mountRecommendationsMap(
   const tileLayer = document.createElement('div')
   tileLayer.className = 'rec-map__tiles'
   tileLayer.setAttribute('aria-hidden', 'true')
+  const fallbackTilePlane = document.createElement('div')
+  fallbackTilePlane.className = 'rec-map__tile-plane rec-map__tile-plane--fallback'
+  const activeTilePlane = document.createElement('div')
+  activeTilePlane.className = 'rec-map__tile-plane rec-map__tile-plane--active'
+  tileLayer.appendChild(fallbackTilePlane)
+  tileLayer.appendChild(activeTilePlane)
   const routeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   routeSvg.classList.add('rec-map__route')
   routeSvg.setAttribute('aria-hidden', 'true')
@@ -288,6 +294,10 @@ export function mountRecommendationsMap(
   let resizedAfterInteraction = false
   let bottomInset = 0
   let frame = 0
+  let cameraFrame = 0
+  let cameraTargetCenter: MapCoordinate = center
+  let cameraTargetZoom = zoom
+  let insetFitTimer = 0
   let destroyed = false
   let activePointer: number | null = null
   let lastPointer: Pixel | null = null
@@ -295,8 +305,19 @@ export function mountRecommendationsMap(
   let pointerMoved = false
   let selectingStartPoint = false
   const tiles = new Map<string, HTMLImageElement>()
+  let activeTileZoom = -1
+  let activeTileOrigin: Pixel = { x: 0, y: 0 }
+  let fallbackTileZoom = -1
+  let fallbackTileOrigin: Pixel = { x: 0, y: 0 }
+  let fallbackRemovalTimer = 0
+  let tileGeneration = 0
   const markerButtons = new Map<string, HTMLButtonElement>()
   const listButtons = new Map<string, HTMLButtonElement>()
+  const clusterButtons = new Map<string, HTMLButtonElement>()
+  const clusterGroups = new Map<string, MapMarker[]>()
+  const reducedMotion = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null
 
   function applyLanguage(): void {
     root.lang = language
@@ -332,14 +353,87 @@ export function mountRecommendationsMap(
     return visibleHeight(height) / 2
   }
 
-  function fitMarkers(): void {
+  function cancelCamera(): void {
+    if (cameraFrame) cancelAnimationFrame(cameraFrame)
+    cameraFrame = 0
+    cameraTargetCenter = center
+    cameraTargetZoom = zoom
+    viewport.classList.remove('is-moving')
+  }
+
+  function moveCamera(targetCenter: MapCoordinate, targetZoom: number, animate = true): void {
+    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom))
+    cancelCamera()
+    cameraTargetCenter = targetCenter
+    cameraTargetZoom = nextZoom
+    if (!animate || reducedMotion?.matches || document.hidden) {
+      center = targetCenter
+      zoom = nextZoom
+      queueRender()
+      return
+    }
+
+    const from = project(center, 0)
+    const to = project(targetCenter, 0)
+    let deltaX = to.x - from.x
+    if (deltaX > TILE_SIZE / 2) deltaX -= TILE_SIZE
+    if (deltaX < -TILE_SIZE / 2) deltaX += TILE_SIZE
+    const deltaY = to.y - from.y
+    const zoomDelta = nextZoom - zoom
+    if (Math.abs(deltaX) < 0.000001 && Math.abs(deltaY) < 0.000001 && Math.abs(zoomDelta) < 0.001) {
+      center = targetCenter
+      zoom = nextZoom
+      queueRender()
+      return
+    }
+
+    const initialZoom = zoom
+    const { width, height } = viewportSize()
+    const travel = Math.hypot(deltaX, deltaY)
+    const farMove = travel * 2 ** Math.max(initialZoom, nextZoom)
+      > Math.max(width, visibleHeight(height)) * 2.5
+    const travelZoom = farMove
+      ? Math.max(MIN_ZOOM, Math.min(initialZoom, nextZoom,
+        Math.log2(Math.max(width, visibleHeight(height)) * 1.2 / travel)))
+      : Math.min(initialZoom, nextZoom)
+    const smoothstep = (value: number): number => value * value * (3 - 2 * value)
+    const started = performance.now()
+    const duration = farMove ? 650 : Math.min(460, 280 + Math.abs(zoomDelta) * 35)
+    viewport.classList.add('is-moving')
+    const tick = (now: number): void => {
+      if (destroyed) return
+      const progress = reducedMotion?.matches ? 1 : Math.min(1, (now - started) / duration)
+      const panProgress = farMove
+        ? smoothstep(Math.max(0, Math.min(1, (progress - 0.2) / 0.6)))
+        : 1 - (1 - progress) ** 3
+      center = progress < 1
+        ? unproject({ x: from.x + deltaX * panProgress, y: from.y + deltaY * panProgress }, 0)
+        : targetCenter
+      if (farMove && progress < 1) {
+        zoom = progress < 0.35
+          ? initialZoom + (travelZoom - initialZoom) * smoothstep(progress / 0.35)
+          : progress < 0.65
+            ? travelZoom
+            : travelZoom + (nextZoom - travelZoom) * smoothstep((progress - 0.65) / 0.35)
+      } else {
+        zoom = progress < 1 ? initialZoom + zoomDelta * panProgress : nextZoom
+      }
+      queueRender()
+      if (progress < 1) cameraFrame = requestAnimationFrame(tick)
+      else {
+        cameraFrame = 0
+        viewport.classList.remove('is-moving')
+      }
+    }
+    cameraFrame = requestAnimationFrame(tick)
+  }
+
+  function fitMarkers(animate = false): void {
     const points: MapCoordinate[] = [...markers, ...routeLine]
     if (preferredCenter) points.push(preferredCenter)
     if (startPoint) points.push(startPoint)
     if (markers.length === 0 && routeLine.length === 0) {
-      center = preferredCenter ?? startPoint ?? ASTANA_CENTER
-      zoom = CITY_ZOOM
-      queueRender()
+      moveCamera(preferredCenter ?? startPoint ?? ASTANA_CENTER, CITY_ZOOM, animate)
       return
     }
     if (points.length === 0) return
@@ -356,12 +450,14 @@ export function mountRecommendationsMap(
       const maxY = Math.max(...ys)
       if (candidateZoom === MIN_ZOOM
         || (maxX - minX <= availableWidth && maxY - minY <= availableHeight)) {
-        zoom = candidateZoom
-        center = unproject({ x: (minX + maxX) / 2, y: (minY + maxY) / 2 }, zoom)
+        moveCamera(
+          unproject({ x: (minX + maxX) / 2, y: (minY + maxY) / 2 }, candidateZoom),
+          candidateZoom,
+          animate,
+        )
         break
       }
     }
-    queueRender()
   }
 
   function queueRender(): void {
@@ -372,49 +468,104 @@ export function mountRecommendationsMap(
     })
   }
 
-  function renderTiles(centerPixel: Pixel, width: number, height: number): void {
-    const left = centerPixel.x - width / 2
-    const top = centerPixel.y - mapAnchorY(height)
+  function renderTiles(width: number, height: number): void {
+    // Scale whole-zoom tile planes while the camera moves through fractional zoom.
+    // Keep the previous plane behind new images until the visible tiles have loaded.
+    const tileZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(zoom + 0.000001)))
+    if (tileZoom !== activeTileZoom) {
+      tileGeneration += 1
+      if (fallbackRemovalTimer) window.clearTimeout(fallbackRemovalTimer)
+      fallbackRemovalTimer = 0
+      if (activeTileZoom >= 0) {
+        const activeLoaded = [...tiles.values()].filter((image) => image.complete && image.naturalWidth > 0).length
+        const fallbackLoaded = fallbackTilePlane.querySelectorAll('.is-loaded').length
+        if (fallbackTileZoom < 0 || activeLoaded >= fallbackLoaded) {
+          fallbackTilePlane.replaceChildren(...Array.from(activeTilePlane.children))
+          fallbackTileZoom = activeTileZoom
+          fallbackTileOrigin = activeTileOrigin
+        } else {
+          activeTilePlane.replaceChildren()
+        }
+      }
+      tiles.clear()
+      activeTileZoom = tileZoom
+    }
+    const tileScale = 2 ** (zoom - tileZoom)
+    const tileCenter = project(center, tileZoom)
+    const left = tileCenter.x - width / (2 * tileScale)
+    const top = tileCenter.y - mapAnchorY(height) / tileScale
     const startX = Math.floor(left / TILE_SIZE)
-    const endX = Math.floor((left + width - 1) / TILE_SIZE)
+    const endX = Math.floor((left + width / tileScale - 1) / TILE_SIZE)
     const startY = Math.floor(top / TILE_SIZE)
-    const endY = Math.floor((top + height - 1) / TILE_SIZE)
-    const tileCount = 2 ** zoom
+    const endY = Math.floor((top + height / tileScale - 1) / TILE_SIZE)
+    const tileCount = 2 ** tileZoom
     const visible = new Set<string>()
+
+    activeTileOrigin = { x: startX, y: startY }
+    activeTilePlane.style.transform = `translate3d(${((startX * TILE_SIZE - left) * tileScale).toFixed(2)}px, ${((startY * TILE_SIZE - top) * tileScale).toFixed(2)}px, 0) scale(${tileScale.toFixed(5)})`
+    if (fallbackTileZoom >= 0) {
+      const fallbackScale = 2 ** (zoom - fallbackTileZoom)
+      const fallbackCenter = project(center, fallbackTileZoom)
+      fallbackTilePlane.style.transform = `translate3d(${(width / 2 + (fallbackTileOrigin.x * TILE_SIZE - fallbackCenter.x) * fallbackScale).toFixed(2)}px, ${(mapAnchorY(height) + (fallbackTileOrigin.y * TILE_SIZE - fallbackCenter.y) * fallbackScale).toFixed(2)}px, 0) scale(${fallbackScale.toFixed(5)})`
+    }
 
     for (let x = startX; x <= endX; x += 1) {
       for (let y = startY; y <= endY; y += 1) {
         if (y < 0 || y >= tileCount) continue
         const wrappedX = ((x % tileCount) + tileCount) % tileCount
-        const key = zoom + '/' + wrappedX + '/' + y
+        const key = tileZoom + '/' + wrappedX + '/' + y
         visible.add(key)
         let image = tiles.get(key)
         if (!image) {
-          image = document.createElement('img')
-          image.className = 'rec-map__tile'
-          image.alt = ''
-          image.draggable = false
-          image.decoding = 'async'
-          image.loading = 'lazy'
-          image.referrerPolicy = 'strict-origin-when-cross-origin'
-          image.src = OSM_TILE_BASE + key + '.png'
-          image.addEventListener('error', () => {
-            if (!destroyed && tiles.get(key) === image) {
+          const tileImage = document.createElement('img')
+          image = tileImage
+          tileImage.className = 'rec-map__tile'
+          tileImage.alt = ''
+          tileImage.draggable = false
+          tileImage.decoding = 'async'
+          tileImage.loading = 'lazy'
+          tileImage.referrerPolicy = 'strict-origin-when-cross-origin'
+          tileImage.addEventListener('load', () => {
+            tileImage.classList.add('is-loaded')
+            if (!destroyed && fallbackTileZoom >= 0 && tiles.get(key) === tileImage) queueRender()
+          })
+          tileImage.addEventListener('error', () => {
+            if (!destroyed && tiles.get(key) === tileImage) {
               failure.hidden = false
               fallbackDetails.open = true
             }
           })
-          tiles.set(key, image)
-          tileLayer.appendChild(image)
+          tileImage.src = OSM_TILE_BASE + key + '.png'
+          tiles.set(key, tileImage)
+          activeTilePlane.appendChild(tileImage)
         }
-        image.style.left = Math.round(x * TILE_SIZE - left) + 'px'
-        image.style.top = Math.round(y * TILE_SIZE - top) + 'px'
+        image.style.left = (x - startX) * TILE_SIZE + 'px'
+        image.style.top = (y - startY) * TILE_SIZE + 'px'
       }
     }
     for (const [key, image] of tiles) {
       if (visible.has(key)) continue
       image.remove()
       tiles.delete(key)
+    }
+    if (fallbackTileZoom >= 0 && !fallbackRemovalTimer && visible.size > 0 && [...visible].every((key) => {
+      const image = tiles.get(key)
+      return image?.complete && image.naturalWidth > 0
+    })) {
+      const generation = tileGeneration
+      fallbackRemovalTimer = window.setTimeout(() => {
+        fallbackRemovalTimer = 0
+        if (destroyed || tileGeneration !== generation) return
+        if ([...visible].some((key) => {
+          const image = tiles.get(key)
+          return !image?.complete || image.naturalWidth === 0
+        })) {
+          queueRender()
+          return
+        }
+        fallbackTilePlane.replaceChildren()
+        fallbackTileZoom = -1
+      }, 170)
     }
   }
 
@@ -430,13 +581,14 @@ export function mountRecommendationsMap(
       if (deltaX < -world / 2) deltaX += world
       const x = width / 2 + deltaX
       const y = mapAnchorY(height) + pixel.y - centerPixel.y
-      button.style.left = Math.round(x) + 'px'
-      button.style.top = Math.round(y) + 'px'
+      button.style.left = x.toFixed(1) + 'px'
+      button.style.top = y.toFixed(1) + 'px'
       button.hidden = x < -30 || x > width + 30 || y < -30 || y > height + 30
       if (!button.hidden) visible.push({ marker, button, x, y })
     }
 
-    clusterLayer.replaceChildren()
+    clusterGroups.clear()
+    const activeClusters = new Set<string>()
     const groups: Array<Array<(typeof visible)[number]>> = []
     for (const point of visible) {
       const nearby = groups.find((group) => {
@@ -451,24 +603,35 @@ export function mountRecommendationsMap(
       for (const point of group) point.button.hidden = true
       const x = group.reduce((sum, point) => sum + point.x, 0) / group.length
       const y = group.reduce((sum, point) => sum + point.y, 0) / group.length
-      const cluster = makeButton(
-        'rec-map__cluster',
-        zoom >= MAX_ZOOM ? copy().clusterOpen(group.length) : copy().clusterZoom(group.length),
-        String(group.length),
-      )
-      cluster.style.left = Math.round(x) + 'px'
-      cluster.style.top = Math.round(y) + 'px'
-      cluster.addEventListener('click', () => {
-        if (zoom >= MAX_ZOOM) {
-          selectMarker(group[0].marker.id, true)
-          return
-        }
-        const centerLat = group.reduce((sum, point) => sum + point.marker.lat, 0) / group.length
-        const centerLon = group.reduce((sum, point) => sum + point.marker.lon, 0) / group.length
-        center = { lat: centerLat, lon: centerLon }
-        changeZoom(1)
-      })
-      clusterLayer.appendChild(cluster)
+      const key = JSON.stringify(group.map((point) => point.marker.id).sort())
+      activeClusters.add(key)
+      clusterGroups.set(key, group.map((point) => point.marker))
+      let cluster = clusterButtons.get(key)
+      if (!cluster) {
+        cluster = makeButton('rec-map__cluster', '', String(group.length))
+        cluster.addEventListener('click', () => {
+          const current = clusterGroups.get(key)
+          if (!current?.length) return
+          if (zoom >= MAX_ZOOM) {
+            selectMarker(current[0].id, true)
+            return
+          }
+          const centerLat = current.reduce((sum, point) => sum + point.lat, 0) / current.length
+          const centerLon = current.reduce((sum, point) => sum + point.lon, 0) / current.length
+          resizedAfterInteraction = true
+          moveCamera({ lat: centerLat, lon: centerLon }, Math.min(MAX_ZOOM, Math.floor(zoom) + 1))
+        })
+        clusterButtons.set(key, cluster)
+        clusterLayer.appendChild(cluster)
+      }
+      cluster.setAttribute('aria-label', zoom >= MAX_ZOOM ? copy().clusterOpen(group.length) : copy().clusterZoom(group.length))
+      cluster.style.left = x.toFixed(1) + 'px'
+      cluster.style.top = y.toFixed(1) + 'px'
+    }
+    for (const [key, cluster] of clusterButtons) {
+      if (activeClusters.has(key)) continue
+      cluster.remove()
+      clusterButtons.delete(key)
     }
   }
 
@@ -484,8 +647,8 @@ export function mountRecommendationsMap(
     if (deltaX < -world / 2) deltaX += world
     const x = width / 2 + deltaX
     const y = mapAnchorY(height) + pixel.y - centerPixel.y
-    startPin.style.left = Math.round(x) + 'px'
-    startPin.style.top = Math.round(y) + 'px'
+    startPin.style.left = x.toFixed(1) + 'px'
+    startPin.style.top = y.toFixed(1) + 'px'
     startPin.hidden = x < -60 || x > width + 60 || y < -60 || y > height + 60
   }
 
@@ -519,7 +682,7 @@ export function mountRecommendationsMap(
     const { width, height } = viewportSize()
     viewport.style.setProperty('--map-bottom-inset', Math.round(effectiveBottomInset(height)) + 'px')
     const centerPixel = project(center, zoom)
-    renderTiles(centerPixel, width, height)
+    renderTiles(width, height)
     renderRouteLine(centerPixel, width, height)
     renderMarkers(centerPixel, width, height)
     renderStartPoint(centerPixel, width, height)
@@ -553,31 +716,35 @@ export function mountRecommendationsMap(
     const markerPixel = project(marker, zoom)
     const centerPixel = project(center, zoom)
     const selectedY = mapAnchorY(height) + markerPixel.y - centerPixel.y
+    let nextCenter = center
+    let nextZoom = zoom
     if (Math.abs(markerPixel.x - centerPixel.x) > width * 0.32
       || selectedY < 40 || selectedY > visibleHeight(height) - 40) {
-      center = { lat: marker.lat, lon: marker.lon }
-      queueRender()
+      nextCenter = { lat: marker.lat, lon: marker.lon }
     }
     if (markerButtons.get(id)?.hidden) {
-      center = { lat: marker.lat, lon: marker.lon }
-      while (zoom < MAX_ZOOM) {
-        const markerAtZoom = project(marker, zoom)
+      nextCenter = { lat: marker.lat, lon: marker.lon }
+      while (nextZoom < MAX_ZOOM) {
+        const markerAtZoom = project(marker, nextZoom)
         const overlaps = markers.some((other) => other.id !== id
           && Math.hypot(
-            project(other, zoom).x - markerAtZoom.x,
-            project(other, zoom).y - markerAtZoom.y,
+            project(other, nextZoom).x - markerAtZoom.x,
+            project(other, nextZoom).y - markerAtZoom.y,
           ) < 42)
         if (!overlaps) break
-        zoom += 1
+        nextZoom += 1
       }
       resizedAfterInteraction = true
-      queueRender()
     }
+    if (nextCenter !== center || nextZoom !== zoom) moveCamera(nextCenter, nextZoom)
     if (notify) options.onSelect?.(id)
   }
 
   function rebuildMarkerControls(): void {
     markerLayer.replaceChildren()
+    clusterLayer.replaceChildren()
+    clusterButtons.clear()
+    clusterGroups.clear()
     fallbackList.replaceChildren()
     fallbackSummary.textContent = `${copy().stops} (${markers.length})`
     fallbackDetails.hidden = markers.length === 0
@@ -615,22 +782,23 @@ export function mountRecommendationsMap(
   }
 
   function changeZoom(delta: number): void {
-    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta))
-    if (next === zoom) return
-    zoom = next
+    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(cameraTargetZoom) + delta))
+    if (next === cameraTargetZoom) return
     resizedAfterInteraction = true
-    queueRender()
+    moveCamera(cameraTargetCenter, next)
   }
 
-  function panBy(dx: number, dy: number): void {
-    const centerPixel = project(center, zoom)
-    const world = TILE_SIZE * 2 ** zoom
-    center = unproject({
+  function panBy(dx: number, dy: number, animate = false): void {
+    const baseCenter = animate ? cameraTargetCenter : center
+    const baseZoom = animate ? cameraTargetZoom : zoom
+    const centerPixel = project(baseCenter, baseZoom)
+    const world = TILE_SIZE * 2 ** baseZoom
+    const nextCenter = unproject({
       x: centerPixel.x - dx,
       y: Math.max(0, Math.min(world, centerPixel.y - dy)),
-    }, zoom)
+    }, baseZoom)
     resizedAfterInteraction = true
-    queueRender()
+    moveCamera(nextCenter, baseZoom, animate)
   }
 
   function pointAtClientPosition(clientX: number, clientY: number): MapCoordinate {
@@ -650,11 +818,12 @@ export function mountRecommendationsMap(
   zoomOut.addEventListener('click', () => changeZoom(-1))
   fitButton.addEventListener('click', () => {
     resizedAfterInteraction = false
-    fitMarkers()
+    fitMarkers(true)
   })
   viewport.addEventListener('pointerdown', (event) => {
     if (event.target instanceof Element && event.target.closest('button, a')) return
     if (activePointer !== null) return
+    cancelCamera()
     activePointer = event.pointerId
     lastPointer = { x: event.clientX, y: event.clientY }
     pointerOrigin = lastPointer
@@ -696,13 +865,13 @@ export function mountRecommendationsMap(
     }
     if (key === '+' || key === '=') changeZoom(1)
     else if (key === '-') changeZoom(-1)
-    else if (key === 'ArrowLeft') panBy(64, 0)
-    else if (key === 'ArrowRight') panBy(-64, 0)
-    else if (key === 'ArrowUp') panBy(0, 64)
-    else if (key === 'ArrowDown') panBy(0, -64)
+    else if (key === 'ArrowLeft') panBy(64, 0, true)
+    else if (key === 'ArrowRight') panBy(-64, 0, true)
+    else if (key === 'ArrowUp') panBy(0, 64, true)
+    else if (key === 'ArrowDown') panBy(0, -64, true)
     else if (key === '0') {
       resizedAfterInteraction = false
-      fitMarkers()
+      fitMarkers(true)
     } else return
     event.preventDefault()
   })
@@ -733,28 +902,34 @@ export function mountRecommendationsMap(
       failure.hidden = true
       resizedAfterInteraction = false
       rebuildMarkerControls()
-      fitMarkers()
+      fitMarkers(true)
     },
     select(id) {
       selectMarker(id, false)
     },
     focus(point) {
       if (!validCoordinate(point)) return
-      center = { lat: point.lat, lon: point.lon }
-      zoom = Math.max(zoom, 14)
       resizedAfterInteraction = true
-      queueRender()
+      moveCamera({ lat: point.lat, lon: point.lon }, Math.max(cameraTargetZoom, 14))
     },
     fit() {
       resizedAfterInteraction = false
-      fitMarkers()
+      fitMarkers(true)
     },
     setBottomInset(px) {
       const next = Number.isFinite(px) ? Math.max(0, px) : 0
       if (Math.abs(next - bottomInset) < 1) return
       bottomInset = next
-      if (resizedAfterInteraction) queueRender()
-      else fitMarkers()
+      // The bottom sheet can resize every frame. Follow it immediately, then
+      // calculate one new fit after movement settles instead of restarting a fly-to.
+      queueRender()
+      if (insetFitTimer) window.clearTimeout(insetFitTimer)
+      if (!resizedAfterInteraction && (markers.length || routeLine.length)) {
+        insetFitTimer = window.setTimeout(() => {
+          insetFitTimer = 0
+          if (!destroyed && !resizedAfterInteraction) fitMarkers(true)
+        }, 150)
+      }
     },
     setLanguage(nextLanguage) {
       if (language === nextLanguage) return
@@ -776,10 +951,15 @@ export function mountRecommendationsMap(
       if (destroyed) return
       destroyed = true
       if (frame) cancelAnimationFrame(frame)
+      if (insetFitTimer) window.clearTimeout(insetFitTimer)
+      if (fallbackRemovalTimer) window.clearTimeout(fallbackRemovalTimer)
+      cancelCamera()
       resizeObserver?.disconnect()
       tiles.clear()
       markerButtons.clear()
       listButtons.clear()
+      clusterButtons.clear()
+      clusterGroups.clear()
       root.remove()
     },
   }

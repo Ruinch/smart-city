@@ -36,6 +36,13 @@
 }
 
 .rec-map__tiles { z-index: 0; }
+.rec-map__tile-plane {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+.rec-map__tile-plane--fallback { z-index: 0; }
+.rec-map__tile-plane--active { z-index: 1; }
 .rec-map__route { z-index: 1; overflow: visible; pointer-events: none; }
 .rec-map__route-halo,
 .rec-map__route-path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -98,7 +105,11 @@
   max-width: none;
   user-select: none;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease-out;
 }
+
+.rec-map__tile.is-loaded { opacity: 1; }
 
 .rec-map__marker {
   position: absolute;
@@ -173,7 +184,10 @@
   color: var(--ink);
   font-size: 24px;
   line-height: 1;
+  transition: transform 140ms cubic-bezier(.2, 0, 0, 1), background-color 140ms ease;
 }
+
+.rec-map__control:active { transform: scale(.96); }
 
 .rec-map__control-fit {
   font-size: 12px;
@@ -305,7 +319,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rec-map__tile,
   .rec-map__marker,
+  .rec-map__control,
   .rec-map__details summary::before { transition: none; }
 }
 

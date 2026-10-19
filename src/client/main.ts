@@ -433,7 +433,98 @@ function updateSettingsSummary(): void {
   settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${state.minutes === 1440 ? t('allDay') : formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
 }
 
+interface SheetDrag {
+  pointerId: number
+  startY: number
+  startHeight: number
+  lastY: number
+  lastTime: number
+  velocity: number
+  moved: boolean
+  startMode: 'peek' | 'expanded' | 'results' | 'peek-results'
+  minHeight: number
+  maxHeight: number
+}
+
+let sheetDrag: SheetDrag | null = null
+let ignoreHandleClickUntil = 0
+
+function sheetSnapHeights(mode: SheetDrag['startMode']): { min: number; max: number } {
+  const height = window.innerHeight
+  const compactScreen = height <= 700
+  return mode === 'results' || mode === 'peek-results'
+    ? {
+      min: compactScreen ? height * .33 : Math.min(230, height * .32),
+      max: height * .56,
+    }
+    : {
+      min: compactScreen ? Math.min(390, height * .6) : Math.min(430, Math.max(390, height * .5)),
+      max: height * (compactScreen ? .87 : .88),
+    }
+}
+
+function releaseSheetDrag(event: PointerEvent): void {
+  const drag = sheetDrag
+  if (!drag || drag.pointerId !== event.pointerId) return
+  sheetDrag = null
+  if (sheetHandle.hasPointerCapture(event.pointerId)) sheetHandle.releasePointerCapture(event.pointerId)
+  shell.classList.remove('is-sheet-dragging')
+  shell.style.removeProperty('--sheet-height')
+  if (!drag.moved) return
+  ignoreHandleClickUntil = performance.now() + 350
+  if (event.type === 'pointercancel') return
+  const delta = event.clientY - drag.startY
+  const currentHeight = Math.min(drag.maxHeight, Math.max(drag.minHeight, drag.startHeight - delta))
+  const velocity = performance.now() - drag.lastTime < 90 ? drag.velocity : 0
+  const goingUp = velocity < -.28 || (Math.abs(delta) >= 72 && delta < 0)
+  const goingDown = velocity > .28 || (Math.abs(delta) >= 72 && delta > 0)
+  const expand = goingUp || (!goingDown && currentHeight >= (drag.minHeight + drag.maxHeight) / 2)
+  const nextMode = drag.startMode === 'results' || drag.startMode === 'peek-results'
+    ? expand ? 'results' : 'peek-results'
+    : expand ? 'expanded' : 'peek'
+  if (nextMode !== drag.startMode) setSheetMode(nextMode)
+}
+
+sheetHandle.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0 || !event.isPrimary || sheetHandle.disabled
+    || !window.matchMedia('(max-width: 760px)').matches) return
+  const mode = shell.dataset.sheet as SheetMode
+  if (mode !== 'peek' && mode !== 'expanded' && mode !== 'results' && mode !== 'peek-results') return
+  const heights = sheetSnapHeights(mode)
+  sheetDrag = {
+    pointerId: event.pointerId,
+    startY: event.clientY,
+    startHeight: requiredElement<HTMLElement>('#routeSheet').getBoundingClientRect().height,
+    lastY: event.clientY,
+    lastTime: performance.now(),
+    velocity: 0,
+    moved: false,
+    startMode: mode,
+    minHeight: heights.min,
+    maxHeight: heights.max,
+  }
+  sheetHandle.setPointerCapture(event.pointerId)
+})
+sheetHandle.addEventListener('pointermove', (event) => {
+  const drag = sheetDrag
+  if (!drag || drag.pointerId !== event.pointerId) return
+  const delta = event.clientY - drag.startY
+  if (!drag.moved && Math.abs(delta) < 5) return
+  if (!drag.moved) {
+    drag.moved = true
+    shell.classList.add('is-sheet-dragging')
+  }
+  const now = performance.now()
+  drag.velocity = (event.clientY - drag.lastY) / Math.max(1, now - drag.lastTime)
+  drag.lastY = event.clientY
+  drag.lastTime = now
+  const nextHeight = Math.min(drag.maxHeight, Math.max(drag.minHeight, drag.startHeight - delta))
+  shell.style.setProperty('--sheet-height', `${nextHeight}px`)
+})
+sheetHandle.addEventListener('pointerup', releaseSheetDrag)
+sheetHandle.addEventListener('pointercancel', releaseSheetDrag)
 sheetHandle.addEventListener('click', () => {
+  if (performance.now() < ignoreHandleClickUntil) return
   const mode = shell.dataset.sheet as SheetMode
   if (mode === 'results') {
     setSheetMode('peek-results')
