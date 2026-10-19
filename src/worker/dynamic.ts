@@ -1,10 +1,9 @@
 import type { Poi, RoutePlan, WalkRequest, Recommendation, Language } from '../shared/types'
+import { ASTANA_CENTER, insideAstana } from '../shared/astana'
 import { distanceMeters, routeUrl } from './recommend'
 import { astanaName, countPeople, countStops, languageOf, pick, placeName } from './i18n'
-import boundaryJson from '../../data/astana-boundary.json'
 
-export const ASTANA_CENTER = { lat: 51.1282, lon: 71.4304 }
-export const ASTANA_RADIUS_METERS = 35_000
+export { ASTANA_CENTER, ASTANA_RADIUS_METERS, insideAstana } from '../shared/astana'
 const SEARCH_RADIUS_METERS = 25_000
 const OVERPASS_URLS = [
   'https://overpass-api.de/api/interpreter',
@@ -12,30 +11,6 @@ const OVERPASS_URLS = [
 ] as const
 const CACHE_TTL_MS = 10 * 60_000
 const MAX_CACHE_ENTRIES = 48
-
-const boundary = boundaryJson as unknown as {
-  features: Array<{ geometry: { type: string; coordinates: number[][][][] } }>
-}
-
-function inRing(point: { lat: number; lon: number }, ring: number[][]): boolean {
-  let inside = false
-  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index++) {
-    const [x, y] = ring[index]
-    const [oldX, oldY] = ring[previous]
-    if ((y > point.lat) !== (oldY > point.lat)
-      && point.lon < (oldX - x) * (point.lat - y) / (oldY - y) + x) inside = !inside
-  }
-  return inside
-}
-
-export function insideAstana(point: { lat: number; lon: number }): boolean {
-  if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)
-    || distanceMeters(point, ASTANA_CENTER) > ASTANA_RADIUS_METERS) return false
-  const geometry = boundary.features[0]?.geometry
-  if (geometry?.type !== 'MultiPolygon') return false
-  return geometry.coordinates.some((polygon) => polygon.length > 0
-    && inRing(point, polygon[0]) && !polygon.slice(1).some((hole) => inRing(point, hole)))
-}
 
 export type SearchCategory =
   | 'nightclub' | 'bar' | 'music_venue' | 'events_venue' | 'cafe' | 'restaurant' | 'fast_food'

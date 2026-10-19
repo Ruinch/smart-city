@@ -238,21 +238,18 @@ function cityBudgetNote(budgetKzt: number | undefined, researchedPrices = 0, lan
 function outsideZoneResponse(text: string, scope: WalkRequest['scope'], language: Language): RecommendResponse {
   return {
     summary: scope === 'day_trip'
-      ? pick(language, 'Старт поездки находится слишком далеко от центра Астаны для подбора из этого города.',
-        'Сапардың бастапқы нүктесі Астана орталығынан тым алыс.',
-        'Your starting point is too far from central Astana for a trip from this city.')
+      ? pick(language, 'Старт поездки находится за пределами Астаны. Выберите точку в городе.',
+        'Сапардың бастапқы нүктесі Астанадан тыс жерде. Қала ішіндегі нүктені таңдаңыз.',
+        'Your trip starts outside Astana. Choose a point in the city.')
       : pick(language, 'Старт находится за пределами Астаны. Выберите точку в городе.',
         'Бастапқы нүкте Астанадан тыс жерде. Қала ішіндегі нүктені таңдаңыз.',
         'Your starting point is outside Astana. Choose a point in the city.'),
     recommendations: [],
     routes: [],
-    note: appendUnverifiedPreferenceNote(scope === 'day_trip'
-      ? pick(language, 'Выберите старт в центре Астаны или отключите геолокацию.',
-        'Астана орталығындағы бастапқы нүктені таңдаңыз немесе геолокацияны өшіріңіз.',
-        'Choose a start in central Astana or turn off location access.')
-      : pick(language, 'Выберите старт в Астане или отключите геолокацию.',
-        'Астанадағы бастапқы нүктені таңдаңыз немесе геолокацияны өшіріңіз.',
-        'Choose a start in Astana or turn off location access.'), text, language),
+    note: appendUnverifiedPreferenceNote(pick(language,
+      'Укажите точку старта в Астане на карте или сбросьте выбор до центра города.',
+      'Бастау нүктесін Астана картасынан таңдаңыз немесе қала орталығына қайтарыңыз.',
+      'Choose a starting point in Astana on the map or reset to the city center.'), text, language),
   }
 }
 

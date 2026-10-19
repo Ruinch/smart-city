@@ -60,7 +60,7 @@ a { color: inherit; }
 
 /* The map stays mounted while the sheet changes state. */
 .app-shell {
-  --sheet-height: clamp(338px, 43dvh, 365px);
+  --sheet-height: clamp(390px, 50dvh, 430px);
   position: relative;
   width: 100%;
   height: 100dvh;
@@ -190,6 +190,23 @@ a { color: inherit; }
   display: grid;
   gap: 8px;
   transition: bottom 220ms cubic-bezier(.2, 0, 0, 1);
+}
+.map-pick-hint {
+  position: absolute;
+  z-index: 5;
+  right: 70px;
+  bottom: calc(var(--sheet-height) + 17px);
+  left: 16px;
+  width: fit-content;
+  max-width: min(370px, calc(100% - 92px));
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
 }
 .map-action {
   display: grid;
@@ -321,7 +338,7 @@ a { color: inherit; }
   overflow-x: auto;
   scrollbar-width: none;
 }
-.app-shell[data-sheet="peek"] .example-row { margin-top: 7px; }
+.app-shell[data-sheet="peek"] .example-row { display: none; }
 .example-row::-webkit-scrollbar { display: none; }
 .example-row button {
   flex: none;
@@ -338,6 +355,21 @@ a { color: inherit; }
 }
 .example-row button:hover { border-color: var(--brand); background: var(--brand-soft); }
 .example-row button:active { transform: scale(.96); }
+.start-picker { margin-top: 12px; padding: 11px 12px 9px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+.start-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; font-size: 13px; line-height: 1.35; }
+.start-heading span { color: var(--muted); font-weight: 600; }
+.start-heading strong { color: var(--brand); font-weight: 700; text-align: right; }
+.start-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.start-button { display: flex; min-width: 0; min-height: 46px; align-items: center; justify-content: center; gap: 6px; padding: 7px 8px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1.2; transition: border-color 130ms ease, background-color 130ms ease, transform 130ms ease; }
+.start-button svg { flex: none; width: 17px; height: 17px; }
+.start-button:hover:not(:disabled) { border-color: var(--brand); }
+.start-button:active:not(:disabled) { transform: scale(.96); }
+.start-button.is-selected { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+.start-button:disabled { opacity: .6; }
+.start-feedback { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.start-feedback p { flex: 1; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; text-wrap: pretty; }
+.start-feedback button { flex: none; min-height: 44px; margin: -7px 0; padding: 0 2px; border: 0; background: transparent; color: var(--brand); font-size: 12px; font-weight: 700; }
+.start-feedback button:hover { text-decoration: underline; text-underline-offset: 2px; }
 .settings-toggle {
   display: flex;
   align-items: center;
@@ -407,9 +439,6 @@ a { color: inherit; }
 .budget-group input, .group-size-group input { font-variant-numeric: tabular-nums; }
 .field-hint, .form-note { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .form-note { margin-top: 16px; }
-.location-row { margin-top: 10px; }
-.text-button { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--brand); font-size: 13px; font-weight: 700; text-align: left; }
-.text-button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .submit-dock {
   position: sticky;
   z-index: 2;
@@ -567,7 +596,7 @@ a { color: inherit; }
 }
 
 @media (max-height: 700px) and (max-width: 760px) {
-  .app-shell { --sheet-height: min(315px, 48dvh); }
+  .app-shell { --sheet-height: min(390px, 60dvh); }
   .app-shell[data-sheet="expanded"] { --sheet-height: 87dvh; }
   .app-shell[data-sheet="loading"] { --sheet-height: 42dvh; }
   .app-shell[data-sheet="results"] { --sheet-height: 56dvh; }
@@ -605,13 +634,15 @@ a { color: inherit; }
   .map-stage .rec-map__controls { top: 20px; right: calc(min(440px, 100vw - 32px) + 36px); }
   .map-actions { right: calc(min(440px, 100vw - 32px) + 36px); bottom: 22px; }
   .map-credits { left: 18px; bottom: 14px; }
+  .map-pick-hint { right: calc(min(440px, 100vw - 32px) + 36px); bottom: 80px; left: auto; max-width: min(330px, calc(100% - 520px)); }
   .app-shell[data-sheet="peek"] .advanced-settings { display: block; }
+  .app-shell[data-sheet="peek"] .example-row { display: flex; }
   .app-shell[data-sheet="peek"] .sheet-heading p { display: block; }
   .app-shell[data-sheet="peek"] .settings-toggle { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .route-sheet, .map-actions, .map-credits, .map-action,
-  .example-row button, .settings-chevron, .choice-button,
+  .example-row button, .start-button, .settings-chevron, .choice-button,
   .submit-button, .trip-variant, .more-ideas-button { transition: none; }
 }

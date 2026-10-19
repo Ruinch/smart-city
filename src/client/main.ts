@@ -1,4 +1,5 @@
 import type { Recommendation, WalkRequest } from '../shared/types'
+import { ASTANA_CENTER, insideAstana } from '../shared/astana'
 import { mountRecommendationsMap, type MapCoordinate, type RecommendationsMapController } from './map'
 import './style.css'
 
@@ -44,7 +45,6 @@ interface RouteResponse {
   note?: string
 }
 
-const ASTANA_CENTER: MapCoordinate = { lat: 51.1283, lon: 71.4305 }
 const telegram = window.Telegram?.WebApp
 const app = document.querySelector<HTMLDivElement>('#app')
 if (!app) throw new Error('Missing application root')
@@ -53,15 +53,60 @@ type Language = 'ru' | 'kk' | 'en'
 const languageNames: Record<Language, string> = { ru: 'Русский', kk: 'Қазақша', en: 'English' }
 const ruMessages = {
   skip: 'К содержимому', mapRegion: 'Карта Астаны и маршрута', map: 'Карта Астаны', brand: 'Рядом — маршруты из Астаны', astana: 'Астана', mapActions: 'Управление картой', recenter: 'Показать начало маршрута', fit: 'Показать весь маршрут', osm: '© участники OpenStreetMap', license: 'Лицензия', data: 'О данных', planner: 'Планировщик маршрута', expandPanel: 'Развернуть панель', collapsePanel: 'Свернуть панель', expandRoute: 'Развернуть маршрут', collapseRoute: 'Свернуть маршрут', heading: 'Куда хочется?', subtitle: 'Расскажите, какой вечер или прогулку вы задумали.', backRoute: '← К маршруту', interest: 'Что вам интересно', promptHint: 'Опишите настроение, места и детали своими словами.', promptPlaceholder: 'Например, тихое кафе с книгой или танцы до ночи', examples: 'Примеры запросов', exampleClub: 'Клуб и танцы', exampleClubPrompt: 'Хочу в клуб: музыка, танцы и движная ночь', exampleCoffee: 'Кофе и книга', exampleCoffeePrompt: 'Тихое кафе, где можно попить кофе и почитать книгу', exampleFriends: 'С друзьями', exampleFriendsPrompt: 'Прогулка с друзьями по интересным местам Астаны', where: 'Где искать', whereRoute: 'Где искать маршрут', inAstana: 'В Астане', fromCity: 'Поездка из города', duration: 'Сколько времени есть', durationAria: 'Время вместе с дорогой', transport: 'Как доберётесь', transportAria: 'Способ передвижения', budget: 'Бюджет на человека, ₸', noLimit: 'Без ограничения', budgetHint: 'Цены многих мест неизвестны. 0 ₸ уберёт кафе, клубы и магазины, но бесплатность оставшихся мест не проверена.', group: 'Сколько вас будет', groupHint: 'От 1 до 12 человек.', locationButton: 'Взять мою геопозицию', locationDefault: 'Без геопозиции начнём от центра Астаны.', submit: 'Составить маршрут', readyRoute: 'Готовый маршрут', language: 'Язык интерфейса', fromAstana: 'Из Астаны', allDay: 'Весь день', walk: 'Пешком', transit: 'Транспорт', car: 'На машине', walkLower: 'пешком', transitLower: 'на транспорте', carLower: 'на машине', perPerson: 'на чел.', personOne: 'человек', personMany: 'чел.', stopsOne: 'остановка', stopsFew: 'остановки', stopsMany: 'остановок', hoursShort: 'ч', minutesShort: 'мин', tripTransportHint: 'Для поездок из Астаны пока доступна машина. Время дороги, расходы и часы работы проверьте перед выездом.', walkTransportHint: 'Время пешком ориентировочное. Часы работы и условия места проверьте перед выходом.', otherTransportHint: 'Время на выбранном транспорте может быть неизвестно. Проверьте дорогу во внешней карте.', locationLoading: 'Запрашиваем геопозицию…', locationUnavailable: 'Геопозиция недоступна. Начнём от центра Астаны.', locationDenied: 'Доступ к геопозиции не получен. Начнём от центра Астаны.', locationFar: 'Вы далеко от Астаны. Начнём маршрут от центра города.', locationFound: 'Начнём маршрут от вашей геопозиции.', promptError: 'Опишите, какой маршрут вам нужен, хотя бы в нескольких словах.', groupError: 'Укажите число от 1 до 12.', budgetError: 'Укажите сумму от 0 до 10 000 000 ₸ или оставьте поле пустым.', loadingRoute: 'Ищем маршрут…', searchingPlaces: 'Ищем подходящие места', searchDescription: 'Проверяем реальные места и собираем маршрут. Это может занять до минуты.', routeNotReady: 'Маршрут пока не готов', edit: 'Изменить запрос', entry: 'Вход', averageBill: 'Средний чек', oneItem: 'Одна позиция', fromPrice: 'от {amount}', checked: 'Проверено {date}', priceSource: 'Источник цены ↗', itemPriceNote: 'Цена одной позиции, не всего посещения.', entryOverBudget: 'Указанная цена билета выше вашего бюджета на человека.', billOverBudget: 'Опубликованный средний чек выше вашего бюджета на человека.', trip: 'Поездка', stop: 'Остановка', place: 'Место', source: 'Источник ↗', onMap: 'На карте ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} на месте', unknownTravel: 'Время дороги неизвестно', roadCost: 'Расходы на дорогу ≈ {min}–{max}', unknownCost: 'Стоимость посещения неизвестна', whatToDo: 'Что здесь сделать', aiCaveat: 'Идея создана ИИ; детали места проверьте перед выходом.', evidence: 'Подробности в источниках', directions: 'Маршрут до места ↗', osmWebsite: 'Сайт из OSM ↗', placeSource: 'Источник места ↗', timeSource: 'Источник времени ↗', costSource: 'Источник стоимости ↗', noPlaces: 'По вашему запросу пока не нашлось подтверждённых мест. Попробуйте описать интересы иначе или выделить больше времени.', cityRoute: 'Маршрут по Астане', astanaTrip: 'Поездка из Астаны', yourRoute: 'Ваш маршрут', walkAndStops: '≈ {time} пешком и на местах', openRoute: 'Открыть весь маршрут ↗', tripVariants: 'Варианты поездки', routeVariants: 'Варианты маршрута', route: 'Маршрут', variant: 'Вариант', roadLine: 'Линия показывает рассчитанный путь. Перед дорогой проверьте его во внешней карте.', dottedLine: 'Пунктир показывает порядок остановок, а не дорогу по улицам. Точный путь откройте во внешней карте.', stopsOrder: 'Остановки по порядку', moreIdeas: 'Ещё идеи →', openInTelegram: 'Откройте приложение через бота в Telegram и попробуйте снова.', loadingMore: 'Ищем ещё…', searchingIdeas: 'Ищем идеи…', otherPlaces: 'Ищем другие места по тем же условиям.', telegramExpired: 'Сессия Telegram устарела. Откройте приложение через бота заново.', rateLimit: 'Слишком много запросов. Подождите немного и попробуйте снова.', newIdeasError: 'Не удалось найти новые идеи. Попробуйте чуть позже.', incomplete: 'Ответ сервера неполный. Попробуйте ещё раз.', noNewPlaces: 'Новых мест пока не нашлось. Попробуйте изменить запрос или параметры.', searchTimeoutShort: 'Поиск занял слишком много времени. Попробуйте ещё раз.', newIdeasRetry: 'Не удалось найти новые идеи. Попробуйте ещё раз.', telegramRequired: 'Для составления маршрута откройте приложение через бота в Telegram. Так мы сможем безопасно обработать ваш запрос.', telegramInvalid: 'Не удалось подтвердить запуск в Telegram. Полностью закройте окно приложения и откройте его снова через @smart_city_ryadombot.', serviceError: 'Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.', searchTimeout: 'Поиск занял слишком много времени. Проверьте соединение и попробуйте ещё раз.', unknownError: 'Произошла ошибка. Попробуйте ещё раз.', languageChange: 'Язык изменён. Составьте маршрут заново, чтобы описание тоже было на новом языке.',
+  startTitle: 'Откуда начнём?',
+  startCenter: 'Центр Астаны',
+  startDevice: 'Моя геопозиция',
+  startMap: 'Указать на карте',
+  startMapSelected: 'Точка на карте',
+  startCancel: 'Отменить выбор',
+  startReset: 'Сбросить',
+  startCenterStatus: 'По умолчанию — центр Астаны.',
+  startDeviceFound: 'Стартуем от вашей геопозиции.',
+  startMapFound: 'Стартуем от выбранной точки.',
+  startPickInstruction: 'Коснитесь карты, чтобы выбрать старт. Карту можно двигать.',
+  startOutside: 'Точка за пределами Астаны. Выберите место в городе.',
+  startUnavailable: 'Геопозиция недоступна. Выберите точку на карте.',
+  startDenied: 'Доступ к геопозиции не получен. Выберите точку на карте.',
+  startLoading: 'Определяем геопозицию…',
 } as const
 type MessageKey = keyof typeof ruMessages
 const messages: Record<Language, Record<MessageKey, string>> = {
   ru: ruMessages,
   kk: {
     skip: 'Мазмұнға өту', mapRegion: 'Астана картасы мен бағыты', map: 'Астана картасы', brand: 'Рядом — Астанадан басталатын бағыттар', astana: 'Астана', mapActions: 'Картаны басқару', recenter: 'Бағыттың басын көрсету', fit: 'Бүкіл бағытты көрсету', osm: '© OpenStreetMap қатысушылары', license: 'Лицензия', data: 'Деректер туралы', planner: 'Бағыт жоспарлаушысы', expandPanel: 'Панельді ашу', collapsePanel: 'Панельді жинау', expandRoute: 'Бағытты ашу', collapseRoute: 'Бағытты жинау', heading: 'Қайда барғыңыз келеді?', subtitle: 'Қандай серуен немесе кеш қалайтыныңызды айтыңыз.', backRoute: '← Бағытқа оралу', interest: 'Сізді не қызықтырады?', promptHint: 'Көңіл күйіңізді, орындар мен маңызды жайттарды өз сөзіңізбен жазыңыз.', promptPlaceholder: 'Мысалы, кітап оқитын тыныш кафе немесе түнгі би', examples: 'Сұрау мысалдары', exampleClub: 'Клуб пен би', exampleClubPrompt: 'Музыка, би және қызықты түнгі клуб іздеймін', exampleCoffee: 'Кофе мен кітап', exampleCoffeePrompt: 'Кофе ішіп, кітап оқуға болатын тыныш кафе іздеймін', exampleFriends: 'Достармен', exampleFriendsPrompt: 'Достарыммен Астананың қызықты жерлерін аралағым келеді', where: 'Қайдан іздейміз?', whereRoute: 'Бағытты қайдан іздейміз?', inAstana: 'Астанада', fromCity: 'Қаладан сапар', duration: 'Қанша уақытыңыз бар?', durationAria: 'Жолды қоса есептегендегі уақыт', transport: 'Қалай барасыз?', transportAria: 'Қозғалыс тәсілі', budget: 'Бір адамға бюджет, ₸', noLimit: 'Шектеусіз', budgetHint: 'Көп орындардың бағасы белгісіз. 0 ₸ кафе, клуб және дүкендерді алып тастайды, бірақ қалған орындардың тегін екені тексерілмеген.', group: 'Неше адам боласыздар?', groupHint: '1–12 адам.', locationButton: 'Геолокациямды пайдалану', locationDefault: 'Геолокациясыз Астана орталығынан бастаймыз.', submit: 'Бағыт құру', readyRoute: 'Дайын бағыт', language: 'Интерфейс тілі', fromAstana: 'Астанадан', allDay: 'Күні бойы', walk: 'Жаяу', transit: 'Қоғамдық көлік', car: 'Көлікпен', walkLower: 'жаяу', transitLower: 'қоғамдық көлікпен', carLower: 'көлікпен', perPerson: 'әр адамға', personOne: 'адам', personMany: 'адам', stopsOne: 'аялдама', stopsFew: 'аялдама', stopsMany: 'аялдама', hoursShort: 'сағ', minutesShort: 'мин', tripTransportHint: 'Астанадан сапарға әзірге тек көлік қолжетімді. Жол уақытын, шығынды және жұмыс сағатын шығар алдында тексеріңіз.', walkTransportHint: 'Жаяу жүру уақыты шамамен берілген. Шығар алдында жұмыс сағаты мен шарттарын тексеріңіз.', otherTransportHint: 'Таңдалған көлікпен жүру уақыты белгісіз болуы мүмкін. Жолды сыртқы картадан тексеріңіз.', locationLoading: 'Геолокация сұралып жатыр…', locationUnavailable: 'Геолокация қолжетімсіз. Астана орталығынан бастаймыз.', locationDenied: 'Геолокацияға рұқсат берілмеді. Астана орталығынан бастаймыз.', locationFar: 'Сіз Астанадан алыстасыз. Бағытты қала орталығынан бастаймыз.', locationFound: 'Бағытты сіз тұрған жерден бастаймыз.', promptError: 'Қандай бағыт керек екенін бірнеше сөзбен жазыңыз.', groupError: '1 мен 12 арасындағы санды көрсетіңіз.', budgetError: '0 мен 10 000 000 ₸ арасындағы соманы жазыңыз немесе өрісті бос қалдырыңыз.', loadingRoute: 'Бағыт ізделуде…', searchingPlaces: 'Лайықты орындар ізделуде', searchDescription: 'Нақты орындарды тексеріп, бағыт құрастырып жатырмыз. Бұл бір минутқа дейін созылуы мүмкін.', routeNotReady: 'Бағыт әзірге дайын емес', edit: 'Сұрауды өзгерту', entry: 'Кіру ақысы', averageBill: 'Орташа чек', oneItem: 'Бір өнім', fromPrice: '{amount} бастап', checked: '{date} тексерілді', priceSource: 'Баға дереккөзі ↗', itemPriceNote: 'Бұл бүкіл сапардың емес, бір өнімнің бағасы.', entryOverBudget: 'Көрсетілген билет бағасы бір адамға арналған бюджеттен жоғары.', billOverBudget: 'Жарияланған орташа чек бір адамға арналған бюджеттен жоғары.', trip: 'Сапар', stop: 'Аялдама', place: 'Орын', source: 'Дереккөз ↗', onMap: 'Картада ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} орында', unknownTravel: 'Жол уақыты белгісіз', roadCost: 'Жол шығыны ≈ {min}–{max}', unknownCost: 'Барудың бағасы белгісіз', whatToDo: 'Мұнда не істеуге болады?', aiCaveat: 'Ұсынысты ЖИ жасады; барар алдында орын туралы мәліметті тексеріңіз.', evidence: 'Дереккөздердегі мәлімет', directions: 'Орынға баратын жол ↗', osmWebsite: 'OSM сайт сілтемесі ↗', placeSource: 'Орын дереккөзі ↗', timeSource: 'Уақыт дереккөзі ↗', costSource: 'Баға дереккөзі ↗', noPlaces: 'Сұрауыңызға сай расталған орындар табылмады. Қызығушылығыңызды басқаша сипаттап немесе көбірек уақыт бөліп көріңіз.', cityRoute: 'Астана бағыты', astanaTrip: 'Астанадан сапар', yourRoute: 'Сіздің бағытыңыз', walkAndStops: '≈ {time} жаяу жүріп және орындарда', openRoute: 'Бүкіл бағытты ашу ↗', tripVariants: 'Сапар нұсқалары', routeVariants: 'Бағыт нұсқалары', route: 'Бағыт', variant: 'Нұсқа', roadLine: 'Сызық есептелген жолды көрсетеді. Сапар алдында оны сыртқы картадан тексеріңіз.', dottedLine: 'Үзік сызық аялдамалардың ретін көрсетеді, көшедегі жолды емес. Нақты жолды сыртқы картадан ашыңыз.', stopsOrder: 'Аялдамалар ретімен', moreIdeas: 'Басқа идеялар →', openInTelegram: 'Қолданбаны Telegram-дағы бот арқылы ашып, қайталап көріңіз.', loadingMore: 'Тағы ізделуде…', searchingIdeas: 'Идеялар ізделуде…', otherPlaces: 'Сол шарттармен басқа орындарды іздеп жатырмыз.', telegramExpired: 'Telegram сессиясының мерзімі өтті. Қолданбаны бот арқылы қайта ашыңыз.', rateLimit: 'Сұраулар тым көп. Сәл күтіп, қайталап көріңіз.', newIdeasError: 'Жаңа идеялар табылмады. Кейінірек қайталап көріңіз.', incomplete: 'Сервер жауабы толық емес. Қайталап көріңіз.', noNewPlaces: 'Әзірге жаңа орындар табылмады. Сұрауды немесе параметрлерді өзгертіңіз.', searchTimeoutShort: 'Іздеу тым ұзаққа созылды. Қайталап көріңіз.', newIdeasRetry: 'Жаңа идеялар табылмады. Қайталап көріңіз.', telegramRequired: 'Бағыт құру үшін қолданбаны Telegram-дағы бот арқылы ашыңыз. Осылайша сұрауыңызды қауіпсіз өңдей аламыз.', telegramInvalid: 'Telegram арқылы ашылғанын растау мүмкін болмады. Қолданбаны толық жауып, @smart_city_ryadombot арқылы қайта ашыңыз.', serviceError: 'Қызмет уақытша қолжетімсіз. Бірнеше секундтан кейін қайталап көріңіз.', searchTimeout: 'Іздеу тым ұзаққа созылды. Байланысты тексеріп, қайталап көріңіз.', unknownError: 'Қате пайда болды. Қайталап көріңіз.', languageChange: 'Тіл өзгерді. Сипаттама да жаңа тілде болуы үшін бағытты қайта құрыңыз.',
+    startTitle: 'Қай жерден бастаймыз?',
+    startCenter: 'Астана орталығы',
+    startDevice: 'Менің геолокациям',
+    startMap: 'Картадан көрсету',
+    startMapSelected: 'Картадағы нүкте',
+    startCancel: 'Таңдауды тоқтату',
+    startReset: 'Қалпына келтіру',
+    startCenterStatus: 'Әдепкі бойынша Астана орталығынан бастаймыз.',
+    startDeviceFound: 'Сіз тұрған жерден бастаймыз.',
+    startMapFound: 'Картадан таңдалған жерден бастаймыз.',
+    startPickInstruction: 'Бастау нүктесін таңдау үшін картаны түртіңіз. Картаны жылжытуға болады.',
+    startOutside: 'Нүкте Астанадан тыс жерде. Қала ішіндегі орынды таңдаңыз.',
+    startUnavailable: 'Геолокация қолжетімсіз. Картадан нүктені таңдаңыз.',
+    startDenied: 'Геолокацияға рұқсат берілмеді. Картадан нүктені таңдаңыз.',
+    startLoading: 'Геолокация анықталуда…',
   },
   en: {
     skip: 'Skip to content', mapRegion: 'Astana map and route', map: 'Map of Astana', brand: 'Ryadom — routes from Astana', astana: 'Astana', mapActions: 'Map controls', recenter: 'Show route starting point', fit: 'Show full route', osm: '© OpenStreetMap contributors', license: 'License', data: 'About the data', planner: 'Route planner', expandPanel: 'Expand panel', collapsePanel: 'Collapse panel', expandRoute: 'Expand route', collapseRoute: 'Collapse route', heading: 'Where to?', subtitle: 'Tell us what kind of outing or evening you have in mind.', backRoute: '← Back to route', interest: 'What interests you?', promptHint: 'Describe the mood, places and details that matter to you.', promptPlaceholder: 'For example, a quiet café for reading or dancing all night', examples: 'Example requests', exampleClub: 'Clubs and dancing', exampleClubPrompt: 'I want a club with music, dancing and a lively night', exampleCoffee: 'Coffee and a book', exampleCoffeePrompt: 'A quiet café where I can drink coffee and read a book', exampleFriends: 'With friends', exampleFriendsPrompt: 'A walk with friends around interesting places in Astana', where: 'Search area', whereRoute: 'Where to look for a route', inAstana: 'In Astana', fromCity: 'Trip from the city', duration: 'Time available', durationAria: 'Time including travel', transport: 'How will you travel?', transportAria: 'Transport mode', budget: 'Budget per person, ₸', noLimit: 'No limit', budgetHint: 'Prices are unknown for many places. 0 ₸ excludes cafés, clubs and shops, but the remaining places have not been confirmed free.', group: 'How many people?', groupHint: 'Between 1 and 12 people.', locationButton: 'Use my location', locationDefault: 'Without your location, we start from central Astana.', submit: 'Build a route', readyRoute: 'Your route', language: 'Interface language', fromAstana: 'From Astana', allDay: 'All day', walk: 'Walk', transit: 'Public transport', car: 'Car', walkLower: 'on foot', transitLower: 'by public transport', carLower: 'by car', perPerson: 'per person', personOne: 'person', personMany: 'people', stopsOne: 'stop', stopsFew: 'stops', stopsMany: 'stops', hoursShort: 'h', minutesShort: 'min', tripTransportHint: 'Trips from Astana currently require a car. Check travel time, costs and opening hours before you leave.', walkTransportHint: 'Walking times are approximate. Check opening hours and venue conditions before leaving.', otherTransportHint: 'Travel time by your chosen transport may be unknown. Check directions in an external map.', locationLoading: 'Requesting location…', locationUnavailable: 'Location unavailable. We will start from central Astana.', locationDenied: 'Location access was not granted. We will start from central Astana.', locationFar: 'You are far from Astana. We will start from the city center.', locationFound: 'We will start from your location.', promptError: 'Describe the route you want in at least a few words.', groupError: 'Enter a number from 1 to 12.', budgetError: 'Enter an amount from 0 to 10,000,000 ₸ or leave the field empty.', loadingRoute: 'Finding a route…', searchingPlaces: 'Finding places that fit', searchDescription: 'We are checking real places and planning a route. This may take up to a minute.', routeNotReady: 'Route is not ready yet', edit: 'Edit request', entry: 'Admission', averageBill: 'Average bill', oneItem: 'One item', fromPrice: 'from {amount}', checked: 'Checked {date}', priceSource: 'Price source ↗', itemPriceNote: 'This is the price of one item, not the full visit.', entryOverBudget: 'The listed ticket price exceeds your budget per person.', billOverBudget: 'The published average bill exceeds your budget per person.', trip: 'Trip', stop: 'Stop', place: 'Place', source: 'Source ↗', onMap: 'On map ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} at this stop', unknownTravel: 'Travel time unknown', roadCost: 'Travel cost ≈ {min}–{max}', unknownCost: 'Visit cost unknown', whatToDo: 'What to do here', aiCaveat: 'This idea was generated by AI; check venue details before leaving.', evidence: 'Details in sources', directions: 'Directions to place ↗', osmWebsite: 'Website from OSM ↗', placeSource: 'Place source ↗', timeSource: 'Time source ↗', costSource: 'Cost source ↗', noPlaces: 'No verified places matched your request yet. Try describing your interests differently or allowing more time.', cityRoute: 'Route in Astana', astanaTrip: 'Trip from Astana', yourRoute: 'Your route', walkAndStops: '≈ {time} walking and at stops', openRoute: 'Open full route ↗', tripVariants: 'Trip options', routeVariants: 'Route options', route: 'Route', variant: 'Option', roadLine: 'The line shows a calculated route. Check it in an external map before traveling.', dottedLine: 'The dotted line shows stop order, not a street route. Open precise directions in an external map.', stopsOrder: 'Stops in order', moreIdeas: 'More ideas →', openInTelegram: 'Open this app through the Telegram bot and try again.', loadingMore: 'Finding more…', searchingIdeas: 'Finding ideas…', otherPlaces: 'Looking for different places with the same settings.', telegramExpired: 'Your Telegram session has expired. Reopen the app through the bot.', rateLimit: 'Too many requests. Wait a moment and try again.', newIdeasError: 'Could not find new ideas. Please try again later.', incomplete: 'The server response was incomplete. Please try again.', noNewPlaces: 'No new places found yet. Try changing your request or settings.', searchTimeoutShort: 'The search took too long. Please try again.', newIdeasRetry: 'Could not find new ideas. Please try again.', telegramRequired: 'To build a route, open the app through the Telegram bot. This lets us process your request securely.', telegramInvalid: 'Could not verify the Telegram launch. Close the app completely and reopen it through @smart_city_ryadombot.', serviceError: 'The service is temporarily unavailable. Please try again in a few seconds.', searchTimeout: 'The search took too long. Check your connection and try again.', unknownError: 'Something went wrong. Please try again.', languageChange: 'Language changed. Build the route again so its description uses the new language.',
+    startTitle: 'Where do we start?',
+    startCenter: 'Central Astana',
+    startDevice: 'My location',
+    startMap: 'Pick on map',
+    startMapSelected: 'Map point',
+    startCancel: 'Cancel selection',
+    startReset: 'Reset',
+    startCenterStatus: 'Starting from central Astana by default.',
+    startDeviceFound: 'Starting from your location.',
+    startMapFound: 'Starting from the selected map point.',
+    startPickInstruction: 'Tap the map to choose a start. You can move the map first.',
+    startOutside: 'This point is outside Astana. Choose a place in the city.',
+    startUnavailable: 'Location unavailable. Pick a point on the map.',
+    startDenied: 'Location access was not granted. Pick a point on the map.',
+    startLoading: 'Finding your location…',
   },
 }
 function matchLanguage(value: string | undefined): Language | null {
@@ -129,6 +174,7 @@ app.innerHTML = `
           </select>
         </label>
       </header>
+      <p id="mapPickHint" class="map-pick-hint" hidden>Коснитесь карты, чтобы выбрать старт. Карту можно двигать.</p>
       <div class="map-actions" aria-label="Управление картой">
         <button id="recenterButton" class="map-action" type="button" aria-label="Показать начало маршрута" title="Показать начало маршрута"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
         <button id="fitButton" class="map-action" type="button" aria-label="Показать весь маршрут" title="Показать весь маршрут" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5m0 6v5h-5M4 15v5h5"/></svg></button>
@@ -162,6 +208,26 @@ app.innerHTML = `
           <button type="button" data-example="club">Клуб и танцы</button>
           <button type="button" data-example="coffee">Кофе и книга</button>
           <button type="button" data-example="friends">С друзьями</button>
+        </div>
+        <div id="startPicker" class="start-picker" role="group" aria-labelledby="startLabel">
+          <div class="start-heading">
+            <span id="startLabel">Откуда начнём?</span>
+            <strong id="startValue">Центр Астаны</strong>
+          </div>
+          <div class="start-actions">
+            <button id="deviceButton" class="start-button" type="button" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 21 9-18-18 9 8 1 1 8Z"/></svg>
+              <span id="deviceButtonLabel">Моя геопозиция</span>
+            </button>
+            <button id="mapPickButton" class="start-button" type="button" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              <span id="mapPickButtonLabel">Указать на карте</span>
+            </button>
+          </div>
+          <div class="start-feedback">
+            <p id="locationStatus" role="status">По умолчанию — центр Астаны.</p>
+            <button id="resetStartButton" type="button" hidden>Сбросить</button>
+          </div>
         </div>
         <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="advancedSettings">
           <span id="settingsSummary">Астана · 2 ч · пешком · 1 человек</span>
@@ -197,10 +263,6 @@ app.innerHTML = `
           </div>
           </div>
           <p id="transportHint" class="form-note">Время дороги ориентировочное. Перед выходом проверьте маршрут и часы работы.</p>
-          <div id="locationRow" class="location-row" hidden>
-            <button id="deviceButton" type="button" class="text-button">Взять мою геопозицию</button>
-            <p id="locationStatus" class="field-hint" role="status">Без геопозиции начнём от центра Астаны.</p>
-          </div>
         </div>
         <div class="submit-dock">
           <button id="submitButton" class="submit-button" type="submit">
@@ -235,6 +297,11 @@ const submitButton = requiredElement<HTMLButtonElement>('#submitButton')
 const submitLabel = requiredElement<HTMLElement>('.submit-label')
 const results = requiredElement<HTMLElement>('#results')
 const locationStatus = requiredElement<HTMLElement>('#locationStatus')
+const startValue = requiredElement<HTMLElement>('#startValue')
+const deviceButton = requiredElement<HTMLButtonElement>('#deviceButton')
+const mapPickButton = requiredElement<HTMLButtonElement>('#mapPickButton')
+const resetStartButton = requiredElement<HTMLButtonElement>('#resetStartButton')
+const mapPickHint = requiredElement<HTMLElement>('#mapPickHint')
 const shell = requiredElement<HTMLElement>('.app-shell')
 const sheetHandle = requiredElement<HTMLButtonElement>('#sheetHandle')
 const sheetScroll = requiredElement<HTMLElement>('#sheetBody')
@@ -253,7 +320,8 @@ const state: {
   scope: Scope
   transport: Transport
   minutes: number
-  coordinates: TelegramLocation | null
+  coordinates: MapCoordinate | null
+  startSource: 'center' | 'device' | 'map'
   isLoading: boolean
   stops: Recommendation[]
 } = {
@@ -261,6 +329,7 @@ const state: {
   transport: 'walk',
   minutes: 120,
   coordinates: null,
+  startSource: 'center',
   isLoading: false,
   stops: [],
 }
@@ -270,7 +339,25 @@ let activeRecommendation: AbortController | null = null
 let mapController: RecommendationsMapController | null = null
 let currentRouteOrigin: MapCoordinate | null = null
 const seenPlaceIds = new Set<string>()
-let locationMessageKey: MessageKey = 'locationDefault'
+let startMessageKey: MessageKey = 'startCenterStatus'
+let pickingStart = false
+let locationAttemptId = 0
+
+function renderStartPicker(): void {
+  requiredElement<HTMLElement>('#startLabel').textContent = t('startTitle')
+  startValue.textContent = t(state.startSource === 'center' ? 'startCenter' : state.startSource === 'device' ? 'startDevice' : 'startMapSelected')
+  requiredElement<HTMLElement>('#deviceButtonLabel').textContent = t('startDevice')
+  requiredElement<HTMLElement>('#mapPickButtonLabel').textContent = t(pickingStart ? 'startCancel' : 'startMap')
+  resetStartButton.textContent = t('startReset')
+  resetStartButton.hidden = state.startSource === 'center' && !pickingStart
+  deviceButton.classList.toggle('is-selected', state.startSource === 'device')
+  mapPickButton.classList.toggle('is-selected', pickingStart || state.startSource === 'map')
+  deviceButton.setAttribute('aria-pressed', String(state.startSource === 'device'))
+  mapPickButton.setAttribute('aria-pressed', String(pickingStart || state.startSource === 'map'))
+  locationStatus.textContent = t(startMessageKey)
+  mapPickHint.textContent = t('startPickInstruction')
+  mapPickHint.hidden = !pickingStart
+}
 
 function applyTranslations(): void {
   document.documentElement.lang = language
@@ -294,7 +381,7 @@ function applyTranslations(): void {
     ['[data-scope="day_trip"]', 'fromCity'], ['.settings-grid .field-group:first-child legend', 'duration'],
     ['.settings-grid .field-group:nth-child(2) legend', 'transport'], ['.budget-group label', 'budget'],
     ['#budgetHint', 'budgetHint'], ['.group-size-group label', 'group'],
-    ['#groupSizeHint', 'groupHint'], ['#deviceButton', 'locationButton'],
+    ['#groupSizeHint', 'groupHint'],
     ['.submit-label', 'submit'], ['.language-picker span', 'language'],
   ]
   for (const [selector, key] of textTargets) {
@@ -316,7 +403,7 @@ function applyTranslations(): void {
   budget.placeholder = t('noLimit')
   const exampleKeys: Array<[string, MessageKey]> = [['club', 'exampleClubPrompt'], ['coffee', 'exampleCoffeePrompt'], ['friends', 'exampleFriendsPrompt']]
   for (const [id, key] of exampleKeys) document.querySelector(`[data-example="${id}"]`)?.setAttribute('data-example-text', t(key))
-  locationStatus.textContent = t(locationMessageKey)
+  renderStartPicker()
   requiredElement<HTMLAnchorElement>('#privacyLink').href = `/privacy.html?lang=${language}`
   mapController?.setLanguage(language)
   renderDurationChoices()
@@ -433,9 +520,7 @@ function travelModeLabel(mode: string | undefined): string {
 }
 
 function origin(): MapCoordinate {
-  return state.coordinates
-    ? { lat: state.coordinates.latitude, lon: state.coordinates.longitude }
-    : ASTANA_CENTER
+  return state.coordinates ?? ASTANA_CENTER
 }
 
 function scrollToResults(): void {
@@ -564,54 +649,97 @@ groupSize.addEventListener('input', () => {
   updateSettingsSummary()
 })
 
-function distanceMeters(a: MapCoordinate, b: MapCoordinate): number {
-  const rad = Math.PI / 180
-  const latDelta = (b.lat - a.lat) * rad
-  const lonDelta = (b.lon - a.lon) * rad
-  const h = Math.sin(latDelta / 2) ** 2
-    + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(lonDelta / 2) ** 2
-  return 6_371_000 * 2 * Math.asin(Math.min(1, Math.sqrt(h)))
+function startStatusForSource(): MessageKey {
+  return state.startSource === 'device' ? 'startDeviceFound'
+    : state.startSource === 'map' ? 'startMapFound' : 'startCenterStatus'
+}
+
+function setStartPoint(point: MapCoordinate | null, source: 'center' | 'device' | 'map'): void {
+  locationAttemptId += 1
+  pickingStart = false
+  mapController?.setStartPointSelectionMode(false)
+  state.coordinates = point
+  state.startSource = source
+  startMessageKey = startStatusForSource()
+  clearResults()
+  mapController?.setStartPoint(origin())
+  mapController?.focus(origin())
+  renderStartPicker()
 }
 
 function requestDeviceLocation(): void {
-  const manager = telegram?.LocationManager
-  if (!telegram?.isVersionAtLeast?.('8.0') || !manager) return
-  const button = requiredElement<HTMLButtonElement>('#deviceButton')
-  button.disabled = true
-  locationMessageKey = 'locationLoading'
-  locationStatus.textContent = t(locationMessageKey)
-  manager.init(() => {
-    if (!manager.isLocationAvailable) {
-      button.disabled = false
-      locationMessageKey = 'locationUnavailable'
-      locationStatus.textContent = t(locationMessageKey)
+  const attemptId = ++locationAttemptId
+  pickingStart = false
+  mapController?.setStartPointSelectionMode(false)
+  deviceButton.disabled = true
+  startMessageKey = 'startLoading'
+  renderStartPicker()
+  const finish = (point: MapCoordinate | null, errorKey: MessageKey = 'startUnavailable') => {
+    if (attemptId !== locationAttemptId) return
+    deviceButton.disabled = false
+    if (!point) {
+      startMessageKey = errorKey
+      renderStartPicker()
       return
     }
-    manager.getLocation((location) => {
-      button.disabled = false
-      if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
-        locationMessageKey = 'locationDenied'
-        locationStatus.textContent = t(locationMessageKey)
+    if (!insideAstana(point)) {
+      startMessageKey = 'startOutside'
+      renderStartPicker()
+      return
+    }
+    setStartPoint(point, 'device')
+  }
+  const fallback = () => {
+    if (!navigator.geolocation) {
+      finish(null)
+      return
+    }
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => finish({ lat: position.coords.latitude, lon: position.coords.longitude }),
+        (error) => finish(null, error.code === 1 ? 'startDenied' : 'startUnavailable'),
+        { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+      )
+    } catch {
+      finish(null)
+    }
+  }
+  const manager = telegram?.LocationManager
+  if (!telegram?.isVersionAtLeast?.('8.0') || !manager) {
+    fallback()
+    return
+  }
+  try {
+    manager.init(() => {
+      if (attemptId !== locationAttemptId) return
+      if (!manager.isLocationAvailable) {
+        fallback()
         return
       }
-      const point = { lat: location.latitude, lon: location.longitude }
-      if (distanceMeters(point, ASTANA_CENTER) > 40_000) {
-        state.coordinates = null
-        locationMessageKey = 'locationFar'
-        locationStatus.textContent = t(locationMessageKey)
-        return
-      }
-      state.coordinates = location
-      locationMessageKey = 'locationFound'
-      locationStatus.textContent = t(locationMessageKey)
-      clearResults()
+      manager.getLocation((location) => {
+        if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+          finish(null, 'startDenied')
+          return
+        }
+        finish({ lat: location.latitude, lon: location.longitude })
+      })
     })
-  })
+  } catch {
+    fallback()
+  }
 }
-requiredElement<HTMLButtonElement>('#deviceButton').addEventListener('click', requestDeviceLocation)
-if (telegram?.isVersionAtLeast?.('8.0') && telegram.LocationManager) {
-  requiredElement<HTMLElement>('#locationRow').hidden = false
-}
+
+deviceButton.addEventListener('click', requestDeviceLocation)
+mapPickButton.addEventListener('click', () => {
+  locationAttemptId += 1
+  deviceButton.disabled = false
+  pickingStart = !pickingStart
+  mapController?.setStartPointSelectionMode(pickingStart)
+  startMessageKey = pickingStart ? 'startPickInstruction' : startStatusForSource()
+  if (pickingStart) setSheetMode('peek')
+  renderStartPicker()
+})
+resetStartButton.addEventListener('click', () => setStartPoint(null, 'center'))
 
 function validateForm(): { text: string; group: number; budgetKzt?: number } | null {
   budget.setCustomValidity('')
@@ -655,8 +783,8 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
   if (excludePlaceIds.length) request.excludePlaceIds = excludePlaceIds
   if (state.coordinates) {
-    request.latitude = state.coordinates.latitude
-    request.longitude = state.coordinates.longitude
+    request.latitude = state.coordinates.lat
+    request.longitude = state.coordinates.lon
   }
   return { initData: telegram?.initData ?? '', request }
 }
@@ -1124,10 +1252,20 @@ const routeSheet = requiredElement<HTMLElement>('#routeSheet')
 mapController = mountRecommendationsMap(requiredElement<HTMLElement>('#map'), {
   markers: [],
   center: ASTANA_CENTER,
+  startPoint: origin(),
   language,
   onSelect: (id) => {
     const item = state.stops.find((stop) => stop.id === id)
     if (item) showMapPreview(item)
+  },
+  onStartPointSelect: (point) => {
+    if (!pickingStart) return
+    if (!insideAstana(point)) {
+      startMessageKey = 'startOutside'
+      renderStartPicker()
+      return
+    }
+    setStartPoint(point, 'map')
   },
 })
 applyTranslations()

@@ -16,6 +16,8 @@
 }
 
 .rec-map__viewport.is-dragging { cursor: grabbing; }
+.rec-map__viewport.is-selecting-start { cursor: crosshair; }
+.rec-map__viewport.is-selecting-start.is-dragging { cursor: grabbing; }
 
 .rec-map__viewport:focus-visible,
 .rec-map button:focus-visible,
@@ -44,6 +46,49 @@
 .rec-map__route-start { fill: var(--surface); stroke: var(--brand); stroke-width: 3px; }
 .rec-map__markers { z-index: 2; pointer-events: none; }
 .rec-map__clusters { z-index: 3; pointer-events: none; }
+
+.rec-map__start-point {
+  position: absolute;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 10px;
+  transform: translate(-50%, calc(-100% - 9px));
+  border: 2px solid #fff;
+  border-radius: 12px;
+  background: #172b31;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 28%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.rec-map__start-point::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #b2ef6c;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 24%);
+}
+
+.rec-map__start-point::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 7px);
+  bottom: -8px;
+  border-right: 7px solid transparent;
+  border-left: 7px solid transparent;
+  border-top: 8px solid #172b31;
+}
+
+.rec-map__start-point[hidden] { display: none; }
 
 .rec-map__tile {
   position: absolute;

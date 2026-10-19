@@ -1,4 +1,5 @@
 import './map.css'
+import { ASTANA_CENTER } from '../shared/astana'
 
 export interface MapMarker {
   id: string
@@ -21,9 +22,11 @@ export interface RecommendationsMapOptions {
   markers: MapMarker[]
   language?: MapLanguage
   center?: MapCoordinate
+  startPoint?: MapCoordinate
   routeLine?: MapCoordinate[]
   schematic?: boolean
   onSelect?: (id: string) => void
+  onStartPointSelect?: (point: MapCoordinate) => void
 }
 
 export interface RecommendationsMapController {
@@ -33,6 +36,8 @@ export interface RecommendationsMapController {
   fit(): void
   setBottomInset(px: number): void
   setLanguage(language: MapLanguage): void
+  setStartPoint(point?: MapCoordinate): void
+  setStartPointSelectionMode(enabled: boolean): void
   destroy(): void
 }
 
@@ -56,6 +61,9 @@ interface MapCopy {
   noPins: string
   clusterOpen: (count: number) => string
   clusterZoom: (count: number) => string
+  chooseStart: string
+  startPin: string
+  startLabel: string
 }
 
 const MAP_COPY: Record<MapLanguage, MapCopy> = {
@@ -71,6 +79,8 @@ const MAP_COPY: Record<MapLanguage, MapCopy> = {
     noPins: 'На карте пока нет точек.',
     clusterOpen: (count) => `Открыть группу из ${count} точек`,
     clusterZoom: (count) => `Приблизить группу из ${count} точек`,
+    chooseStart: 'Нажмите на карту, чтобы выбрать точку старта. Можно перемещать карту и выбрать её клавишей Enter.',
+    startPin: 'Выбранная точка старта', startLabel: 'Старт',
   },
   kk: {
     root: 'Астана мен маршрут картасы', viewport: 'Карта. Көрсеткілермен жылжытыңыз, плюс пен минус арқылы масштабты өзгертіңіз.',
@@ -84,6 +94,8 @@ const MAP_COPY: Record<MapLanguage, MapCopy> = {
     noPins: 'Картада әзірге нүктелер жоқ.',
     clusterOpen: (count) => `${count} нүктеден тұратын топты ашу`,
     clusterZoom: (count) => `${count} нүктеден тұратын топты жақындату`,
+    chooseStart: 'Бастау нүктесін таңдау үшін картаны түртіңіз. Картаны жылжытып, Enter пернесімен таңдауға да болады.',
+    startPin: 'Таңдалған бастау нүктесі', startLabel: 'Бастау',
   },
   en: {
     root: 'Astana and route map', viewport: 'Map. Use arrow keys to move and plus or minus to zoom.',
@@ -97,6 +109,8 @@ const MAP_COPY: Record<MapLanguage, MapCopy> = {
     noPins: 'No points on the map yet.',
     clusterOpen: (count) => `Open group of ${count} points`,
     clusterZoom: (count) => `Zoom to group of ${count} points`,
+    chooseStart: 'Tap the map to choose where to start. You can move the map and press Enter to choose its center.',
+    startPin: 'Selected starting point', startLabel: 'Start',
   },
 }
 
@@ -106,7 +120,6 @@ const MAX_ZOOM = 18
 const MAX_FIT_ZOOM = 15
 const MAX_LATITUDE = 85.05112878
 const OSM_TILE_BASE = 'https://tile.openstreetmap.org/'
-const ASTANA_CENTER: MapCoordinate = { lat: 51.1283, lon: 71.4305 }
 const CITY_ZOOM = 12
 
 interface Pixel {
@@ -209,6 +222,12 @@ export function mountRecommendationsMap(
   markerLayer.className = 'rec-map__markers'
   const clusterLayer = document.createElement('div')
   clusterLayer.className = 'rec-map__clusters'
+  const startPin = document.createElement('div')
+  startPin.className = 'rec-map__start-point'
+  startPin.setAttribute('role', 'img')
+  startPin.setAttribute('aria-label', copy().startPin)
+  startPin.textContent = copy().startLabel
+  startPin.hidden = true
   const controlLayer = document.createElement('div')
   controlLayer.className = 'rec-map__controls'
   const zoomIn = makeButton('rec-map__control', copy().zoomIn, '+')
@@ -235,6 +254,7 @@ export function mountRecommendationsMap(
   viewport.appendChild(routeSvg)
   viewport.appendChild(markerLayer)
   viewport.appendChild(clusterLayer)
+  viewport.appendChild(startPin)
   viewport.appendChild(controlLayer)
   viewport.appendChild(failure)
   viewport.appendChild(attribution)
@@ -261,6 +281,7 @@ export function mountRecommendationsMap(
   let routeLine = cleanRouteLine(options.routeLine)
   let schematic = options.schematic ?? true
   let preferredCenter = validCoordinate(options.center) ? options.center : undefined
+  let startPoint = validCoordinate(options.startPoint) ? options.startPoint : undefined
   let center: MapCoordinate = preferredCenter ?? markers[0] ?? ASTANA_CENTER
   let zoom = CITY_ZOOM
   let selectedId = ''
@@ -270,6 +291,9 @@ export function mountRecommendationsMap(
   let destroyed = false
   let activePointer: number | null = null
   let lastPointer: Pixel | null = null
+  let pointerOrigin: Pixel | null = null
+  let pointerMoved = false
+  let selectingStartPoint = false
   const tiles = new Map<string, HTMLImageElement>()
   const markerButtons = new Map<string, HTMLButtonElement>()
   const listButtons = new Map<string, HTMLButtonElement>()
@@ -277,11 +301,13 @@ export function mountRecommendationsMap(
   function applyLanguage(): void {
     root.lang = language
     root.setAttribute('aria-label', copy().root)
-    viewport.setAttribute('aria-label', copy().viewport)
+    viewport.setAttribute('aria-label', selectingStartPoint ? `${copy().viewport} ${copy().chooseStart}` : copy().viewport)
     zoomIn.setAttribute('aria-label', copy().zoomIn)
     zoomOut.setAttribute('aria-label', copy().zoomOut)
     failure.textContent = copy().failure
     attribution.textContent = copy().attribution
+    startPin.setAttribute('aria-label', copy().startPin)
+    startPin.textContent = copy().startLabel
     fallbackList.setAttribute('aria-label', copy().mapPoints)
     rebuildMarkerControls()
     queueRender()
@@ -309,8 +335,9 @@ export function mountRecommendationsMap(
   function fitMarkers(): void {
     const points: MapCoordinate[] = [...markers, ...routeLine]
     if (preferredCenter) points.push(preferredCenter)
+    if (startPoint) points.push(startPoint)
     if (markers.length === 0 && routeLine.length === 0) {
-      center = preferredCenter ?? ASTANA_CENTER
+      center = preferredCenter ?? startPoint ?? ASTANA_CENTER
       zoom = CITY_ZOOM
       queueRender()
       return
@@ -445,6 +472,23 @@ export function mountRecommendationsMap(
     }
   }
 
+  function renderStartPoint(centerPixel: Pixel, width: number, height: number): void {
+    if (!startPoint) {
+      startPin.hidden = true
+      return
+    }
+    const world = TILE_SIZE * 2 ** zoom
+    const pixel = project(startPoint, zoom)
+    let deltaX = pixel.x - centerPixel.x
+    if (deltaX > world / 2) deltaX -= world
+    if (deltaX < -world / 2) deltaX += world
+    const x = width / 2 + deltaX
+    const y = mapAnchorY(height) + pixel.y - centerPixel.y
+    startPin.style.left = Math.round(x) + 'px'
+    startPin.style.top = Math.round(y) + 'px'
+    startPin.hidden = x < -60 || x > width + 60 || y < -60 || y > height + 60
+  }
+
   function renderRouteLine(centerPixel: Pixel, width: number, height: number): void {
     if (routeLine.length < 2) {
       routeSvg.style.display = 'none'
@@ -478,6 +522,7 @@ export function mountRecommendationsMap(
     renderTiles(centerPixel, width, height)
     renderRouteLine(centerPixel, width, height)
     renderMarkers(centerPixel, width, height)
+    renderStartPoint(centerPixel, width, height)
     zoomIn.disabled = zoom >= MAX_ZOOM
     zoomOut.disabled = zoom <= MIN_ZOOM
     fitButton.textContent = markers.length ? copy().fitAll : copy().fitCity
@@ -588,6 +633,19 @@ export function mountRecommendationsMap(
     queueRender()
   }
 
+  function pointAtClientPosition(clientX: number, clientY: number): MapCoordinate {
+    const { width, height } = viewportSize()
+    const rect = viewport.getBoundingClientRect()
+    const x = (clientX - rect.left) * width / Math.max(1, rect.width)
+    const y = (clientY - rect.top) * height / Math.max(1, rect.height)
+    const centerPixel = project(center, zoom)
+    const world = TILE_SIZE * 2 ** zoom
+    return unproject({
+      x: centerPixel.x + x - width / 2,
+      y: Math.max(0, Math.min(world, centerPixel.y + y - mapAnchorY(height))),
+    }, zoom)
+  }
+
   zoomIn.addEventListener('click', () => changeZoom(1))
   zoomOut.addEventListener('click', () => changeZoom(-1))
   fitButton.addEventListener('click', () => {
@@ -599,25 +657,43 @@ export function mountRecommendationsMap(
     if (activePointer !== null) return
     activePointer = event.pointerId
     lastPointer = { x: event.clientX, y: event.clientY }
+    pointerOrigin = lastPointer
+    pointerMoved = false
     viewport.setPointerCapture(event.pointerId)
-    viewport.classList.add('is-dragging')
   })
   viewport.addEventListener('pointermove', (event) => {
-    if (activePointer !== event.pointerId || !lastPointer) return
+    if (activePointer !== event.pointerId || !lastPointer || !pointerOrigin) return
+    if (!pointerMoved) {
+      if (Math.hypot(event.clientX - pointerOrigin.x, event.clientY - pointerOrigin.y) < 8) return
+      pointerMoved = true
+      viewport.classList.add('is-dragging')
+    }
     panBy(event.clientX - lastPointer.x, event.clientY - lastPointer.y)
     lastPointer = { x: event.clientX, y: event.clientY }
   })
   function stopDragging(event: PointerEvent): void {
     if (activePointer !== event.pointerId) return
+    const isTap = event.type === 'pointerup' && !pointerMoved && pointerOrigin
+      && Math.hypot(event.clientX - pointerOrigin.x, event.clientY - pointerOrigin.y) < 8
     activePointer = null
     lastPointer = null
+    pointerOrigin = null
+    pointerMoved = false
     viewport.classList.remove('is-dragging')
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId)
+    if (isTap && selectingStartPoint) {
+      options.onStartPointSelect?.(pointAtClientPosition(event.clientX, event.clientY))
+    }
   }
   viewport.addEventListener('pointerup', stopDragging)
   viewport.addEventListener('pointercancel', stopDragging)
   viewport.addEventListener('keydown', (event) => {
     const key = event.key
+    if (selectingStartPoint && event.target === viewport && (key === 'Enter' || key === ' ')) {
+      options.onStartPointSelect?.({ ...center })
+      event.preventDefault()
+      return
+    }
     if (key === '+' || key === '=') changeZoom(1)
     else if (key === '-') changeZoom(-1)
     else if (key === 'ArrowLeft') panBy(64, 0)
@@ -684,6 +760,17 @@ export function mountRecommendationsMap(
       if (language === nextLanguage) return
       language = MAP_COPY[nextLanguage] ? nextLanguage : 'ru'
       applyLanguage()
+    },
+    setStartPoint(point) {
+      if (point !== undefined && !validCoordinate(point)) return
+      startPoint = point ? { lat: point.lat, lon: point.lon } : undefined
+      resizedAfterInteraction = true
+      queueRender()
+    },
+    setStartPointSelectionMode(enabled) {
+      selectingStartPoint = enabled
+      viewport.classList.toggle('is-selecting-start', enabled)
+      viewport.setAttribute('aria-label', enabled ? `${copy().viewport} ${copy().chooseStart}` : copy().viewport)
     },
     destroy() {
       if (destroyed) return
