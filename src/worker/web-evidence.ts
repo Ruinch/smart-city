@@ -1,5 +1,6 @@
-import type { Recommendation, WalkRequest } from '../shared/types'
+import type { Language, Recommendation, WalkRequest } from '../shared/types'
 import type { DynamicPlace } from './dynamic'
+import { pick } from './i18n'
 
 type Feature = 'quiet' | 'outlets' | 'reading' | 'nightlife' | 'hours'
 type SearchLimiter = { limit(input: { key: string }): Promise<{ success: boolean }> }
@@ -129,11 +130,11 @@ function featureSupportedBySource(venue: DynamicPlace, feature: Feature, source:
 function requestedFeatures(text: string): Set<Feature> {
   const value = normalize(text)
   const features = new Set<Feature>()
-  if (/тих|тишин|спокойн|уют|quiet/u.test(value)) features.add('quiet')
+  if (/тих|тишин|спокойн|уют|quiet|тыныш/u.test(value)) features.add('quiet')
   if (/розет|заряд|socket|outlet/u.test(value)) features.add('outlets')
-  if (/книг|чита|book|read/u.test(value)) features.add('reading')
-  if (/клуб|ночн|событ|движ|танц|программ|музык|атмосфер|концерт|афиш|night|club|event|dance|concert/u.test(value)) features.add('nightlife')
-  if (/сейчас|открыт|работа|hours|open/u.test(value)) features.add('hours')
+  if (/книг|чита|book|read|кітап|оқы/u.test(value)) features.add('reading')
+  if (/клуб|ночн|событ|движ|танц|программ|музык|атмосфер|концерт|афиш|night|club|event|dance|concert|түнгі|би биле|бағдарлама/u.test(value)) features.add('nightlife')
+  if (/сейчас|открыт|работа|hours|open|қазір|ашық/u.test(value)) features.add('hours')
   return features
 }
 
@@ -148,7 +149,7 @@ const FEATURE_CLAIMS: Record<Feature, string> = {
 export function needsWebEvidence(text: string): boolean {
   // OSM already covers venue categories. Spend a paid web search only when the
   // visitor asks for subjective amenities, a specific event/program, or fresh hours.
-  return /тих|тишин|спокойн|розет|заряд|атмосфер|событ|движ|танц|программ|концерт|афиш|сейчас|открыт|режим работы|quiet|outlet|socket|event|dance|concert|open now/iu.test(text)
+  return /тих|тишин|спокойн|розет|заряд|атмосфер|событ|движ|танц|программ|концерт|афиш|сейчас|открыт|режим работы|quiet|outlet|socket|event|dance|concert|open now|тыныш|бағдарлама|қазір|ашық/iu.test(text)
 }
 
 /** Optional evidence search. It never creates new places or unsourced coordinates. */
@@ -237,7 +238,7 @@ export async function searchVenueEvidence(apiKey: string | undefined, request: W
   }
 }
 
-export function attachEvidence(stops: Recommendation[], findings: VenueEvidence[]): void {
+export function attachEvidence(stops: Recommendation[], findings: VenueEvidence[], language: Language = 'ru'): void {
   const byId = new Map<string, VenueEvidence[]>()
   for (const finding of findings) {
     const list = byId.get(finding.id) ?? []
@@ -246,6 +247,20 @@ export function attachEvidence(stops: Recommendation[], findings: VenueEvidence[
   }
   for (const stop of stops) {
     const evidence = byId.get(stop.id)
-    if (evidence?.length) stop.evidence = evidence.map(({ claim, sourceUrl }) => ({ claim, sourceUrl }))
+    if (evidence?.length) stop.evidence = evidence.map(({ claim, feature, sourceUrl }) => ({
+      claim: language === 'ru' ? claim : pick(language, claim, {
+        quiet: 'Табылған сипаттамада тыныш атмосфера аталады; барған жерде тексеріңіз.',
+        outlets: 'Табылған сипаттамада розеткалар аталады; барған жерде тексеріңіз.',
+        reading: 'Табылған сипаттамада кітап немесе оқу аталады.',
+        nightlife: 'Табылған сипаттамада кешкі бағдарлама аталады; өзекті афишаны нақтылаңыз.',
+        hours: 'Табылған дереккөзде жұмыс уақыты көрсетілген; барар алдында тексеріңіз.',
+      }[feature], {
+        quiet: 'A found description mentions a calm atmosphere; verify it on arrival.',
+        outlets: 'A found description mentions power outlets; verify them on arrival.',
+        reading: 'A found description mentions books or reading.',
+        nightlife: 'A found description mentions an evening programme; check the current schedule.',
+        hours: 'A found source lists opening hours; verify them before visiting.',
+      }[feature]), sourceUrl,
+    }))
   }
 }

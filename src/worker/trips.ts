@@ -1,5 +1,6 @@
 import type { CityCatalog, Recommendation, Trip, WalkRequest } from '../shared/types'
 import { routeUrl } from './recommend'
+import { languageOf, pick } from './i18n'
 
 const TRIP_KEYWORDS: Record<string, string[]> = {
   viewpoint: ['смотров', 'панорам', 'вид', 'природ'],
@@ -89,6 +90,7 @@ export function rankTrips(trips: Trip[], city: CityCatalog, request: WalkRequest
 
 export function toTripRecommendation(candidate: TripCandidate, city: CityCatalog, request: WalkRequest): Recommendation {
   const { trip, travelMinutesApprox, totalMinutesApprox } = candidate
+  const language = languageOf(request)
   const transport = request.transport ?? 'car'
   const landmark = city.pois.find((poi) => poi.id === request.landmarkId)
   const start = request.latitude !== undefined && request.longitude !== undefined
@@ -96,18 +98,37 @@ export function toTripRecommendation(candidate: TripCandidate, city: CityCatalog
     : landmark ? { lat: landmark.lat, lon: landmark.lon }
     : city.center
   const durationHint = sourceUrl(trip.durationSourceUrl) && trip.durationClass
-    ? ` Источник предлагает ${trip.durationClass === 'half_day' ? 'план на полдня' : 'план на целый день'}; это не гарантия времени самостоятельной поездки.`
+    ? pick(language,
+      ` Источник предлагает ${trip.durationClass === 'half_day' ? 'план на полдня' : 'план на целый день'}; это не гарантия времени самостоятельной поездки.`,
+      ` Дереккөз ${trip.durationClass === 'half_day' ? 'жарты күндік' : 'толық күндік'} жоспарды ұсынады; жеке сапар ұзақтығына кепілдік жоқ.`,
+      ` A source suggests ${trip.durationClass === 'half_day' ? 'a half-day' : 'a full-day'} plan; this is not a guarantee for an independent trip.`)
     : ''
   const travel = travelMinutesApprox === undefined
-    ? `Время дороги туда и обратно не проверено.${durationHint}`
-    : `Дорога в одну сторону — ориентировочно ${travelMinutesApprox} мин; туда и обратно с посещением — около ${totalMinutesApprox} мин.`
+    ? pick(language, `Время дороги туда и обратно не проверено.${durationHint}`,
+      `Баруға және қайтуға кететін уақыт тексерілмеген.${durationHint}`,
+      `Round-trip travel time has not been verified.${durationHint}`)
+    : pick(language,
+      `Дорога в одну сторону — ориентировочно ${travelMinutesApprox} мин; туда и обратно с посещением — около ${totalMinutesApprox} мин.`,
+      `Бір бағыттағы жол шамамен ${travelMinutesApprox} мин; бару, қайту және аралау жалпы шамамен ${totalMinutesApprox} мин.`,
+      `One-way travel is approximately ${travelMinutesApprox} min; the return trip and visit total about ${totalMinutesApprox} min.`)
   const cost = sourcedCost(trip)
   const budget = cost
-    ? `Ориентир затрат: ${cost.min}–${cost.max} ₸ по указанному источнику; проверьте актуальную цену.`
-    : 'Стоимость дороги и посещения не проверена.'
+    ? pick(language,
+      `Ориентир затрат: ${cost.min}–${cost.max} ₸ по указанному источнику; проверьте актуальную цену.`,
+      `Көрсетілген дереккөз бойынша шығын шамамен ${cost.min}–${cost.max} ₸; өзекті бағаны тексеріңіз.`,
+      `Sourced cost estimate: ${cost.min}–${cost.max} ₸; check the current price.`)
+    : pick(language, 'Стоимость дороги и посещения не проверена.',
+      'Жол мен келу құны тексерілмеген.', 'Travel and admission costs have not been verified.')
+  const tripName = language === 'en'
+    ? ({ 'osm:way:1465089835': 'ALZHIR Museum', 'osm:node:6522625814': 'Burabay: Bolektau viewpoint',
+      'osm:way:1116434315': 'Burabay: Botai Museum' } as Record<string, string>)[trip.id] ?? trip.name
+    : language === 'kk'
+      ? ({ 'osm:way:1465089835': 'АЛЖИР мұражайы', 'osm:node:6522625814': 'Бурабай: Бөлектау көрініс алаңы',
+        'osm:way:1116434315': 'Бурабай: Ботай мұражайы' } as Record<string, string>)[trip.id] ?? trip.name
+      : trip.name
   return {
     id: trip.id,
-    name: trip.name,
+    name: tripName,
     category: trip.category,
     kind: 'trip',
     cityId: city.id,
@@ -124,10 +145,14 @@ export function toTripRecommendation(candidate: TripCandidate, city: CityCatalog
     budgetStatus: candidate.budgetStatus,
     timeStatus: totalMinutesApprox === undefined ? 'unknown' : 'within',
     why: `${travel} ${budget}`,
-    action: 'Проверьте состояние дороги, погоду, доступность места и условия посещения перед выездом.',
+    action: pick(language,
+      'Проверьте состояние дороги, погоду, доступность места и условия посещения перед выездом.',
+      'Жолға шықпас бұрын жол жағдайын, ауа райын, орынның қолжетімділігін және келу шарттарын тексеріңіз.',
+      'Check road conditions, weather, access and visiting requirements before setting out.'),
     actionSource: 'template',
     visitMinutes: trip.visitMinutes,
-    hoursStatus: 'Доступность и часы работы не проверены',
+    hoursStatus: pick(language, 'Доступность и часы работы не проверены',
+      'Қолжетімділік пен жұмыс уақыты тексерілмеген', 'Access and opening hours have not been verified'),
     sourceUrl: `https://www.openstreetmap.org/${trip.osmType}/${trip.osmId}`,
     routeUrl: routeUrl(start, trip, transport),
     approximate: true,

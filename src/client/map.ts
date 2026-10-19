@@ -15,8 +15,11 @@ export interface MapCoordinate {
   lon: number
 }
 
+export type MapLanguage = 'ru' | 'kk' | 'en'
+
 export interface RecommendationsMapOptions {
   markers: MapMarker[]
+  language?: MapLanguage
   center?: MapCoordinate
   routeLine?: MapCoordinate[]
   schematic?: boolean
@@ -29,7 +32,72 @@ export interface RecommendationsMapController {
   focus(point: MapCoordinate): void
   fit(): void
   setBottomInset(px: number): void
+  setLanguage(language: MapLanguage): void
   destroy(): void
+}
+
+interface MapCopy {
+  root: string
+  viewport: string
+  zoomIn: string
+  zoomOut: string
+  fitAll: string
+  fitCity: string
+  fitAllLabel: string
+  fitCityLabel: string
+  failure: string
+  stops: string
+  mapPoints: string
+  attribution: string
+  selected: (name: string) => string
+  selectPrompt: string
+  showTrip: (name: string) => string
+  showStop: (name: string) => string
+  noPins: string
+  clusterOpen: (count: number) => string
+  clusterZoom: (count: number) => string
+}
+
+const MAP_COPY: Record<MapLanguage, MapCopy> = {
+  ru: {
+    root: 'Карта Астаны и маршрута', viewport: 'Карта. Стрелки передвигают её, плюс и минус меняют масштаб.',
+    zoomIn: 'Приблизить карту', zoomOut: 'Отдалить карту', fitAll: 'Все', fitCity: 'Астана',
+    fitAllLabel: 'Показать весь маршрут', fitCityLabel: 'Вернуться к Астане',
+    failure: 'Часть карты не загрузилась. Остановки маршрута остаются в панели.',
+    stops: 'Остановки маршрута', mapPoints: 'Точки на карте',
+    attribution: '© участники OpenStreetMap',
+    selected: (name) => `Выбрано: ${name}`, selectPrompt: 'Выберите точку на карте или в списке.',
+    showTrip: (name) => `Показать поездку: ${name}`, showStop: (name) => `Показать остановку: ${name}`,
+    noPins: 'На карте пока нет точек.',
+    clusterOpen: (count) => `Открыть группу из ${count} точек`,
+    clusterZoom: (count) => `Приблизить группу из ${count} точек`,
+  },
+  kk: {
+    root: 'Астана мен маршрут картасы', viewport: 'Карта. Көрсеткілермен жылжытыңыз, плюс пен минус арқылы масштабты өзгертіңіз.',
+    zoomIn: 'Картаны жақындату', zoomOut: 'Картаны алыстату', fitAll: 'Бәрі', fitCity: 'Астана',
+    fitAllLabel: 'Маршрутты толық көрсету', fitCityLabel: 'Астанаға оралу',
+    failure: 'Картаның бір бөлігі жүктелмеді. Маршрут аялдамалары панельде бар.',
+    stops: 'Маршрут аялдамалары', mapPoints: 'Картадағы нүктелер',
+    attribution: '© OpenStreetMap қатысушылары',
+    selected: (name) => `Таңдалды: ${name}`, selectPrompt: 'Картадан немесе тізімнен нүктені таңдаңыз.',
+    showTrip: (name) => `Сапарды көрсету: ${name}`, showStop: (name) => `Аялдаманы көрсету: ${name}`,
+    noPins: 'Картада әзірге нүктелер жоқ.',
+    clusterOpen: (count) => `${count} нүктеден тұратын топты ашу`,
+    clusterZoom: (count) => `${count} нүктеден тұратын топты жақындату`,
+  },
+  en: {
+    root: 'Astana and route map', viewport: 'Map. Use arrow keys to move and plus or minus to zoom.',
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out', fitAll: 'All', fitCity: 'Astana',
+    fitAllLabel: 'Show the full route', fitCityLabel: 'Return to Astana',
+    failure: 'Some map tiles did not load. Route stops remain in the panel.',
+    stops: 'Route stops', mapPoints: 'Map points',
+    attribution: '© OpenStreetMap contributors',
+    selected: (name) => `Selected: ${name}`, selectPrompt: 'Choose a point on the map or in the list.',
+    showTrip: (name) => `Show trip: ${name}`, showStop: (name) => `Show stop: ${name}`,
+    noPins: 'No points on the map yet.',
+    clusterOpen: (count) => `Open group of ${count} points`,
+    clusterZoom: (count) => `Zoom to group of ${count} points`,
+  },
 }
 
 const TILE_SIZE = 256
@@ -108,15 +176,18 @@ export function mountRecommendationsMap(
   container: HTMLElement,
   options: RecommendationsMapOptions,
 ): RecommendationsMapController {
+  let language: MapLanguage = options.language ?? 'ru'
+  const copy = () => MAP_COPY[language]
   const root = document.createElement('section')
   root.className = 'rec-map'
-  root.setAttribute('aria-label', 'Карта Астаны и маршрута')
+  root.lang = language
+  root.setAttribute('aria-label', copy().root)
 
   const viewport = document.createElement('div')
   viewport.className = 'rec-map__viewport'
   viewport.tabIndex = 0
   viewport.setAttribute('role', 'group')
-  viewport.setAttribute('aria-label', 'Карта. Стрелки передвигают её, плюс и минус меняют масштаб.')
+  viewport.setAttribute('aria-label', copy().viewport)
 
   const tileLayer = document.createElement('div')
   tileLayer.className = 'rec-map__tiles'
@@ -140,9 +211,9 @@ export function mountRecommendationsMap(
   clusterLayer.className = 'rec-map__clusters'
   const controlLayer = document.createElement('div')
   controlLayer.className = 'rec-map__controls'
-  const zoomIn = makeButton('rec-map__control', 'Приблизить карту', '+')
-  const zoomOut = makeButton('rec-map__control', 'Отдалить карту', '−')
-  const fitButton = makeButton('rec-map__control rec-map__control-fit', 'Показать все точки', 'Все')
+  const zoomIn = makeButton('rec-map__control', copy().zoomIn, '+')
+  const zoomOut = makeButton('rec-map__control', copy().zoomOut, '−')
+  const fitButton = makeButton('rec-map__control rec-map__control-fit', copy().fitAllLabel, copy().fitAll)
   controlLayer.appendChild(zoomIn)
   controlLayer.appendChild(zoomOut)
   controlLayer.appendChild(fitButton)
@@ -151,14 +222,14 @@ export function mountRecommendationsMap(
   failure.className = 'rec-map__failure'
   failure.setAttribute('role', 'status')
   failure.hidden = true
-  failure.textContent = 'Часть карты не загрузилась. Точки доступны в списке ниже.'
+  failure.textContent = copy().failure
 
   const attribution = document.createElement('a')
   attribution.className = 'rec-map__attribution'
   attribution.href = 'https://www.openstreetmap.org/copyright'
   attribution.target = '_blank'
   attribution.rel = 'noopener noreferrer'
-  attribution.textContent = '© OpenStreetMap contributors'
+  attribution.textContent = copy().attribution
 
   viewport.appendChild(tileLayer)
   viewport.appendChild(routeSvg)
@@ -174,10 +245,10 @@ export function mountRecommendationsMap(
   const fallbackDetails = document.createElement('details')
   fallbackDetails.className = 'rec-map__details'
   const fallbackSummary = document.createElement('summary')
-  fallbackSummary.textContent = 'Остановки маршрута'
+  fallbackSummary.textContent = copy().stops
   const fallbackList = document.createElement('nav')
   fallbackList.className = 'rec-map__list'
-  fallbackList.setAttribute('aria-label', 'Точки на карте')
+  fallbackList.setAttribute('aria-label', copy().mapPoints)
   fallbackDetails.appendChild(fallbackSummary)
   fallbackDetails.appendChild(fallbackList)
 
@@ -202,6 +273,19 @@ export function mountRecommendationsMap(
   const tiles = new Map<string, HTMLImageElement>()
   const markerButtons = new Map<string, HTMLButtonElement>()
   const listButtons = new Map<string, HTMLButtonElement>()
+
+  function applyLanguage(): void {
+    root.lang = language
+    root.setAttribute('aria-label', copy().root)
+    viewport.setAttribute('aria-label', copy().viewport)
+    zoomIn.setAttribute('aria-label', copy().zoomIn)
+    zoomOut.setAttribute('aria-label', copy().zoomOut)
+    failure.textContent = copy().failure
+    attribution.textContent = copy().attribution
+    fallbackList.setAttribute('aria-label', copy().mapPoints)
+    rebuildMarkerControls()
+    queueRender()
+  }
 
   function viewportSize(): { width: number; height: number } {
     return {
@@ -342,8 +426,7 @@ export function mountRecommendationsMap(
       const y = group.reduce((sum, point) => sum + point.y, 0) / group.length
       const cluster = makeButton(
         'rec-map__cluster',
-        (zoom >= MAX_ZOOM ? 'Открыть список группы из ' : 'Приблизить группу из ')
-          + group.length + ' точек',
+        zoom >= MAX_ZOOM ? copy().clusterOpen(group.length) : copy().clusterZoom(group.length),
         String(group.length),
       )
       cluster.style.left = Math.round(x) + 'px'
@@ -397,13 +480,13 @@ export function mountRecommendationsMap(
     renderMarkers(centerPixel, width, height)
     zoomIn.disabled = zoom >= MAX_ZOOM
     zoomOut.disabled = zoom <= MIN_ZOOM
-    fitButton.textContent = markers.length ? 'Все' : 'Астана'
-    fitButton.setAttribute('aria-label', markers.length ? 'Показать весь маршрут' : 'Вернуться к Астане')
+    fitButton.textContent = markers.length ? copy().fitAll : copy().fitCity
+    fitButton.setAttribute('aria-label', markers.length ? copy().fitAllLabel : copy().fitCityLabel)
   }
 
   function syncSelection(): void {
     const marker = markers.find((item) => item.id === selectedId)
-    selectedLine.textContent = marker ? 'Выбрано: ' + marker.name : 'Выберите точку на карте или в списке.'
+    selectedLine.textContent = marker ? copy().selected(marker.name) : copy().selectPrompt
     for (const [id, button] of markerButtons) {
       const selected = id === selectedId
       button.classList.toggle('is-selected', selected)
@@ -451,13 +534,13 @@ export function mountRecommendationsMap(
   function rebuildMarkerControls(): void {
     markerLayer.replaceChildren()
     fallbackList.replaceChildren()
-    fallbackSummary.textContent = 'Остановки маршрута (' + markers.length + ')'
+    fallbackSummary.textContent = `${copy().stops} (${markers.length})`
     fallbackDetails.hidden = markers.length === 0
     markerButtons.clear()
     listButtons.clear()
     markers.forEach((marker, index) => {
       const isTrip = marker.kind === 'trip'
-      const label = (isTrip ? 'Показать поездку: ' : 'Показать остановку: ') + marker.name
+      const label = isTrip ? copy().showTrip(marker.name) : copy().showStop(marker.name)
       const pin = makeButton('rec-map__marker', label, String(index + 1))
       pin.title = marker.name
       pin.classList.toggle('is-trip', isTrip)
@@ -480,7 +563,7 @@ export function mountRecommendationsMap(
     if (markers.length === 0) {
       const empty = document.createElement('p')
       empty.className = 'rec-map__empty'
-      empty.textContent = 'На карте пока нет точек.'
+      empty.textContent = copy().noPins
       fallbackList.appendChild(empty)
     }
     syncSelection()
@@ -596,6 +679,11 @@ export function mountRecommendationsMap(
       bottomInset = next
       if (resizedAfterInteraction) queueRender()
       else fitMarkers()
+    },
+    setLanguage(nextLanguage) {
+      if (language === nextLanguage) return
+      language = MAP_COPY[nextLanguage] ? nextLanguage : 'ru'
+      applyLanguage()
     },
     destroy() {
       if (destroyed) return

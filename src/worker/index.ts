@@ -1,7 +1,7 @@
 import snapshotJson from '../../data/astana-dynamic-fallback.json'
 import tripsJson from '../../data/astana-trips.json'
 import exclusionsJson from '../../data/astana-place-exclusions.json'
-import type { CityCatalog, Poi, PoiCatalog, RecommendRequest, RecommendResponse, TripCatalog, WalkRequest } from '../shared/types'
+import type { CityCatalog, Language, Poi, PoiCatalog, RecommendRequest, RecommendResponse, TripCatalog, WalkRequest } from '../shared/types'
 import { constantTimeEqual, verifyTelegramInitData } from './auth'
 import { distanceMeters } from './recommend'
 import { rankTrips, toTripRecommendation } from './trips'
@@ -12,6 +12,7 @@ import { ASTANA_CENTER, ASTANA_RADIUS_METERS, discoverPlaces,
 import { attachEvidence, searchVenueEvidence } from './web-evidence'
 import { buildRouteVariants } from './route-variants'
 import { attachPriceEvidence, researchVenuePrices } from './price-research'
+import { countPeople, countPlaces, languageOf, pick, placeName } from './i18n'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
@@ -51,14 +52,21 @@ function json(data: unknown, status = 200): Response {
   })
 }
 
+function headerLanguage(request: Request): Language {
+  const preferred = request.headers.get('Accept-Language')?.split(',')[0]?.trim().toLowerCase() ?? ''
+  return preferred.startsWith('kk') ? 'kk' : preferred.startsWith('en') ? 'en' : 'ru'
+}
+
 async function readJson(request: Request): Promise<unknown> {
+  const language = headerLanguage(request)
   if (!request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
-    throw new HttpError(415, 'Ожидается JSON.')
+    throw new HttpError(415, pick(language, 'Ожидается JSON.', 'JSON күтілуде.', 'JSON is required.'))
   }
   const contentLength = Number(request.headers.get('content-length'))
-  if (contentLength > MAX_BODY_BYTES) throw new HttpError(413, 'Запрос слишком большой.')
+  if (contentLength > MAX_BODY_BYTES) throw new HttpError(413,
+    pick(language, 'Запрос слишком большой.', 'Сұрау тым үлкен.', 'Request is too large.'))
   const reader = request.body?.getReader()
-  if (!reader) throw new HttpError(400, 'Пустой запрос.')
+  if (!reader) throw new HttpError(400, pick(language, 'Пустой запрос.', 'Бос сұрау.', 'Empty request.'))
 
   const chunks: Uint8Array[] = []
   let totalBytes = 0
@@ -68,7 +76,7 @@ async function readJson(request: Request): Promise<unknown> {
     totalBytes += value.byteLength
     if (totalBytes > MAX_BODY_BYTES) {
       await reader.cancel()
-      throw new HttpError(413, 'Запрос слишком большой.')
+      throw new HttpError(413, pick(language, 'Запрос слишком большой.', 'Сұрау тым үлкен.', 'Request is too large.'))
     }
     chunks.push(value)
   }
@@ -82,7 +90,7 @@ async function readJson(request: Request): Promise<unknown> {
   try {
     return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown
   } catch {
-    throw new HttpError(400, 'Некорректный JSON.')
+    throw new HttpError(400, pick(language, 'Некорректный JSON.', 'JSON пішімі қате.', 'Invalid JSON.'))
   }
 }
 
@@ -92,69 +100,85 @@ function record(value: unknown): Record<string, unknown> | null {
     : null
 }
 
-function validateRecommendBody(value: unknown): RecommendRequest {
+function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'): RecommendRequest {
   const body = record(value)
   const rawRequest = record(body?.request)
+  const language: Language = rawRequest?.language === 'ru' || rawRequest?.language === 'kk' || rawRequest?.language === 'en'
+    ? rawRequest.language : fallbackLanguage
   if (!body || typeof body.initData !== 'string' || !rawRequest) {
-    throw new HttpError(400, 'Не хватает данных для подбора.')
+    throw new HttpError(400, pick(language, 'Не хватает данных для подбора.',
+      'Бағыт құрастыру үшін деректер жеткіліксіз.', 'Missing data needed to build a route.'))
+  }
+
+  if (rawRequest.language !== undefined && !['ru', 'kk', 'en'].includes(String(rawRequest.language))) {
+    throw new HttpError(400, pick(language, 'Неподдерживаемый язык.',
+      'Бұл тілге қолдау жоқ.', 'Unsupported language.'))
   }
 
   if (rawRequest.cityId !== undefined && rawRequest.cityId !== 'astana') {
-    throw new HttpError(400, 'Сейчас доступна только Астана.')
+    throw new HttpError(400, pick(language, 'Сейчас доступна только Астана.', 'Қазір тек Астана қолжетімді.', 'Only Astana is currently available.'))
   }
   const scope = rawRequest.scope === undefined ? 'city' : rawRequest.scope
-  if (scope !== 'city' && scope !== 'day_trip') throw new HttpError(400, 'Некорректный формат поездки.')
+  if (scope !== 'city' && scope !== 'day_trip') throw new HttpError(400,
+    pick(language, 'Некорректный формат поездки.', 'Сапар түрі қате көрсетілген.', 'Invalid trip type.'))
   const transport = rawRequest.transport === undefined ? (scope === 'day_trip' ? 'car' : 'walk') : rawRequest.transport
   if (transport !== 'walk' && transport !== 'car' && transport !== 'transit') {
-    throw new HttpError(400, 'Некорректный способ передвижения.')
+    throw new HttpError(400, pick(language, 'Некорректный способ передвижения.', 'Қозғалыс тәсілі қате көрсетілген.', 'Invalid travel mode.'))
   }
 
   const minutes = rawRequest.minutes
   if (!Number.isSafeInteger(minutes) || (minutes as number) < 15 || (minutes as number) > 1440) {
-    throw new HttpError(400, 'Выберите время от 15 минут до 24 часов.')
+    throw new HttpError(400, pick(language, 'Выберите время от 15 минут до 24 часов.',
+      '15 минуттан 24 сағатқа дейінгі уақытты таңдаңыз.', 'Choose a duration from 15 minutes to 24 hours.'))
   }
   if (!Array.isArray(rawRequest.intents) || rawRequest.intents.length > 3
     || rawRequest.intents.some((intent) => typeof intent !== 'string' || !['outdoors', 'indoors', 'child'].includes(intent))
     || new Set(rawRequest.intents).size !== rawRequest.intents.length
     || (rawRequest.intents.includes('outdoors') && rawRequest.intents.includes('indoors'))) {
-    throw new HttpError(400, 'Некорректная тема прогулки.')
+    throw new HttpError(400, pick(language, 'Некорректная тема прогулки.', 'Серуен тақырыбы қате көрсетілген.', 'Invalid walk theme.'))
   }
   if (typeof rawRequest.text !== 'string' || rawRequest.text.length > 500) {
-    throw new HttpError(400, 'Описание прогулки должно быть короче 500 символов.')
+    throw new HttpError(400, pick(language, 'Описание прогулки должно быть короче 500 символов.',
+      'Серуен сипаттамасы 500 таңбадан қысқа болуы тиіс.', 'Keep the walk description under 500 characters.'))
   }
   const budgetKzt = rawRequest.budgetKzt
   if (budgetKzt !== undefined && (!Number.isSafeInteger(budgetKzt) || (budgetKzt as number) < 0 || (budgetKzt as number) > 10_000_000)) {
-    throw new HttpError(400, 'Укажите бюджет от 0 до 10 000 000 ₸.')
+    throw new HttpError(400, pick(language, 'Укажите бюджет от 0 до 10 000 000 ₸.',
+      'Бюджетті 0 мен 10 000 000 ₸ аралығында көрсетіңіз.', 'Enter a budget from 0 to 10,000,000 ₸.'))
   }
   const groupSize = rawRequest.groupSize
   if (groupSize !== undefined && (!Number.isSafeInteger(groupSize) || (groupSize as number) < 1 || (groupSize as number) > 12)) {
-    throw new HttpError(400, 'Укажите от 1 до 12 человек.')
+    throw new HttpError(400, pick(language, 'Укажите от 1 до 12 человек.',
+      '1-ден 12 адамға дейін көрсетіңіз.', 'Enter a group size from 1 to 12 people.'))
   }
   const excludePlaceIds = rawRequest.excludePlaceIds
   if (excludePlaceIds !== undefined && (!Array.isArray(excludePlaceIds) || excludePlaceIds.length > 36
     || excludePlaceIds.some((id) => typeof id !== 'string' || !/^osm:(?:node|way|relation):[1-9]\d{0,12}$/.test(id))
     || new Set(excludePlaceIds).size !== excludePlaceIds.length)) {
-    throw new HttpError(400, 'Некорректный список уже показанных мест.')
+    throw new HttpError(400, pick(language, 'Некорректный список уже показанных мест.',
+      'Бұрын көрсетілген орындар тізімі қате.', 'Invalid list of previously shown places.'))
   }
 
   const latitude = rawRequest.latitude
   const longitude = rawRequest.longitude
   const hasLatitude = latitude !== undefined
   const hasLongitude = longitude !== undefined
-  if (hasLatitude !== hasLongitude) throw new HttpError(400, 'Передайте обе координаты.')
+  if (hasLatitude !== hasLongitude) throw new HttpError(400,
+    pick(language, 'Передайте обе координаты.', 'Екі координатаны да көрсетіңіз.', 'Provide both coordinates.'))
   if (hasLatitude && (typeof latitude !== 'number' || !Number.isFinite(latitude) || latitude < -90 || latitude > 90
     || typeof longitude !== 'number' || !Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
-    throw new HttpError(400, 'Некорректные координаты.')
+    throw new HttpError(400, pick(language, 'Некорректные координаты.', 'Координаталар қате.', 'Invalid coordinates.'))
   }
 
   const landmarkId = rawRequest.landmarkId
   if (landmarkId !== undefined && (typeof landmarkId !== 'string'
     || (landmarkId !== city.id && !snapshotLandmarks.some((poi) => poi.id === landmarkId)))) {
-    throw new HttpError(400, 'Неизвестная стартовая точка.')
+    throw new HttpError(400, pick(language, 'Неизвестная стартовая точка.', 'Белгісіз бастапқы нүкте.', 'Unknown starting point.'))
   }
 
   const walkRequest: WalkRequest = {
     cityId: 'astana',
+    language,
     scope,
     transport,
     minutes: minutes as number,
@@ -174,37 +198,61 @@ function validateRecommendBody(value: unknown): RecommendRequest {
 
 function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendResponse {
   const trip = request.scope === 'day_trip'
+  const language = languageOf(request)
   return {
     summary: trip
-      ? `Из ${city.name} пока нет загородных вариантов с проверенными данными, подходящих выбранным условиям.`
-      : 'По вашему запросу не нашлось подходящих точек OpenStreetMap в Астане для выбранного времени.',
+      ? pick(language, `Из ${city.name} пока нет загородных вариантов с проверенными данными, подходящих выбранным условиям.`,
+        'Таңдалған шарттарға сай дерегі тексерілген қала сыртындағы нұсқалар табылмады.',
+        'No sourced trips from Astana matched your selected conditions.')
+      : pick(language, 'По вашему запросу не нашлось подходящих точек OpenStreetMap в Астане для выбранного времени.',
+        'Сұрауыңыз бен таңдаған уақытыңызға сай Астанадағы OpenStreetMap орындары табылмады.',
+        'No OpenStreetMap places in Astana matched your request and available time.'),
     recommendations: [],
     routes: [],
     note: appendUnverifiedPreferenceNote(trip
-      ? 'Попробуйте увеличить время или выбрать автомобиль. Цены и время дороги показываются только при наличии источника.'
-      : `Попробуйте увеличить время, изменить пожелание или выбрать другой старт. Полнота данных OpenStreetMap зависит от разметки мест. ${cityBudgetNote(request.budgetKzt)}`, request.text),
+      ? pick(language, 'Попробуйте увеличить время или выбрать автомобиль. Цены и время дороги показываются только при наличии источника.',
+        'Уақытты көбейтіп немесе көлікпен жүруді таңдап көріңіз. Бағалар мен жол уақыты тек дереккөзі болса көрсетіледі.',
+        'Try allowing more time or choosing a car. Prices and travel times appear only when a source is available.')
+      : pick(language, `Попробуйте увеличить время, изменить пожелание или выбрать другой старт. Полнота данных OpenStreetMap зависит от разметки мест. ${cityBudgetNote(request.budgetKzt, 0, language)}`,
+        `Уақытты көбейтіп, тілегіңізді өзгертіп немесе басқа бастапқы нүктені таңдаңыз. OpenStreetMap деректерінің толықтығы орындардың белгіленуіне байланысты. ${cityBudgetNote(request.budgetKzt, 0, language)}`,
+        `Try allowing more time, changing your request or choosing another start. OpenStreetMap coverage depends on how places are mapped. ${cityBudgetNote(request.budgetKzt, 0, language)}`),
+      request.text, language),
   }
 }
 
-function cityBudgetNote(budgetKzt: number | undefined, researchedPrices = 0): string {
+function cityBudgetNote(budgetKzt: number | undefined, researchedPrices = 0, language: Language = 'ru'): string {
   if (budgetKzt === undefined) return ''
   return budgetKzt === 0
-    ? 'При нулевом бюджете исключены коммерческие категории, но бесплатность остальных мест не подтверждена.'
+    ? pick(language, 'При нулевом бюджете исключены коммерческие категории, но бесплатность остальных мест не подтверждена.',
+      'Бюджет 0 ₸ болса, коммерциялық санаттар алынып тасталады, бірақ қалған орындардың тегін екені расталмаған.',
+      'With a zero budget, commercial categories are excluded, but other places have not been confirmed as free.')
     : researchedPrices > 0
-      ? 'Подтверждённые цены билетов и средние чеки учтены при порядке вариантов; неизвестные расходы и полная стоимость маршрута не позволяют гарантировать соответствие бюджету.'
-      : 'Цены городских мест не проверены, поэтому маршрут не отфильтрован по указанной сумме.'
+      ? pick(language, 'Подтверждённые цены билетов и средние чеки учтены при порядке вариантов; неизвестные расходы и полная стоимость маршрута не позволяют гарантировать соответствие бюджету.',
+        'Расталған билет бағалары мен орташа чектер нұсқаларды реттеуге қолданылды; белгісіз шығындар болғандықтан толық бағыттың бюджетке сай келетініне кепілдік жоқ.',
+        'Sourced ticket prices and average bills affect route order; unknown expenses mean the full outing cannot be guaranteed to fit your budget.')
+      : pick(language, 'Цены городских мест не проверены, поэтому маршрут не отфильтрован по указанной сумме.',
+        'Қаладағы орындардың бағалары тексерілмеген, сондықтан бағыт көрсетілген сома бойынша сүзілмеді.',
+        'City venue prices were not verified, so the route was not filtered by your budget.')
 }
 
-function outsideZoneResponse(text: string, scope: WalkRequest['scope']): RecommendResponse {
+function outsideZoneResponse(text: string, scope: WalkRequest['scope'], language: Language): RecommendResponse {
   return {
     summary: scope === 'day_trip'
-      ? 'Старт поездки находится слишком далеко от центра Астаны для подбора из этого города.'
-      : 'Старт находится за пределами Астаны. Выберите точку в городе.',
+      ? pick(language, 'Старт поездки находится слишком далеко от центра Астаны для подбора из этого города.',
+        'Сапардың бастапқы нүктесі Астана орталығынан тым алыс.',
+        'Your starting point is too far from central Astana for a trip from this city.')
+      : pick(language, 'Старт находится за пределами Астаны. Выберите точку в городе.',
+        'Бастапқы нүкте Астанадан тыс жерде. Қала ішіндегі нүктені таңдаңыз.',
+        'Your starting point is outside Astana. Choose a point in the city.'),
     recommendations: [],
     routes: [],
     note: appendUnverifiedPreferenceNote(scope === 'day_trip'
-      ? 'Выберите старт в центре Астаны или отключите геолокацию.'
-      : 'Выберите старт в Астане или отключите геолокацию.', text),
+      ? pick(language, 'Выберите старт в центре Астаны или отключите геолокацию.',
+        'Астана орталығындағы бастапқы нүктені таңдаңыз немесе геолокацияны өшіріңіз.',
+        'Choose a start in central Astana or turn off location access.')
+      : pick(language, 'Выберите старт в Астане или отключите геолокацию.',
+        'Астанадағы бастапқы нүктені таңдаңыз немесе геолокацияны өшіріңіз.',
+        'Choose a start in Astana or turn off location access.'), text, language),
   }
 }
 
@@ -215,35 +263,42 @@ export function requestsVerifiedOpenNow(text: string): boolean {
     || /open\s+now|currently\s+open|қазір\s+ашық/u.test(normalized)
 }
 
-function unverifiedPreferenceNote(text: string): string {
+function unverifiedPreferenceNote(text: string, language: Language): string {
   const normalized = text.normalize('NFKC').toLocaleLowerCase('ru')
   const mentioned: string[] = []
-  if (/тих\p{L}*|тишин\p{L}*|quiet/u.test(normalized)) mentioned.push('тишина')
-  if (/розетк\p{L}*|зарядк\p{L}*|socket|outlet/u.test(normalized)) mentioned.push('розетки')
-  if (/коляск\p{L}*|wheelchair|безбарьер\p{L}*/u.test(normalized)) mentioned.push('доступность для коляски')
+  if (/тих\p{L}*|тишин\p{L}*|quiet|тыныш/u.test(normalized)) mentioned.push(pick(language, 'тишина', 'тыныштық', 'quiet atmosphere'))
+  if (/розетк\p{L}*|зарядк\p{L}*|socket|outlet/u.test(normalized)) mentioned.push(pick(language, 'розетки', 'розеткалар', 'power outlets'))
+  if (/коляск\p{L}*|wheelchair|безбарьер\p{L}*|арба/u.test(normalized)) mentioned.push(pick(language,
+    'доступность для коляски', 'арбаға қолжетімділік', 'wheelchair access'))
   return mentioned.length > 0
-    ? `В каталоге не проверены: ${mentioned.join(', ')}. Подбор учитывает расположение, категорию и время.`
+    ? pick(language, `В каталоге не проверены: ${mentioned.join(', ')}. Подбор учитывает расположение, категорию и время.`,
+      `Каталогта тексерілмеген: ${mentioned.join(', ')}. Таңдау орынға, санатқа және уақытқа негізделген.`,
+      `The catalog does not verify: ${mentioned.join(', ')}. Suggestions consider location, category and time.`)
     : ''
 }
 
-function appendUnverifiedPreferenceNote(base: string, text: string): string {
-  return [base, unverifiedPreferenceNote(text)].filter(Boolean).join(' ')
+function appendUnverifiedPreferenceNote(base: string, text: string, language: Language): string {
+  return [base, unverifiedPreferenceNote(text, language)].filter(Boolean).join(' ')
 }
 
 async function recommend(request: Request, env: Env): Promise<Response> {
-  if (!env.TELEGRAM_BOT_TOKEN) return json({ error: 'Сервис временно не настроен.' }, 503)
-  const body = validateRecommendBody(await readJson(request))
+  const body = validateRecommendBody(await readJson(request), headerLanguage(request))
+  const language = languageOf(body.request)
+  if (!env.TELEGRAM_BOT_TOKEN) return json({ error: pick(language, 'Сервис временно не настроен.',
+    'Қызмет уақытша бапталмаған.', 'The service is temporarily unavailable.') }, 503)
   const identity = await verifyTelegramInitData(body.initData, env.TELEGRAM_BOT_TOKEN)
-  if (!identity) return json({ error: 'Откройте приложение через Telegram заново.' }, 401)
+  if (!identity) return json({ error: pick(language, 'Откройте приложение через Telegram заново.',
+    'Қосымшаны Telegram арқылы қайта ашыңыз.', 'Reopen the app through Telegram.') }, 401)
 
   if (env.RECOMMEND_RATE) {
     const limit = await env.RECOMMEND_RATE.limit({ key: identity.userId })
-    if (!limit.success) return json({ error: 'Слишком много запросов. Попробуйте через минуту.' }, 429)
+    if (!limit.success) return json({ error: pick(language, 'Слишком много запросов. Попробуйте через минуту.',
+      'Сұраулар тым көп. Бір минуттан кейін қайталаңыз.', 'Too many requests. Try again in a minute.') }, 429)
   }
 
   if (body.request.latitude !== undefined && body.request.longitude !== undefined
     && !insideAstana({ lat: body.request.latitude, lon: body.request.longitude })) {
-    return json(outsideZoneResponse(body.request.text, body.request.scope))
+    return json(outsideZoneResponse(body.request.text, body.request.scope, language))
   }
 
   if (body.request.scope === 'day_trip') {
@@ -254,16 +309,30 @@ async function recommend(request: Request, env: Env): Promise<Response> {
       ? { lat: body.request.latitude, lon: body.request.longitude } : city.center
     const routes = recommendations.map((item) => ({
       id: `route-${item.id}`, title: item.name,
-      summary: 'Отдельная поездка из Астаны. Время дороги и расходы могут быть неизвестны.',
+      summary: pick(language, 'Отдельная поездка из Астаны. Время дороги и расходы могут быть неизвестны.',
+        'Астанадан жеке сапар. Жол уақыты мен шығындар белгісіз болуы мүмкін.',
+        'A separate trip from Astana. Travel time and costs may be unknown.'),
       stops: [{ ...item, stopOrder: 1 }], routeUrl: item.routeUrl, origin: tripOrigin,
     }))
     return json({
-      summary: `Из ${city.name}: ${recommendations.length} ${recommendations.length === 1 ? 'идея' : 'идеи'} для поездки за город. Проверьте дорогу, стоимость и условия перед выездом.`,
+      summary: pick(language,
+        `Из ${city.name}: ${recommendations.length} ${recommendations.length === 1 ? 'идея' : 'идеи'} для поездки за город. Проверьте дорогу, стоимость и условия перед выездом.`,
+        `Астанадан қала сыртына ${recommendations.length} сапар нұсқасы. Жолды, бағаны және келу шарттарын алдын ала тексеріңіз.`,
+        `${recommendations.length} ${recommendations.length === 1 ? 'trip idea' : 'trip ideas'} from Astana. Check travel, costs and visiting conditions before setting out.`),
       recommendations,
       routes,
-      note: appendUnverifiedPreferenceNote('Поездки показаны как отдельные варианты, а не единый маршрут. Если цена или время дороги не указаны, соответствие вашему бюджету или времени не подтверждено.'
-        + (body.request.intents.includes('child') ? ' Условия поездки с детьми не проверены.' : '')
-        + ((body.request.groupSize ?? 1) > 1 ? ` Наличие мест для ${body.request.groupSize} человек не подтверждено.` : ''), body.request.text),
+      note: appendUnverifiedPreferenceNote(pick(language,
+        'Поездки показаны как отдельные варианты, а не единый маршрут. Если цена или время дороги не указаны, соответствие вашему бюджету или времени не подтверждено.',
+        'Сапарлар бір бағыт емес, бөлек нұсқалар ретінде берілген. Баға немесе жол уақыты көрсетілмесе, бюджет пен уақытқа сәйкестігі расталмаған.',
+        'Trips are separate options, not one combined route. If price or travel time is missing, the fit with your budget or schedule is unverified.')
+        + (body.request.intents.includes('child') ? ` ${pick(language,
+          'Условия поездки с детьми не проверены.', 'Балалармен сапар шарттары тексерілмеген.',
+          'Conditions for travelling with children have not been verified.')}` : '')
+        + ((body.request.groupSize ?? 1) > 1 ? ` ${pick(language,
+          `Наличие мест для ${countPeople(language, body.request.groupSize!)} не подтверждено.`,
+          `${countPeople(language, body.request.groupSize!)} орын бар екені расталмаған.`,
+          `Availability for ${countPeople(language, body.request.groupSize!)} has not been verified.`)}` : ''),
+      body.request.text, language),
     } satisfies RecommendResponse)
   }
 
@@ -286,7 +355,10 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const merged = new Map<string, DynamicPlace>(nearbySnapshot.map((place) => [place.id, place]))
   for (const place of live ?? []) if (usablePlace(place)) merged.set(place.id, place)
   const places = [...merged.values()]
-  if (!places.length && live === null) return json({ error: 'Поиск мест временно недоступен. Попробуйте позже.' }, 503)
+  if (!places.length && live === null) return json({ error: pick(language,
+    'Поиск мест временно недоступен. Попробуйте позже.',
+    'Орындарды іздеу уақытша қолжетімсіз. Кейінірек қайталаңыз.',
+    'Place search is temporarily unavailable. Try again later.') }, 503)
   const previouslyShown = new Set(body.request.excludePlaceIds ?? [])
   const candidates = rankDynamicPlaces(places, body.request, intent, origin)
     .filter((place) => !previouslyShown.has(place.id))
@@ -295,7 +367,8 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const byId = new Map(candidates.map((poi) => [poi.id, poi]))
   const selected = [...aiIds.map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi),
     ...candidates.filter((poi) => !aiIds.includes(poi.id))]
-  const routes = buildRouteVariants(body.request, intent, selected, origin, namedArea?.name)
+  const routes = buildRouteVariants(body.request, intent, selected, origin,
+    namedArea ? placeName(namedArea, language) : undefined)
   if (!routes.length) return json(noPlacesResponse(body.request, city))
   const selectedPlaces = [...new Set(routes.flatMap((candidate) => candidate.stops.map((stop) => stop.id)))]
     .map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
@@ -304,19 +377,37 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     researchVenuePrices(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
   ])
   const allStops = routes.flatMap((candidate) => candidate.stops)
-  attachEvidence(allStops, findings)
+  attachEvidence(allStops, findings, language)
   attachPriceEvidence(routes, prices, body.request.budgetKzt)
   const route = routes[0]
   const result: RecommendResponse = {
-    summary: `${route.title}: ${route.stops.length} ${route.stops.length === 1 ? 'место' : 'места'} по вашему запросу${namedArea ? `, от ${namedArea.name}` : ''}.`,
+    summary: pick(language,
+      `${route.title}: ${countPlaces(language, route.stops.length)} по вашему запросу${namedArea ? `, от ${placeName(namedArea, language)}` : ''}.`,
+      `${route.title}: сұрауыңызға сай ${countPlaces(language, route.stops.length)}${namedArea ? `, бастапқы нүкте — ${placeName(namedArea, language)}` : ''}.`,
+      `${route.title}: ${countPlaces(language, route.stops.length)} matched your request${namedArea ? `, starting near ${placeName(namedArea, language)}` : ''}.`),
     recommendations: route.stops,
     routes,
-    note: `Основа поиска — выгрузка OpenStreetMap от ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Дополнено живым поиском Overpass.' : ''} `
-      + (body.request.transport === 'walk'
-        ? 'Время пешком приблизительное, расстояние между точками — по прямой; обратный путь не учтён.'
-        : 'Время дороги не проверено. Расстояние — по прямой.')
-      + ` ${prices.length ? 'Отдельные опубликованные цены показаны с источниками; остальные расходы неизвестны.' : 'Цены не подтверждены.'} Свободные места и актуальные часы работы проверьте перед визитом.`
-      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt, prices.length)}`),
+    note: pick(language,
+      `Основа поиска — выгрузка OpenStreetMap от ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Дополнено живым поиском Overpass.' : ''}`,
+      `Іздеу негізі — ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)} күнгі OpenStreetMap деректері.${live?.length ? ' Overpass арқылы жаңа деректер қосылды.' : ''}`,
+      `Search is based on OpenStreetMap data from ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Supplemented by a live Overpass search.' : ''}`)
+      + ` ${body.request.transport === 'walk'
+        ? pick(language,
+          'Время пешком приблизительное, расстояние между точками — по прямой; обратный путь не учтён.',
+          'Жаяу жүру уақыты шамамен есептелген; нүктелер арасы түзу сызықпен өлшенген, кері жол есепке алынбаған.',
+          'Walking time is approximate; distances between stops are straight-line estimates and the return trip is excluded.')
+        : pick(language, 'Время дороги не проверено. Расстояние — по прямой.',
+          'Жол уақыты тексерілмеген. Қашықтық түзу сызықпен есептелген.',
+          'Travel time has not been verified. Distances are straight-line estimates.')}`
+      + ` ${prices.length ? pick(language,
+        'Отдельные опубликованные цены показаны с источниками; остальные расходы неизвестны.',
+        'Кейбір жарияланған бағалар дереккөздерімен көрсетілген; қалған шығындар белгісіз.',
+        'Some published prices are shown with sources; other expenses are unknown.')
+        : pick(language, 'Цены не подтверждены.', 'Бағалар расталмаған.', 'Prices have not been verified.')}`
+      + ` ${pick(language, 'Свободные места и актуальные часы работы проверьте перед визитом.',
+        'Барар алдында бос орындар мен өзекті жұмыс уақытын тексеріңіз.',
+        'Check availability and current opening hours before visiting.')}`
+      + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt, prices.length, language)}`),
   }
   return json(result)
 }
@@ -332,9 +423,12 @@ function safeMiniAppUrl(raw: string | undefined): string | null {
 }
 
 async function telegramWebhook(request: Request, env: Env): Promise<Response> {
-  if (!env.TELEGRAM_WEBHOOK_SECRET) return json({ error: 'Webhook не настроен.' }, 503)
+  const headerLocale = headerLanguage(request)
+  if (!env.TELEGRAM_WEBHOOK_SECRET) return json({ error: pick(headerLocale,
+    'Webhook не настроен.', 'Webhook бапталмаған.', 'Webhook is not configured.') }, 503)
   const supplied = request.headers.get('X-Telegram-Bot-Api-Secret-Token') ?? ''
-  if (!constantTimeEqual(supplied, env.TELEGRAM_WEBHOOK_SECRET)) return json({ error: 'Доступ запрещён.' }, 401)
+  if (!constantTimeEqual(supplied, env.TELEGRAM_WEBHOOK_SECRET)) return json({ error: pick(headerLocale,
+    'Доступ запрещён.', 'Қол жеткізуге тыйым салынған.', 'Access denied.') }, 401)
 
   const update = record(await readJson(request))
   const message = record(update?.message)
@@ -344,48 +438,63 @@ async function telegramWebhook(request: Request, env: Env): Promise<Response> {
     return json({ ok: true })
   }
 
+  const sender = record(message?.from)
+  const telegramLanguage = typeof sender?.language_code === 'string' ? sender.language_code.toLowerCase() : ''
+  const language: Language = telegramLanguage.startsWith('kk') ? 'kk'
+    : telegramLanguage.startsWith('en') ? 'en' : 'ru'
   const appUrl = safeMiniAppUrl(env.MINI_APP_URL)
-  const greeting = 'Привет! Опишите, куда хочется пойти в Астане: ночной клуб, кофе с книгой, музей или прогулка. Укажите время и размер компании — соберу маршрут из мест на карте. Бюджет можно добавить, но цены заведений не всегда известны.'
+  const greeting = pick(language,
+    'Привет! Опишите, куда хочется пойти в Астане: ночной клуб, кофе с книгой, музей или прогулка. Укажите время и размер компании — соберу маршрут из мест на карте. Бюджет можно добавить, но цены заведений не всегда известны.',
+    'Сәлем! Астанада қайда барғыңыз келетінін жазыңыз: түнгі клуб, кітап оқитын кафе, мұражай немесе серуен. Уақыт пен адам санын көрсетіңіз — картадағы нақты орындардан бағыт құрастырамын. Бюджетті де қосуға болады, бірақ орындардың бағасы әрдайым белгілі бола бермейді.',
+    'Hi! Tell me what you would like to do in Astana: a nightclub, coffee with a book, a museum or a walk. Add your available time and group size, and I will build a route with places on the map. You can set a budget, though venue prices are not always known.')
   return json({
     method: 'sendMessage',
     chat_id: chat.id,
     text: greeting,
-    ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: 'Открыть прогулку', web_app: { url: appUrl } }]] } } : {}),
+    ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: pick(language,
+      'Открыть прогулку', 'Серуенді ашу', 'Open the walk'), web_app: { url: appUrl } }]] } } : {}),
   })
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const pathname = new URL(request.url).pathname
+    const language = headerLanguage(request)
     try {
       if (pathname === '/api/health') {
-        if (request.method !== 'GET') return json({ error: 'Метод не поддерживается.' }, 405)
+        if (request.method !== 'GET') return json({ error: pick(language,
+          'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
         return json({ status: 'ok', cities: 1, discovery: 'osm-snapshot-and-live-search',
           snapshotSize: snapshot.pois.length, snapshotDate: snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt })
       }
       if (pathname === '/api/catalog') {
-        if (request.method !== 'GET') return json({ error: 'Метод не поддерживается.' }, 405)
+        if (request.method !== 'GET') return json({ error: pick(language,
+          'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
         return json({
-          cities: [{ id: 'astana', name: 'Астана', center: city.center, radiusMeters: city.radiusMeters, poiCount: 0 }],
+          cities: [{ id: 'astana', name: language === 'en' ? 'Astana' : 'Астана',
+            center: city.center, radiusMeters: city.radiusMeters, poiCount: 0 }],
           places: [],
           source: snapshot.source,
         })
       }
       if (pathname === '/api/recommend') {
-        if (request.method !== 'POST') return json({ error: 'Метод не поддерживается.' }, 405)
+        if (request.method !== 'POST') return json({ error: pick(language,
+          'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
         return await recommend(request, env)
       }
       if (pathname === '/telegram/webhook') {
-        if (request.method !== 'POST') return json({ error: 'Метод не поддерживается.' }, 405)
+        if (request.method !== 'POST') return json({ error: pick(language,
+          'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
         return await telegramWebhook(request, env)
       }
       if (pathname.startsWith('/api/') || pathname.startsWith('/telegram/')) {
-        return json({ error: 'Не найдено.' }, 404)
+        return json({ error: pick(language, 'Не найдено.', 'Табылмады.', 'Not found.') }, 404)
       }
       return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not Found', { status: 404 })
     } catch (error) {
       if (error instanceof HttpError) return json({ error: error.message }, error.status)
-      return json({ error: 'Временная ошибка сервиса.' }, 503)
+      return json({ error: pick(language, 'Временная ошибка сервиса.',
+        'Қызметте уақытша қате шықты.', 'Temporary service error.') }, 503)
     }
   },
 }

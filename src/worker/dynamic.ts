@@ -1,5 +1,6 @@
-import type { Poi, RoutePlan, WalkRequest, Recommendation } from '../shared/types'
+import type { Poi, RoutePlan, WalkRequest, Recommendation, Language } from '../shared/types'
 import { distanceMeters, routeUrl } from './recommend'
+import { astanaName, countPeople, countStops, languageOf, pick, placeName } from './i18n'
 import boundaryJson from '../../data/astana-boundary.json'
 
 export const ASTANA_CENTER = { lat: 51.1282, lon: 71.4304 }
@@ -55,6 +56,7 @@ export interface SearchIntent {
 export interface DynamicPlace {
   id: string
   name: string
+  names?: Poi['names']
   category: string
   lat: number
   lon: number
@@ -110,6 +112,36 @@ const TAGS: Record<SearchCategory, { key: string; values: string[]; label: strin
   monument: { key: 'historic', values: ['monument'], label: 'памятник', visitMinutes: 20 },
 }
 
+const CATEGORY_LABELS: Record<SearchCategory, { kk: string; en: string }> = {
+  nightclub: { kk: 'түнгі клуб', en: 'nightclub' }, bar: { kk: 'бар', en: 'bar' },
+  biergarten: { kk: 'сыра бағы', en: 'beer garden' }, music_venue: { kk: 'концерт алаңы', en: 'music venue' },
+  events_venue: { kk: 'іс-шара алаңы', en: 'event venue' }, community_centre: { kk: 'қоғамдық орталық', en: 'community centre' },
+  cafe: { kk: 'кафе', en: 'café' }, restaurant: { kk: 'мейрамхана', en: 'restaurant' },
+  fast_food: { kk: 'жылдам тамақтану орны', en: 'fast food venue' }, food_court: { kk: 'фудкорт', en: 'food court' },
+  ice_cream: { kk: 'балмұздақ орны', en: 'ice cream venue' }, planetarium: { kk: 'планетарий', en: 'planetarium' },
+  confectionery: { kk: 'кондитерлік дүкен', en: 'confectionery' }, mall: { kk: 'сауда орталығы', en: 'shopping centre' },
+  coffee: { kk: 'кофе дүкені', en: 'coffee shop' }, gift: { kk: 'сыйлық дүкені', en: 'gift shop' },
+  art: { kk: 'өнер дүкені', en: 'art shop' }, library: { kk: 'кітапхана', en: 'library' },
+  bookshop: { kk: 'кітап дүкені', en: 'bookshop' }, park: { kk: 'саябақ', en: 'park' },
+  garden: { kk: 'бақ', en: 'garden' }, museum: { kk: 'мұражай', en: 'museum' },
+  gallery: { kk: 'галерея', en: 'gallery' }, theatre: { kk: 'театр', en: 'theatre' },
+  cinema: { kk: 'кинотеатр', en: 'cinema' }, viewpoint: { kk: 'көрініс алаңы', en: 'viewpoint' },
+  attraction: { kk: 'көрікті орын', en: 'attraction' }, artwork: { kk: 'өнер нысаны', en: 'artwork' },
+  playground: { kk: 'балалар алаңы', en: 'playground' }, arts_centre: { kk: 'өнер орталығы', en: 'arts centre' },
+  zoo: { kk: 'хайуанаттар бағы', en: 'zoo' }, bowling_alley: { kk: 'боулинг', en: 'bowling alley' },
+  escape_game: { kk: 'квест бөлмесі', en: 'escape room' }, fitness_centre: { kk: 'фитнес орталығы', en: 'fitness centre' },
+  marina: { kk: 'айлақ', en: 'marina' }, sports_centre: { kk: 'спорт орталығы', en: 'sports centre' },
+  stadium: { kk: 'стадион', en: 'stadium' }, water_park: { kk: 'аквапарк', en: 'water park' },
+  archaeological_site: { kk: 'археологиялық орын', en: 'archaeological site' },
+  memorial: { kk: 'мемориал', en: 'memorial' }, monument: { kk: 'ескерткіш', en: 'monument' },
+}
+
+function categoryLabel(category: string, language: Language): string {
+  const key = category as SearchCategory
+  return language === 'ru' ? TAGS[key]?.label ?? 'место'
+    : CATEGORY_LABELS[key]?.[language] ?? pick(language, 'место', 'орын', 'place')
+}
+
 export const SEARCH_CATEGORIES = Object.keys(TAGS) as SearchCategory[]
 
 function normalized(text: string): string {
@@ -149,7 +181,7 @@ export function matchesVenueName(name: string, requested: string): boolean {
 /** Recent or specifically named venues warrant a bounded live refresh of the OSM snapshot. */
 export function needsLiveRefresh(text: string): boolean {
   const value = normalized(text)
-  return /сегодня|сейчас|актуальн|недавн|нов(?:ый|ая|ое|ые|ого|ую)|открыл(?:ось|ся|ась|ись)|today|now|recent|new|opened/u.test(value)
+  return /сегодня|сейчас|актуальн|недавн|нов(?:ый|ая|ое|ые|ого|ую)|открыл(?:ось|ся|ась|ись)|today|now|recent|new|opened|бүгін|қазір|жаңа|ашыл/u.test(value)
     || quotedVenueName(value) !== undefined
 }
 
@@ -162,11 +194,11 @@ interface LocalSearchGroup {
 // These groups preserve explicit subjects when AI is unavailable or classifies a
 // compound request poorly. Every category is backed by an OSM tag in TAGS.
 const LOCAL_SEARCH_GROUPS: LocalSearchGroup[] = [
-  { pattern: /клуб|ночн|тусов|движ|танц|вечерин|дискот|night|dance|\bclub\b/u,
+  { pattern: /клуб|ночн|тусов|движ|танц|вечерин|дискот|night|dance|\bclub\b|би биле|түнгі/u,
     theme: 'nightlife', categories: ['nightclub', 'bar', 'music_venue', 'events_venue'] },
-  { pattern: /книг|чита|почит|бук|book|read|library/u,
+  { pattern: /книг|чита|почит|бук|book|read|library|кітап|оқы/u,
     theme: 'reading', categories: ['library', 'bookshop', 'cafe'] },
-  { pattern: /коф|кафе|чай|завтрак|coffee|cafe/u,
+  { pattern: /коф|кафе|чай|завтрак|coffee|cafe|шай|таңғы ас/u,
     theme: 'reading', categories: ['cafe', 'confectionery', 'coffee', 'library'] },
   { pattern: /боулинг|bowling/u,
     theme: 'active', categories: ['bowling_alley', 'cafe', 'sports_centre'] },
@@ -174,43 +206,43 @@ const LOCAL_SEARCH_GROUPS: LocalSearchGroup[] = [
     theme: 'active', categories: ['escape_game', 'cafe', 'arts_centre'] },
   { pattern: /аквапарк|водн(?:ый|ого) парк|water.?park/u,
     theme: 'active', categories: ['water_park', 'sports_centre', 'cafe'] },
-  { pattern: /спорт|тренир|фитнес|тренаж|стадион|fitness|gym|sport/u,
+  { pattern: /спорт|тренир|фитнес|тренаж|стадион|fitness|gym|sport|жаттығу/u,
     theme: 'active', categories: ['sports_centre', 'fitness_centre', 'stadium', 'park'] },
-  { pattern: /концерт|жива(?:я|ой) музыка|live.?music|music.?venue/u,
+  { pattern: /концерт|жива(?:я|ой) музыка|live.?music|music.?venue|жанды музыка/u,
     theme: 'culture', categories: ['music_venue', 'events_venue', 'theatre', 'bar'] },
-  { pattern: /планетар|зв[её]зд|planetarium/u,
+  { pattern: /планетар|зв[её]зд|planetarium|жұлдыз/u,
     theme: 'family', categories: ['planetarium', 'museum', 'arts_centre'] },
-  { pattern: /зоопарк|зоосад|\bzoo\b/u,
+  { pattern: /зоопарк|зоосад|\bzoo\b|хайуанаттар бағы/u,
     theme: 'family', categories: ['zoo', 'park', 'museum'] },
-  { pattern: /истор|памятник|мемориал|археолог|history|monument|memorial/u,
+  { pattern: /истор|памятник|мемориал|археолог|history|monument|memorial|тарих|ескерткіш/u,
     theme: 'culture', categories: ['monument', 'memorial', 'archaeological_site', 'museum'] },
   { pattern: /кино|фильм|cinema|movie/u,
     theme: 'culture', categories: ['cinema', 'cafe', 'mall'] },
   { pattern: /театр|спектакл|theatre|theater/u,
     theme: 'culture', categories: ['theatre', 'arts_centre', 'cafe'] },
-  { pattern: /музей|галере|выстав|искусств|museum|gallery|\bart\b/u,
+  { pattern: /музей|галере|выстав|искусств|museum|gallery|\bart\b|мұражай|көрме|өнер/u,
     theme: 'culture', categories: ['museum', 'gallery', 'arts_centre', 'artwork'] },
-  { pattern: /сообществ|встреч|мастер.?класс|community|workshop/u,
+  { pattern: /сообществ|встреч|мастер.?класс|community|workshop|шеберлік|кездесу/u,
     theme: 'culture', categories: ['community_centre', 'arts_centre', 'library'] },
-  { pattern: /парк|природ|свеж|вид|сквер|сад|набере|garden|nature|viewpoint/u,
+  { pattern: /парк|природ|свеж|вид|сквер|сад|набере|garden|nature|viewpoint|саябақ|табиғат|серуен/u,
     theme: 'nature', categories: ['park', 'garden', 'viewpoint', 'marina'] },
-  { pattern: /десерт|сладк|кондитер|торт|пирожн|морожен|ice.?cream|sweet|dessert/u,
+  { pattern: /десерт|сладк|кондитер|торт|пирожн|морожен|ice.?cream|sweet|dessert|балмұздақ|тәтті/u,
     theme: 'general', categories: ['ice_cream', 'confectionery', 'cafe'] },
-  { pattern: /перекус|поесть|обед|ужин|бургер|фаст.?фуд|фудкорт|fast.?food|food|eat/u,
+  { pattern: /перекус|поесть|обед|ужин|бургер|фаст.?фуд|фудкорт|fast.?food|food|eat|түскі ас|кешкі ас|тамақ/u,
     theme: 'general', categories: ['restaurant', 'fast_food', 'food_court', 'cafe'] },
-  { pattern: /подар|сувенир|gift|souvenir/u,
+  { pattern: /подар|сувенир|gift|souvenir|сыйлық/u,
     theme: 'general', categories: ['gift', 'art', 'mall'] },
-  { pattern: /шопинг|торгов|магазин|shopping|\bmall\b|\bтц\b/u,
+  { pattern: /шопинг|торгов|магазин|shopping|\bmall\b|\bтц\b|сауда|дүкен/u,
     theme: 'general', categories: ['mall', 'gift', 'bookshop', 'art'] },
 ]
 
 function matchedSearchGroups(request: WalkRequest): LocalSearchGroup[] {
   const text = normalized(request.text)
   const matches = LOCAL_SEARCH_GROUPS.filter((group) => group.pattern.test(text))
-  if (matches.length === 0 && /друз|компани|friends/u.test(text)) {
+  if (matches.length === 0 && /друз|компани|friends|достар/u.test(text)) {
     matches.push({ pattern: /./u, theme: 'active', categories: ['bowling_alley', 'escape_game', 'cafe', 'park'] })
   }
-  if (request.intents.includes('child') || /реб[её]н|детям|семь[её]й|family|child/u.test(text)) {
+  if (request.intents.includes('child') || /реб[её]н|детям|семь[её]й|family|child|баламен|балалар|отбасы/u.test(text)) {
     matches.push({ pattern: /./u, theme: 'family', categories: ['playground', 'park', 'museum', 'zoo'] })
   }
   if (request.intents.includes('indoors') && matches.length === 0) {
@@ -652,20 +684,25 @@ function routeLink(origin: { lat: number; lon: number }, stops: DynamicPlace[], 
 
 function noteForTheme(request: WalkRequest, intent: SearchIntent): string {
   const text = normalized(request.text)
+  const language = languageOf(request)
   const caveats: string[] = []
-  if (/тих|тишин|спокойн|quiet/u.test(text)) caveats.push('тишина')
-  if (/розетк|зарядк|socket|outlet/u.test(text)) caveats.push('розетки')
-  if (intent.theme === 'nightlife') caveats.push('атмосфера и программа')
-  if ((request.groupSize ?? 1) > 1) caveats.push(`наличие мест для ${request.groupSize} человек`)
-  return caveats.length ? `Проверьте перед визитом: ${caveats.join(', ')}.` : ''
+  if (/тих|тишин|спокойн|quiet|тыныш/u.test(text)) caveats.push(pick(language, 'тишина', 'тыныштық', 'quiet atmosphere'))
+  if (/розетк|зарядк|socket|outlet|розетка/u.test(text)) caveats.push(pick(language, 'розетки', 'розеткалар', 'power outlets'))
+  if (intent.theme === 'nightlife') caveats.push(pick(language, 'атмосфера и программа', 'атмосфера мен бағдарлама', 'atmosphere and programme'))
+  if ((request.groupSize ?? 1) > 1) caveats.push(pick(language,
+    `наличие мест для ${countPeople(language, request.groupSize!)}`,
+    `${countPeople(language, request.groupSize!)} орынның болуы`,
+    `availability for ${countPeople(language, request.groupSize!)}`))
+  return caveats.length ? `${pick(language, 'Проверьте перед визитом', 'Барар алдында тексеріңіз', 'Check before visiting')}: ${caveats.join(', ')}.` : ''
 }
 
 /** Assemble one route; OSM coordinates are real, but lines and times are estimates. */
 export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordered: DynamicPlace[],
   origin: { lat: number; lon: number }, originName?: string): RoutePlan | null {
   if (!ordered.length) return null
+  const language = languageOf(request)
   const transport = request.transport ?? 'walk'
-  const wantsReading = /книг|чита|почит|бук|book|read|library/u.test(normalized(request.text))
+  const wantsReading = /книг|чита|почит|бук|book|read|library|кітап|оқы/u.test(normalized(request.text))
   const wantsCoffee = /коф|кафе|coffee|cafe/u.test(normalized(request.text))
   const stopLimit = intent.theme === 'reading' ? (wantsReading ? 2 : 1)
     : transport === 'walk' ? 3 : request.minutes >= 180 ? 2 : 1
@@ -698,20 +735,31 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
   }
   if (!chosen.length) return null
   const steps: Recommendation[] = chosen.map((poi, index) => {
-    const label = TAGS[poi.category as SearchCategory]?.label ?? 'место'
+    const label = categoryLabel(poi.category, language)
     const hours = poi.tags.opening_hours?.slice(0, 100)
     const certainty = hours
-      ? `В OSM указаны часы ${hours}, актуальность не подтверждена.`
-      : 'Часы работы не проверены.'
-    const why = `Это ${label}, найденное в ${poi.provider} по теме запроса. ${certainty}`
+      ? pick(language, `В OSM указаны часы ${hours}, актуальность не подтверждена.`,
+        `OSM-де ${hours} жұмыс уақыты көрсетілген, оның өзектілігі расталмаған.`,
+        `OSM lists hours as ${hours}; they have not been verified recently.`)
+      : pick(language, 'Часы работы не проверены.', 'Жұмыс уақыты тексерілмеген.', 'Opening hours have not been verified.')
+    const why = pick(language,
+      `Это ${label}, найденное в ${poi.provider} по теме запроса. ${certainty}`,
+      `Бұл сұрауыңызға сай ${label}; дереккөзі — ${poi.provider}. ${certainty}`,
+      `This ${label} matches your request and was found in ${poi.provider}. ${certainty}`)
     const action = poi.category === 'nightclub'
-      ? 'Уточните программу, вход и свободные места перед визитом.'
+      ? pick(language, 'Уточните программу, вход и свободные места перед визитом.',
+        'Барар алдында бағдарлама, кіру шарттары және бос орындар туралы нақтылаңыз.',
+        'Check the programme, admission and availability before visiting.')
       : ['cafe', 'bar', 'restaurant', 'fast_food', 'confectionery'].includes(poi.category)
-        ? 'Посмотрите меню и уточните наличие мест перед визитом.'
-        : 'Проверьте доступность и условия посещения перед выходом.'
+        ? pick(language, 'Посмотрите меню и уточните наличие мест перед визитом.',
+          'Барар алдында мәзірді қарап, бос орын бар-жоғын нақтылаңыз.',
+          'Check the menu and availability before visiting.')
+        : pick(language, 'Проверьте доступность и условия посещения перед выходом.',
+          'Жолға шықпас бұрын қолжетімділігі мен келу шарттарын тексеріңіз.',
+          'Check access and visiting conditions before setting out.')
     const venueWebsite = safeVenueWebsite(poi.tags.website || poi.tags['contact:website'])
     return {
-      id: poi.id, name: poi.name, category: poi.category, kind: 'place', cityId: 'astana',
+      id: poi.id, name: placeName(poi, language), category: poi.category, kind: 'place', cityId: 'astana',
       lat: poi.lat, lon: poi.lon, sourceUrl: poi.sourceUrl, sourceProvider: poi.provider,
       ...(venueWebsite ? { venueWebsite } : {}),
       routeUrl: routeUrl(index === 0 ? origin : chosen[index - 1], poi, transport),
@@ -728,21 +776,28 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
     previous = poi
   }
   const themeTitle: Record<SearchIntent['theme'], string> = {
-    nightlife: 'Вечерний маршрут', reading: 'Кофе и чтение', culture: 'Культурный маршрут',
-    nature: 'Прогулка на воздухе', family: 'Семейный маршрут', active: 'Активный маршрут',
-    general: 'Маршрут по Астане',
+    nightlife: pick(language, 'Вечерний маршрут', 'Кешкі бағыт', 'Evening route'),
+    reading: pick(language, 'Кофе и чтение', 'Кофе мен кітап', 'Coffee and reading'),
+    culture: pick(language, 'Культурный маршрут', 'Мәдени бағыт', 'Culture route'),
+    nature: pick(language, 'Прогулка на воздухе', 'Таза ауадағы серуен', 'Outdoor walk'),
+    family: pick(language, 'Семейный маршрут', 'Отбасылық бағыт', 'Family route'),
+    active: pick(language, 'Активный маршрут', 'Белсенді бағыт', 'Active route'),
+    general: pick(language, 'Маршрут по Астане', 'Астана бойынша бағыт', 'Route around Astana'),
   }
   if (intent.theme === 'reading' && !chosen.some((poi) => poi.category === 'cafe')) {
-    themeTitle.reading = 'Места для чтения'
+    themeTitle.reading = pick(language, 'Места для чтения', 'Кітап оқуға арналған орындар', 'Places to read')
   }
   if (intent.theme === 'nightlife' && !chosen.some((poi) => poi.category === 'nightclub')) {
-    themeTitle.nightlife = 'Вечерний маршрут'
+    themeTitle.nightlife = pick(language, 'Вечерний маршрут', 'Кешкі бағыт', 'Evening route')
   }
   const extra = noteForTheme(request, intent)
   return {
     id: `route-${chosen.map((poi) => poi.id).join('-')}`,
     title: themeTitle[intent.theme],
-    summary: `${chosen.length} ${chosen.length === 1 ? 'остановка' : chosen.length === 2 ? 'остановки' : 'остановки'} по Астане. ${extra}`.trim(),
+    summary: `${pick(language,
+      `${countStops(language, chosen.length)} по Астане.`,
+      `Астанада ${countStops(language, chosen.length)}.`,
+      `${countStops(language, chosen.length)} in ${astanaName(language)}.`)} ${extra}`.trim(),
     stops: steps,
     routeUrl: routeLink(origin, chosen, transport),
     origin: { ...origin, ...(originName ? { name: originName } : {}) },

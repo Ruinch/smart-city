@@ -10,11 +10,14 @@ interface TelegramLocationManager {
 }
 interface TelegramWebApp {
   initData: string
-  colorScheme?: 'light' | 'dark'
+  initDataUnsafe?: { user?: { language_code?: string } }
   LocationManager?: TelegramLocationManager
   ready(): void
   expand(): void
   isVersionAtLeast?(version: string): boolean
+  setHeaderColor?(color: string): void
+  setBackgroundColor?(color: string): void
+  setBottomBarColor?(color: string): void
   openLink?(url: string): void
   onEvent?(event: string, callback: () => void): void
 }
@@ -45,7 +48,42 @@ const telegram = window.Telegram?.WebApp
 const app = document.querySelector<HTMLDivElement>('#app')
 if (!app) throw new Error('Missing application root')
 
-const categoryLabels: Record<string, string> = {
+type Language = 'ru' | 'kk' | 'en'
+const languageNames: Record<Language, string> = { ru: 'Русский', kk: 'Қазақша', en: 'English' }
+const ruMessages = {
+  skip: 'К содержимому', mapRegion: 'Карта Астаны и маршрута', map: 'Карта Астаны', brand: 'Рядом — маршруты из Астаны', astana: 'Астана', mapActions: 'Управление картой', recenter: 'Показать начало маршрута', fit: 'Показать весь маршрут', osm: '© участники OpenStreetMap', license: 'Лицензия', data: 'О данных', planner: 'Планировщик маршрута', expandPanel: 'Развернуть панель', collapsePanel: 'Свернуть панель', expandRoute: 'Развернуть маршрут', collapseRoute: 'Свернуть маршрут', heading: 'Куда хочется?', subtitle: 'Расскажите, какой вечер или прогулку вы задумали.', backRoute: '← К маршруту', interest: 'Что вам интересно', promptHint: 'Опишите настроение, места и детали своими словами.', promptPlaceholder: 'Например, тихое кафе с книгой или танцы до ночи', examples: 'Примеры запросов', exampleClub: 'Клуб и танцы', exampleClubPrompt: 'Хочу в клуб: музыка, танцы и движная ночь', exampleCoffee: 'Кофе и книга', exampleCoffeePrompt: 'Тихое кафе, где можно попить кофе и почитать книгу', exampleFriends: 'С друзьями', exampleFriendsPrompt: 'Прогулка с друзьями по интересным местам Астаны', where: 'Где искать', whereRoute: 'Где искать маршрут', inAstana: 'В Астане', fromCity: 'Поездка из города', duration: 'Сколько времени есть', durationAria: 'Время вместе с дорогой', transport: 'Как доберётесь', transportAria: 'Способ передвижения', budget: 'Бюджет на человека, ₸', noLimit: 'Без ограничения', budgetHint: 'Цены многих мест неизвестны. 0 ₸ уберёт кафе, клубы и магазины, но бесплатность оставшихся мест не проверена.', group: 'Сколько вас будет', groupHint: 'От 1 до 12 человек.', locationButton: 'Взять мою геопозицию', locationDefault: 'Без геопозиции начнём от центра Астаны.', submit: 'Составить маршрут', readyRoute: 'Готовый маршрут', language: 'Язык интерфейса', fromAstana: 'Из Астаны', allDay: 'Весь день', walk: 'Пешком', transit: 'Транспорт', car: 'На машине', walkLower: 'пешком', transitLower: 'на транспорте', carLower: 'на машине', perPerson: 'на чел.', personOne: 'человек', personMany: 'чел.', stopsOne: 'остановка', stopsFew: 'остановки', stopsMany: 'остановок', hoursShort: 'ч', minutesShort: 'мин', tripTransportHint: 'Для поездок из Астаны пока доступна машина. Время дороги, расходы и часы работы проверьте перед выездом.', walkTransportHint: 'Время пешком ориентировочное. Часы работы и условия места проверьте перед выходом.', otherTransportHint: 'Время на выбранном транспорте может быть неизвестно. Проверьте дорогу во внешней карте.', locationLoading: 'Запрашиваем геопозицию…', locationUnavailable: 'Геопозиция недоступна. Начнём от центра Астаны.', locationDenied: 'Доступ к геопозиции не получен. Начнём от центра Астаны.', locationFar: 'Вы далеко от Астаны. Начнём маршрут от центра города.', locationFound: 'Начнём маршрут от вашей геопозиции.', promptError: 'Опишите, какой маршрут вам нужен, хотя бы в нескольких словах.', groupError: 'Укажите число от 1 до 12.', budgetError: 'Укажите сумму от 0 до 10 000 000 ₸ или оставьте поле пустым.', loadingRoute: 'Ищем маршрут…', searchingPlaces: 'Ищем подходящие места', searchDescription: 'Проверяем реальные места и собираем маршрут. Это может занять до минуты.', routeNotReady: 'Маршрут пока не готов', edit: 'Изменить запрос', entry: 'Вход', averageBill: 'Средний чек', oneItem: 'Одна позиция', fromPrice: 'от {amount}', checked: 'Проверено {date}', priceSource: 'Источник цены ↗', itemPriceNote: 'Цена одной позиции, не всего посещения.', entryOverBudget: 'Указанная цена билета выше вашего бюджета на человека.', billOverBudget: 'Опубликованный средний чек выше вашего бюджета на человека.', trip: 'Поездка', stop: 'Остановка', place: 'Место', source: 'Источник ↗', onMap: 'На карте ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} на месте', unknownTravel: 'Время дороги неизвестно', roadCost: 'Расходы на дорогу ≈ {min}–{max}', unknownCost: 'Стоимость посещения неизвестна', whatToDo: 'Что здесь сделать', aiCaveat: 'Идея создана ИИ; детали места проверьте перед выходом.', evidence: 'Подробности в источниках', directions: 'Маршрут до места ↗', osmWebsite: 'Сайт из OSM ↗', placeSource: 'Источник места ↗', timeSource: 'Источник времени ↗', costSource: 'Источник стоимости ↗', noPlaces: 'По вашему запросу пока не нашлось подтверждённых мест. Попробуйте описать интересы иначе или выделить больше времени.', cityRoute: 'Маршрут по Астане', astanaTrip: 'Поездка из Астаны', yourRoute: 'Ваш маршрут', walkAndStops: '≈ {time} пешком и на местах', openRoute: 'Открыть весь маршрут ↗', tripVariants: 'Варианты поездки', routeVariants: 'Варианты маршрута', route: 'Маршрут', variant: 'Вариант', roadLine: 'Линия показывает рассчитанный путь. Перед дорогой проверьте его во внешней карте.', dottedLine: 'Пунктир показывает порядок остановок, а не дорогу по улицам. Точный путь откройте во внешней карте.', stopsOrder: 'Остановки по порядку', moreIdeas: 'Ещё идеи →', openInTelegram: 'Откройте приложение через бота в Telegram и попробуйте снова.', loadingMore: 'Ищем ещё…', searchingIdeas: 'Ищем идеи…', otherPlaces: 'Ищем другие места по тем же условиям.', telegramExpired: 'Сессия Telegram устарела. Откройте приложение через бота заново.', rateLimit: 'Слишком много запросов. Подождите немного и попробуйте снова.', newIdeasError: 'Не удалось найти новые идеи. Попробуйте чуть позже.', incomplete: 'Ответ сервера неполный. Попробуйте ещё раз.', noNewPlaces: 'Новых мест пока не нашлось. Попробуйте изменить запрос или параметры.', searchTimeoutShort: 'Поиск занял слишком много времени. Попробуйте ещё раз.', newIdeasRetry: 'Не удалось найти новые идеи. Попробуйте ещё раз.', telegramRequired: 'Для составления маршрута откройте приложение через бота в Telegram. Так мы сможем безопасно обработать ваш запрос.', telegramInvalid: 'Не удалось подтвердить запуск в Telegram. Полностью закройте окно приложения и откройте его снова через @smart_city_ryadombot.', serviceError: 'Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.', searchTimeout: 'Поиск занял слишком много времени. Проверьте соединение и попробуйте ещё раз.', unknownError: 'Произошла ошибка. Попробуйте ещё раз.', languageChange: 'Язык изменён. Составьте маршрут заново, чтобы описание тоже было на новом языке.',
+} as const
+type MessageKey = keyof typeof ruMessages
+const messages: Record<Language, Record<MessageKey, string>> = {
+  ru: ruMessages,
+  kk: {
+    skip: 'Мазмұнға өту', mapRegion: 'Астана картасы мен бағыты', map: 'Астана картасы', brand: 'Рядом — Астанадан басталатын бағыттар', astana: 'Астана', mapActions: 'Картаны басқару', recenter: 'Бағыттың басын көрсету', fit: 'Бүкіл бағытты көрсету', osm: '© OpenStreetMap қатысушылары', license: 'Лицензия', data: 'Деректер туралы', planner: 'Бағыт жоспарлаушысы', expandPanel: 'Панельді ашу', collapsePanel: 'Панельді жинау', expandRoute: 'Бағытты ашу', collapseRoute: 'Бағытты жинау', heading: 'Қайда барғыңыз келеді?', subtitle: 'Қандай серуен немесе кеш қалайтыныңызды айтыңыз.', backRoute: '← Бағытқа оралу', interest: 'Сізді не қызықтырады?', promptHint: 'Көңіл күйіңізді, орындар мен маңызды жайттарды өз сөзіңізбен жазыңыз.', promptPlaceholder: 'Мысалы, кітап оқитын тыныш кафе немесе түнгі би', examples: 'Сұрау мысалдары', exampleClub: 'Клуб пен би', exampleClubPrompt: 'Музыка, би және қызықты түнгі клуб іздеймін', exampleCoffee: 'Кофе мен кітап', exampleCoffeePrompt: 'Кофе ішіп, кітап оқуға болатын тыныш кафе іздеймін', exampleFriends: 'Достармен', exampleFriendsPrompt: 'Достарыммен Астананың қызықты жерлерін аралағым келеді', where: 'Қайдан іздейміз?', whereRoute: 'Бағытты қайдан іздейміз?', inAstana: 'Астанада', fromCity: 'Қаладан сапар', duration: 'Қанша уақытыңыз бар?', durationAria: 'Жолды қоса есептегендегі уақыт', transport: 'Қалай барасыз?', transportAria: 'Қозғалыс тәсілі', budget: 'Бір адамға бюджет, ₸', noLimit: 'Шектеусіз', budgetHint: 'Көп орындардың бағасы белгісіз. 0 ₸ кафе, клуб және дүкендерді алып тастайды, бірақ қалған орындардың тегін екені тексерілмеген.', group: 'Неше адам боласыздар?', groupHint: '1–12 адам.', locationButton: 'Геолокациямды пайдалану', locationDefault: 'Геолокациясыз Астана орталығынан бастаймыз.', submit: 'Бағыт құру', readyRoute: 'Дайын бағыт', language: 'Интерфейс тілі', fromAstana: 'Астанадан', allDay: 'Күні бойы', walk: 'Жаяу', transit: 'Қоғамдық көлік', car: 'Көлікпен', walkLower: 'жаяу', transitLower: 'қоғамдық көлікпен', carLower: 'көлікпен', perPerson: 'әр адамға', personOne: 'адам', personMany: 'адам', stopsOne: 'аялдама', stopsFew: 'аялдама', stopsMany: 'аялдама', hoursShort: 'сағ', minutesShort: 'мин', tripTransportHint: 'Астанадан сапарға әзірге тек көлік қолжетімді. Жол уақытын, шығынды және жұмыс сағатын шығар алдында тексеріңіз.', walkTransportHint: 'Жаяу жүру уақыты шамамен берілген. Шығар алдында жұмыс сағаты мен шарттарын тексеріңіз.', otherTransportHint: 'Таңдалған көлікпен жүру уақыты белгісіз болуы мүмкін. Жолды сыртқы картадан тексеріңіз.', locationLoading: 'Геолокация сұралып жатыр…', locationUnavailable: 'Геолокация қолжетімсіз. Астана орталығынан бастаймыз.', locationDenied: 'Геолокацияға рұқсат берілмеді. Астана орталығынан бастаймыз.', locationFar: 'Сіз Астанадан алыстасыз. Бағытты қала орталығынан бастаймыз.', locationFound: 'Бағытты сіз тұрған жерден бастаймыз.', promptError: 'Қандай бағыт керек екенін бірнеше сөзбен жазыңыз.', groupError: '1 мен 12 арасындағы санды көрсетіңіз.', budgetError: '0 мен 10 000 000 ₸ арасындағы соманы жазыңыз немесе өрісті бос қалдырыңыз.', loadingRoute: 'Бағыт ізделуде…', searchingPlaces: 'Лайықты орындар ізделуде', searchDescription: 'Нақты орындарды тексеріп, бағыт құрастырып жатырмыз. Бұл бір минутқа дейін созылуы мүмкін.', routeNotReady: 'Бағыт әзірге дайын емес', edit: 'Сұрауды өзгерту', entry: 'Кіру ақысы', averageBill: 'Орташа чек', oneItem: 'Бір өнім', fromPrice: '{amount} бастап', checked: '{date} тексерілді', priceSource: 'Баға дереккөзі ↗', itemPriceNote: 'Бұл бүкіл сапардың емес, бір өнімнің бағасы.', entryOverBudget: 'Көрсетілген билет бағасы бір адамға арналған бюджеттен жоғары.', billOverBudget: 'Жарияланған орташа чек бір адамға арналған бюджеттен жоғары.', trip: 'Сапар', stop: 'Аялдама', place: 'Орын', source: 'Дереккөз ↗', onMap: 'Картада ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} орында', unknownTravel: 'Жол уақыты белгісіз', roadCost: 'Жол шығыны ≈ {min}–{max}', unknownCost: 'Барудың бағасы белгісіз', whatToDo: 'Мұнда не істеуге болады?', aiCaveat: 'Ұсынысты ЖИ жасады; барар алдында орын туралы мәліметті тексеріңіз.', evidence: 'Дереккөздердегі мәлімет', directions: 'Орынға баратын жол ↗', osmWebsite: 'OSM сайт сілтемесі ↗', placeSource: 'Орын дереккөзі ↗', timeSource: 'Уақыт дереккөзі ↗', costSource: 'Баға дереккөзі ↗', noPlaces: 'Сұрауыңызға сай расталған орындар табылмады. Қызығушылығыңызды басқаша сипаттап немесе көбірек уақыт бөліп көріңіз.', cityRoute: 'Астана бағыты', astanaTrip: 'Астанадан сапар', yourRoute: 'Сіздің бағытыңыз', walkAndStops: '≈ {time} жаяу жүріп және орындарда', openRoute: 'Бүкіл бағытты ашу ↗', tripVariants: 'Сапар нұсқалары', routeVariants: 'Бағыт нұсқалары', route: 'Бағыт', variant: 'Нұсқа', roadLine: 'Сызық есептелген жолды көрсетеді. Сапар алдында оны сыртқы картадан тексеріңіз.', dottedLine: 'Үзік сызық аялдамалардың ретін көрсетеді, көшедегі жолды емес. Нақты жолды сыртқы картадан ашыңыз.', stopsOrder: 'Аялдамалар ретімен', moreIdeas: 'Басқа идеялар →', openInTelegram: 'Қолданбаны Telegram-дағы бот арқылы ашып, қайталап көріңіз.', loadingMore: 'Тағы ізделуде…', searchingIdeas: 'Идеялар ізделуде…', otherPlaces: 'Сол шарттармен басқа орындарды іздеп жатырмыз.', telegramExpired: 'Telegram сессиясының мерзімі өтті. Қолданбаны бот арқылы қайта ашыңыз.', rateLimit: 'Сұраулар тым көп. Сәл күтіп, қайталап көріңіз.', newIdeasError: 'Жаңа идеялар табылмады. Кейінірек қайталап көріңіз.', incomplete: 'Сервер жауабы толық емес. Қайталап көріңіз.', noNewPlaces: 'Әзірге жаңа орындар табылмады. Сұрауды немесе параметрлерді өзгертіңіз.', searchTimeoutShort: 'Іздеу тым ұзаққа созылды. Қайталап көріңіз.', newIdeasRetry: 'Жаңа идеялар табылмады. Қайталап көріңіз.', telegramRequired: 'Бағыт құру үшін қолданбаны Telegram-дағы бот арқылы ашыңыз. Осылайша сұрауыңызды қауіпсіз өңдей аламыз.', telegramInvalid: 'Telegram арқылы ашылғанын растау мүмкін болмады. Қолданбаны толық жауып, @smart_city_ryadombot арқылы қайта ашыңыз.', serviceError: 'Қызмет уақытша қолжетімсіз. Бірнеше секундтан кейін қайталап көріңіз.', searchTimeout: 'Іздеу тым ұзаққа созылды. Байланысты тексеріп, қайталап көріңіз.', unknownError: 'Қате пайда болды. Қайталап көріңіз.', languageChange: 'Тіл өзгерді. Сипаттама да жаңа тілде болуы үшін бағытты қайта құрыңыз.',
+  },
+  en: {
+    skip: 'Skip to content', mapRegion: 'Astana map and route', map: 'Map of Astana', brand: 'Ryadom — routes from Astana', astana: 'Astana', mapActions: 'Map controls', recenter: 'Show route starting point', fit: 'Show full route', osm: '© OpenStreetMap contributors', license: 'License', data: 'About the data', planner: 'Route planner', expandPanel: 'Expand panel', collapsePanel: 'Collapse panel', expandRoute: 'Expand route', collapseRoute: 'Collapse route', heading: 'Where to?', subtitle: 'Tell us what kind of outing or evening you have in mind.', backRoute: '← Back to route', interest: 'What interests you?', promptHint: 'Describe the mood, places and details that matter to you.', promptPlaceholder: 'For example, a quiet café for reading or dancing all night', examples: 'Example requests', exampleClub: 'Clubs and dancing', exampleClubPrompt: 'I want a club with music, dancing and a lively night', exampleCoffee: 'Coffee and a book', exampleCoffeePrompt: 'A quiet café where I can drink coffee and read a book', exampleFriends: 'With friends', exampleFriendsPrompt: 'A walk with friends around interesting places in Astana', where: 'Search area', whereRoute: 'Where to look for a route', inAstana: 'In Astana', fromCity: 'Trip from the city', duration: 'Time available', durationAria: 'Time including travel', transport: 'How will you travel?', transportAria: 'Transport mode', budget: 'Budget per person, ₸', noLimit: 'No limit', budgetHint: 'Prices are unknown for many places. 0 ₸ excludes cafés, clubs and shops, but the remaining places have not been confirmed free.', group: 'How many people?', groupHint: 'Between 1 and 12 people.', locationButton: 'Use my location', locationDefault: 'Without your location, we start from central Astana.', submit: 'Build a route', readyRoute: 'Your route', language: 'Interface language', fromAstana: 'From Astana', allDay: 'All day', walk: 'Walk', transit: 'Public transport', car: 'Car', walkLower: 'on foot', transitLower: 'by public transport', carLower: 'by car', perPerson: 'per person', personOne: 'person', personMany: 'people', stopsOne: 'stop', stopsFew: 'stops', stopsMany: 'stops', hoursShort: 'h', minutesShort: 'min', tripTransportHint: 'Trips from Astana currently require a car. Check travel time, costs and opening hours before you leave.', walkTransportHint: 'Walking times are approximate. Check opening hours and venue conditions before leaving.', otherTransportHint: 'Travel time by your chosen transport may be unknown. Check directions in an external map.', locationLoading: 'Requesting location…', locationUnavailable: 'Location unavailable. We will start from central Astana.', locationDenied: 'Location access was not granted. We will start from central Astana.', locationFar: 'You are far from Astana. We will start from the city center.', locationFound: 'We will start from your location.', promptError: 'Describe the route you want in at least a few words.', groupError: 'Enter a number from 1 to 12.', budgetError: 'Enter an amount from 0 to 10,000,000 ₸ or leave the field empty.', loadingRoute: 'Finding a route…', searchingPlaces: 'Finding places that fit', searchDescription: 'We are checking real places and planning a route. This may take up to a minute.', routeNotReady: 'Route is not ready yet', edit: 'Edit request', entry: 'Admission', averageBill: 'Average bill', oneItem: 'One item', fromPrice: 'from {amount}', checked: 'Checked {date}', priceSource: 'Price source ↗', itemPriceNote: 'This is the price of one item, not the full visit.', entryOverBudget: 'The listed ticket price exceeds your budget per person.', billOverBudget: 'The published average bill exceeds your budget per person.', trip: 'Trip', stop: 'Stop', place: 'Place', source: 'Source ↗', onMap: 'On map ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} at this stop', unknownTravel: 'Travel time unknown', roadCost: 'Travel cost ≈ {min}–{max}', unknownCost: 'Visit cost unknown', whatToDo: 'What to do here', aiCaveat: 'This idea was generated by AI; check venue details before leaving.', evidence: 'Details in sources', directions: 'Directions to place ↗', osmWebsite: 'Website from OSM ↗', placeSource: 'Place source ↗', timeSource: 'Time source ↗', costSource: 'Cost source ↗', noPlaces: 'No verified places matched your request yet. Try describing your interests differently or allowing more time.', cityRoute: 'Route in Astana', astanaTrip: 'Trip from Astana', yourRoute: 'Your route', walkAndStops: '≈ {time} walking and at stops', openRoute: 'Open full route ↗', tripVariants: 'Trip options', routeVariants: 'Route options', route: 'Route', variant: 'Option', roadLine: 'The line shows a calculated route. Check it in an external map before traveling.', dottedLine: 'The dotted line shows stop order, not a street route. Open precise directions in an external map.', stopsOrder: 'Stops in order', moreIdeas: 'More ideas →', openInTelegram: 'Open this app through the Telegram bot and try again.', loadingMore: 'Finding more…', searchingIdeas: 'Finding ideas…', otherPlaces: 'Looking for different places with the same settings.', telegramExpired: 'Your Telegram session has expired. Reopen the app through the bot.', rateLimit: 'Too many requests. Wait a moment and try again.', newIdeasError: 'Could not find new ideas. Please try again later.', incomplete: 'The server response was incomplete. Please try again.', noNewPlaces: 'No new places found yet. Try changing your request or settings.', searchTimeoutShort: 'The search took too long. Please try again.', newIdeasRetry: 'Could not find new ideas. Please try again.', telegramRequired: 'To build a route, open the app through the Telegram bot. This lets us process your request securely.', telegramInvalid: 'Could not verify the Telegram launch. Close the app completely and reopen it through @smart_city_ryadombot.', serviceError: 'The service is temporarily unavailable. Please try again in a few seconds.', searchTimeout: 'The search took too long. Check your connection and try again.', unknownError: 'Something went wrong. Please try again.', languageChange: 'Language changed. Build the route again so its description uses the new language.',
+  },
+}
+function matchLanguage(value: string | undefined): Language | null {
+  const base = value?.toLowerCase().split(/[-_]/)[0]
+  return base === 'ru' || base === 'kk' || base === 'en' ? base : null
+}
+function initialLanguage(): Language {
+  try {
+    const saved = matchLanguage(localStorage.getItem('ryadom-language') ?? undefined)
+    if (saved) return saved
+  } catch { /* Storage may be blocked in an embedded browser. */ }
+  return matchLanguage(telegram?.initDataUnsafe?.user?.language_code)
+    ?? navigator.languages?.map(matchLanguage).find((value): value is Language => value !== null)
+    ?? matchLanguage(navigator.language)
+    ?? 'ru'
+}
+let language: Language = initialLanguage()
+document.documentElement.lang = language
+function t(key: MessageKey, values: Record<string, string | number> = {}): string {
+  return messages[language][key].replace(/\{(\w+)\}/g, (match, name: string) => values[name] === undefined ? match : String(values[name]))
+}
+
+const categoryLabelsRu: Record<string, string> = {
   cafe: 'Кафе', nightclub: 'Клуб', bar: 'Бар', music_venue: 'Концертная площадка',
   events_venue: 'Площадка для мероприятий', restaurant: 'Ресторан',
   library: 'Библиотека', bookshop: 'Книжный магазин', cinema: 'Кинотеатр',
@@ -62,6 +100,15 @@ const categoryLabels: Record<string, string> = {
   fitness_centre: 'Фитнес-центр', marina: 'Пристань', sports_centre: 'Спортивный центр',
   stadium: 'Стадион', water_park: 'Аквапарк', archaeological_site: 'Археологический памятник',
 }
+const categoryLabelsKk: Record<string, string> = {
+  cafe: 'Кафе', nightclub: 'Түнгі клуб', bar: 'Бар', music_venue: 'Концерт алаңы', events_venue: 'Іс-шара алаңы', restaurant: 'Мейрамхана', library: 'Кітапхана', bookshop: 'Кітап дүкені', cinema: 'Кинотеатр', museum: 'Мұражай', gallery: 'Галерея', theatre: 'Театр', park: 'Саябақ', garden: 'Бақ', viewpoint: 'Көрініс алаңы', artwork: 'Өнер нысаны', monument: 'Ескерткіш', memorial: 'Мемориал', attraction: 'Көрікті жер', arts_centre: 'Өнер орталығы', playground: 'Балалар алаңы', nature_reserve: 'Табиғи саябақ', lake: 'Көл', place_of_worship: 'Құлшылық орны', biergarten: 'Сыра бағы', community_centre: 'Қоғамдық орталық', food_court: 'Фудкорт', ice_cream: 'Балмұздақ', planetarium: 'Планетарий', coffee: 'Кофе дүкені', gift: 'Сыйлық дүкені', art: 'Өнер дүкені', fast_food: 'Жылдам тамақ', confectionery: 'Кондитерлік', mall: 'Сауда орталығы', zoo: 'Хайуанаттар бағы', bowling_alley: 'Боулинг', escape_game: 'Квест', fitness_centre: 'Фитнес орталығы', marina: 'Айлақ', sports_centre: 'Спорт орталығы', stadium: 'Стадион', water_park: 'Аквапарк', archaeological_site: 'Археологиялық ескерткіш',
+}
+const categoryLabelsEn: Record<string, string> = {
+  cafe: 'Café', nightclub: 'Nightclub', bar: 'Bar', music_venue: 'Music venue', events_venue: 'Event venue', restaurant: 'Restaurant', library: 'Library', bookshop: 'Bookshop', cinema: 'Cinema', museum: 'Museum', gallery: 'Gallery', theatre: 'Theatre', park: 'Park', garden: 'Garden', viewpoint: 'Viewpoint', artwork: 'Artwork', monument: 'Monument', memorial: 'Memorial', attraction: 'Attraction', arts_centre: 'Arts center', playground: 'Playground', nature_reserve: 'Nature reserve', lake: 'Lake', place_of_worship: 'Place of worship', biergarten: 'Beer garden', community_centre: 'Community center', food_court: 'Food court', ice_cream: 'Ice cream shop', planetarium: 'Planetarium', coffee: 'Coffee shop', gift: 'Gift shop', art: 'Art shop', fast_food: 'Fast food', confectionery: 'Confectionery', mall: 'Shopping mall', zoo: 'Zoo', bowling_alley: 'Bowling alley', escape_game: 'Escape game', fitness_centre: 'Fitness center', marina: 'Marina', sports_centre: 'Sports center', stadium: 'Stadium', water_park: 'Water park', archaeological_site: 'Archaeological site',
+}
+function categoryLabel(category: string): string | undefined {
+  return ({ ru: categoryLabelsRu, kk: categoryLabelsKk, en: categoryLabelsEn })[language][category]
+}
 
 app.innerHTML = `
   <a class="skip-link" href="#content">К содержимому</a>
@@ -74,6 +121,12 @@ app.innerHTML = `
           <span class="brand-name">рядом<span class="brand-period">.</span></span>
         </div>
         <span class="topbar-country">Астана</span>
+        <label class="language-picker">
+          <span class="visually-hidden">Язык интерфейса</span>
+          <select id="languageSelect" aria-label="Язык интерфейса">
+            <option value="ru">RU</option><option value="kk">ҚАЗ</option><option value="en">EN</option>
+          </select>
+        </label>
       </header>
       <div class="map-actions" aria-label="Управление картой">
         <button id="recenterButton" class="map-action" type="button" aria-label="Показать начало маршрута" title="Показать начало маршрута"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
@@ -82,7 +135,7 @@ app.innerHTML = `
       <footer class="map-credits">
         <span>© участники OpenStreetMap</span>
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Лицензия</a>
-        <a href="/privacy.html">О данных</a>
+        <a id="privacyLink" href="/privacy.html">О данных</a>
       </footer>
     </main>
 
@@ -94,6 +147,7 @@ app.innerHTML = `
         <div class="sheet-heading">
           <h1>Куда хочется?</h1>
           <p>Расскажите, какой вечер или прогулку вы задумали.</p>
+          <p id="languageNotice" class="language-notice" role="status" hidden></p>
           <button id="returnToRouteButton" class="return-route-button" type="button" hidden>← К маршруту</button>
         </div>
         <form id="planner" class="planner" novalidate>
@@ -104,9 +158,9 @@ app.innerHTML = `
         <textarea id="prompt" name="prompt" rows="2" maxlength="300" aria-describedby="promptHint promptError" placeholder="Например, тихое кафе с книгой или танцы до ночи"></textarea>
         <p id="promptError" class="field-error" role="alert" hidden></p>
         <div class="example-row" role="group" aria-label="Примеры запросов">
-          <button type="button" data-example="Хочу в клуб: музыка, танцы и движная ночь">Клуб и танцы</button>
-          <button type="button" data-example="Тихое кафе, где можно попить кофе и почитать книгу">Кофе и книга</button>
-          <button type="button" data-example="Прогулка с друзьями по интересным местам Астаны">С друзьями</button>
+          <button type="button" data-example="club">Клуб и танцы</button>
+          <button type="button" data-example="coffee">Кофе и книга</button>
+          <button type="button" data-example="friends">С друзьями</button>
         </div>
         <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="advancedSettings">
           <span id="settingsSummary">Астана · 2 ч · пешком · 1 человек</span>
@@ -188,6 +242,9 @@ const settingsSummary = requiredElement<HTMLElement>('#settingsSummary')
 const recenterButton = requiredElement<HTMLButtonElement>('#recenterButton')
 const fitButton = requiredElement<HTMLButtonElement>('#fitButton')
 const returnToRouteButton = requiredElement<HTMLButtonElement>('#returnToRouteButton')
+const languageSelect = document.getElementById('languageSelect') as unknown as HTMLSelectElement
+if (!languageSelect) throw new Error('Missing language selector')
+languageSelect.value = language
 
 type SheetMode = 'peek' | 'expanded' | 'loading' | 'results' | 'peek-results'
 
@@ -212,12 +269,66 @@ let activeRecommendation: AbortController | null = null
 let mapController: RecommendationsMapController | null = null
 let currentRouteOrigin: MapCoordinate | null = null
 const seenPlaceIds = new Set<string>()
+let locationMessageKey: MessageKey = 'locationDefault'
+
+function applyTranslations(): void {
+  document.documentElement.lang = language
+  document.title = language === 'ru' ? 'Рядом — маршрут под ваше настроение'
+    : language === 'kk' ? 'Рядом — көңіл күйіңізге сай бағыт'
+      : 'Ryadom — a route for your mood'
+  document.querySelector('meta[name="description"]')?.setAttribute('content', language === 'ru'
+    ? 'Опишите, чего хочется, и получите маршрут по Астане или поездку из города с учётом времени и компании.'
+    : language === 'kk' ? 'Қалауыңызды сипаттаңыз: уақыт пен серіктеріңізді ескеріп, Астанадағы бағытты немесе қаладан сапарды табыңыз.'
+      : 'Describe what you feel like doing and get a route in Astana or a trip from the city, tailored to your time and group.')
+  for (const option of languageSelect.options) option.title = languageNames[option.value as Language]
+  const textTargets: Array<[string, MessageKey]> = [
+    ['.skip-link', 'skip'], ['.topbar-country', 'astana'],
+    ['.map-credits span', 'osm'], ['.map-credits a[href^="https://www.openstreetmap.org"]', 'license'],
+    ['#privacyLink', 'data'], ['.sheet-heading h1', 'heading'], ['.sheet-heading p', 'subtitle'],
+    ['#returnToRouteButton', 'backRoute'], ['.planner-lead label', 'interest'],
+    ['#promptHint', 'promptHint'], ['.example-row [data-example="club"]', 'exampleClub'],
+    ['.example-row [data-example="coffee"]', 'exampleCoffee'],
+    ['.example-row [data-example="friends"]', 'exampleFriends'],
+    ['.scope-row .field-label', 'where'], ['[data-scope="city"]', 'inAstana'],
+    ['[data-scope="day_trip"]', 'fromCity'], ['.settings-grid .field-group:first-child legend', 'duration'],
+    ['.settings-grid .field-group:nth-child(2) legend', 'transport'], ['.budget-group label', 'budget'],
+    ['#budgetHint', 'budgetHint'], ['.group-size-group label', 'group'],
+    ['#groupSizeHint', 'groupHint'], ['#deviceButton', 'locationButton'],
+    ['.submit-label', 'submit'], ['.language-picker span', 'language'],
+  ]
+  for (const [selector, key] of textTargets) {
+    const element = document.querySelector<HTMLElement>(selector)
+    if (element) element.textContent = t(key)
+  }
+  const ariaTargets: Array<[string, string, MessageKey]> = [
+    ['.map-stage', 'aria-label', 'mapRegion'], ['#map', 'aria-label', 'map'],
+    ['.brand', 'aria-label', 'brand'], ['.map-actions', 'aria-label', 'mapActions'],
+    ['#recenterButton', 'aria-label', 'recenter'], ['#recenterButton', 'title', 'recenter'],
+    ['#fitButton', 'aria-label', 'fit'], ['#fitButton', 'title', 'fit'],
+    ['#routeSheet', 'aria-label', 'planner'], ['.example-row', 'aria-label', 'examples'],
+    ['.scope-switch', 'aria-label', 'whereRoute'], ['#durationChoices', 'aria-label', 'durationAria'],
+    ['#transportChoices', 'aria-label', 'transportAria'], ['#results', 'aria-label', 'readyRoute'],
+    ['#languageSelect', 'aria-label', 'language'],
+  ]
+  for (const [selector, attribute, key] of ariaTargets) document.querySelector(selector)?.setAttribute(attribute, t(key))
+  prompt.placeholder = t('promptPlaceholder')
+  budget.placeholder = t('noLimit')
+  const exampleKeys: Array<[string, MessageKey]> = [['club', 'exampleClubPrompt'], ['coffee', 'exampleCoffeePrompt'], ['friends', 'exampleFriendsPrompt']]
+  for (const [id, key] of exampleKeys) document.querySelector(`[data-example="${id}"]`)?.setAttribute('data-example-text', t(key))
+  locationStatus.textContent = t(locationMessageKey)
+  requiredElement<HTMLAnchorElement>('#privacyLink').href = `/privacy.html?lang=${language}`
+  mapController?.setLanguage(language)
+  renderDurationChoices()
+  renderTransportChoices()
+  updateSettingsSummary()
+  setSheetMode(shell.dataset.sheet as SheetMode)
+}
 
 function setSheetMode(mode: SheetMode): void {
   shell.dataset.sheet = mode
   const expanded = mode === 'expanded' || mode === 'results'
   sheetHandle.setAttribute('aria-expanded', String(expanded))
-  sheetHandle.setAttribute('aria-label', mode === 'results' ? 'Свернуть маршрут' : mode === 'peek-results' ? 'Развернуть маршрут' : expanded ? 'Свернуть панель' : 'Развернуть панель')
+  sheetHandle.setAttribute('aria-label', mode === 'results' ? t('collapseRoute') : mode === 'peek-results' ? t('expandRoute') : expanded ? t('collapsePanel') : t('expandPanel'))
   sheetHandle.disabled = mode === 'loading'
   settingsToggle.setAttribute('aria-expanded', String(mode === 'expanded'))
   planner.hidden = mode === 'loading' || mode === 'results' || mode === 'peek-results'
@@ -227,11 +338,11 @@ function setSheetMode(mode: SheetMode): void {
 }
 
 function updateSettingsSummary(): void {
-  const travel = state.transport === 'car' ? 'на машине' : state.transport === 'transit' ? 'транспорт' : 'пешком'
+  const travel = travelModeLabel(state.transport)
   const count = Number(groupSize.value) || 1
-  const people = count === 1 ? '1 человек' : `${count} чел.`
-  const money = budget.value.trim() === '' ? '' : ` · ${formatKzt(Number(budget.value))} на чел.`
-  settingsSummary.textContent = `${state.scope === 'city' ? 'Астана' : 'Из Астаны'} · ${state.minutes === 1440 ? 'весь день' : formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
+  const people = `${count} ${count === 1 ? t('personOne') : t('personMany')}`
+  const money = budget.value.trim() === '' ? '' : ` · ${formatKzt(Number(budget.value))} ${t('perPerson')}`
+  settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${state.minutes === 1440 ? t('allDay') : formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
 }
 
 sheetHandle.addEventListener('click', () => {
@@ -249,13 +360,31 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && shell.dataset.sheet === 'expanded') setSheetMode('peek')
 })
 
-function setTheme(): void {
-  document.documentElement.dataset.theme = telegram?.colorScheme === 'dark' ? 'dark' : 'light'
-}
-setTheme()
-telegram?.onEvent?.('themeChanged', setTheme)
+document.documentElement.dataset.theme = 'light'
+if (telegram?.isVersionAtLeast?.('7.0')) telegram.setHeaderColor?.('#ffffff')
+if (telegram?.isVersionAtLeast?.('6.1')) telegram.setBackgroundColor?.('#e6ece8')
+if (telegram?.isVersionAtLeast?.('7.10')) telegram.setBottomBarColor?.('#ffffff')
 telegram?.ready()
 telegram?.expand()
+
+languageSelect.addEventListener('change', () => {
+  const next = matchLanguage(languageSelect.value)
+  if (!next || next === language) return
+  const hadRoute = currentRouteOrigin !== null || state.isLoading
+  const prior = language
+  const previousExample = (['club', 'coffee', 'friends'] as const).find((id) => prompt.value === messages[prior][({ club: 'exampleClubPrompt', coffee: 'exampleCoffeePrompt', friends: 'exampleFriendsPrompt' } as const)[id]])
+  language = next
+  try { localStorage.setItem('ryadom-language', language) } catch { /* Ignore storage errors. */ }
+  if (previousExample) prompt.value = messages[language][({ club: 'exampleClubPrompt', coffee: 'exampleCoffeePrompt', friends: 'exampleFriendsPrompt' } as const)[previousExample]]
+  clearResults()
+  promptError.hidden = true
+  groupSizeError.hidden = true
+  budget.setCustomValidity('')
+  applyTranslations()
+  const notice = requiredElement<HTMLElement>('#languageNotice')
+  notice.textContent = t('languageChange')
+  notice.hidden = !hadRoute
+})
 
 function safeUrl(value: string | undefined): string | null {
   if (!value) return null
@@ -284,21 +413,21 @@ function createLink(label: string, value: string | undefined, className: string)
 }
 
 function formatMinutes(minutes: number): string {
-  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60} ч`
-  return `${minutes} мин`
+  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60} ${t('hoursShort')}`
+  return `${minutes} ${t('minutesShort')}`
 }
 
 function formatKzt(amount: number): string {
-  return `${new Intl.NumberFormat('ru-RU').format(amount)} ₸`
+  return `${new Intl.NumberFormat(language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU').format(amount)} ₸`
 }
 
 function stopCount(count: number): string {
-  const form = new Intl.PluralRules('ru-RU').select(count)
-  return `${count} ${form === 'one' ? 'остановка' : form === 'few' ? 'остановки' : 'остановок'}`
+  const form = new Intl.PluralRules(language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU').select(count)
+  return `${count} ${form === 'one' ? t('stopsOne') : form === 'few' ? t('stopsFew') : t('stopsMany')}`
 }
 
 function travelModeLabel(mode: string | undefined): string {
-  return mode === 'car' ? 'на машине' : mode === 'transit' ? 'на транспорте' : 'пешком'
+  return mode === 'car' ? t('carLower') : mode === 'transit' ? t('transitLower') : t('walkLower')
 }
 
 function origin(): MapCoordinate {
@@ -334,7 +463,7 @@ function renderDurationChoices(): void {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'choice-button'
-    button.textContent = minutes === 1440 ? 'Весь день' : formatMinutes(minutes)
+    button.textContent = minutes === 1440 ? t('allDay') : formatMinutes(minutes)
     button.dataset.minutes = String(minutes)
     const selected = state.minutes === minutes
     button.classList.toggle('is-selected', selected)
@@ -355,8 +484,8 @@ function renderDurationChoices(): void {
 
 function renderTransportChoices(): void {
   const options: Array<[Transport, string]> = state.scope === 'city'
-    ? [['walk', 'Пешком'], ['transit', 'Транспорт'], ['car', 'На машине']]
-    : [['car', 'На машине']]
+    ? [['walk', t('walk')], ['transit', t('transit')], ['car', t('car')]]
+    : [['car', t('car')]]
   const row = requiredElement<HTMLElement>('#transportChoices')
   row.replaceChildren()
   for (const [transport, label] of options) {
@@ -386,10 +515,10 @@ function renderTransportChoices(): void {
 
 function updateTransportHint(): void {
   requiredElement<HTMLElement>('#transportHint').textContent = state.scope === 'day_trip'
-    ? 'Для поездок из Астаны пока доступна машина. Время дороги, расходы и часы работы проверьте перед выездом.'
+    ? t('tripTransportHint')
     : state.transport === 'walk'
-      ? 'Время пешком ориентировочное. Часы работы и условия места проверьте перед выходом.'
-      : 'Время на выбранном транспорте может быть неизвестно. Проверьте дорогу во внешней карте.'
+      ? t('walkTransportHint')
+      : t('otherTransportHint')
 }
 
 function setScope(scope: Scope): void {
@@ -412,7 +541,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-scope]').forEach((button) =>
 })
 document.querySelectorAll<HTMLButtonElement>('[data-example]').forEach((button) => {
   button.addEventListener('click', () => {
-    prompt.value = button.dataset.example ?? ''
+    prompt.value = button.dataset.exampleText ?? ''
     promptError.hidden = true
     prompt.focus()
     clearResults()
@@ -447,27 +576,32 @@ function requestDeviceLocation(): void {
   if (!telegram?.isVersionAtLeast?.('8.0') || !manager) return
   const button = requiredElement<HTMLButtonElement>('#deviceButton')
   button.disabled = true
-  locationStatus.textContent = 'Запрашиваем геопозицию…'
+  locationMessageKey = 'locationLoading'
+  locationStatus.textContent = t(locationMessageKey)
   manager.init(() => {
     if (!manager.isLocationAvailable) {
       button.disabled = false
-      locationStatus.textContent = 'Геопозиция недоступна. Начнём от центра Астаны.'
+      locationMessageKey = 'locationUnavailable'
+      locationStatus.textContent = t(locationMessageKey)
       return
     }
     manager.getLocation((location) => {
       button.disabled = false
       if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
-        locationStatus.textContent = 'Доступ к геопозиции не получен. Начнём от центра Астаны.'
+        locationMessageKey = 'locationDenied'
+        locationStatus.textContent = t(locationMessageKey)
         return
       }
       const point = { lat: location.latitude, lon: location.longitude }
       if (distanceMeters(point, ASTANA_CENTER) > 40_000) {
         state.coordinates = null
-        locationStatus.textContent = 'Вы далеко от Астаны. Начнём маршрут от центра города.'
+        locationMessageKey = 'locationFar'
+        locationStatus.textContent = t(locationMessageKey)
         return
       }
       state.coordinates = location
-      locationStatus.textContent = 'Начнём маршрут от вашей геопозиции.'
+      locationMessageKey = 'locationFound'
+      locationStatus.textContent = t(locationMessageKey)
       clearResults()
     })
   })
@@ -481,14 +615,14 @@ function validateForm(): { text: string; group: number; budgetKzt?: number } | n
   budget.setCustomValidity('')
   const text = prompt.value.trim()
   if (text.length < 3) {
-    promptError.textContent = 'Опишите, какой маршрут вам нужен, хотя бы в нескольких словах.'
+    promptError.textContent = t('promptError')
     promptError.hidden = false
     prompt.focus()
     return null
   }
   const group = Number(groupSize.value)
   if (!Number.isInteger(group) || group < 1 || group > 12) {
-    groupSizeError.textContent = 'Укажите число от 1 до 12.'
+    groupSizeError.textContent = t('groupError')
     groupSizeError.hidden = false
     groupSize.focus()
     return null
@@ -496,7 +630,7 @@ function validateForm(): { text: string; group: number; budgetKzt?: number } | n
   if (budget.value.trim() === '') return { text, group }
   const amount = Number(budget.value)
   if (!Number.isInteger(amount) || amount < 0 || amount > 10_000_000) {
-    budget.setCustomValidity('Укажите сумму от 0 до 10 000 000 ₸ или оставьте поле пустым.')
+    budget.setCustomValidity(t('budgetError'))
     budget.reportValidity()
     budget.focus()
     return null
@@ -514,6 +648,7 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
     intents: [],
     text: validated.text,
     groupSize: validated.group,
+    language,
   }
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
   if (excludePlaceIds.length) request.excludePlaceIds = excludePlaceIds
@@ -524,16 +659,16 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
   return { initData: telegram?.initData ?? '', request }
 }
 
-function setLoading(value: boolean, loadingLabel = 'Ищем маршрут…'): void {
+function setLoading(value: boolean, loadingLabel = t('loadingRoute')): void {
   state.isLoading = value
   submitButton.disabled = value
   planner.setAttribute('aria-busy', String(value))
-  submitLabel.textContent = value ? loadingLabel : 'Составить маршрут'
+  submitLabel.textContent = value ? loadingLabel : t('submit')
 }
 
 function showLoading(): void {
   results.hidden = false
-  results.innerHTML = '<div class="results-heading"><h2>Ищем подходящие места</h2><p>Проверяем реальные места и собираем маршрут. Это может занять до минуты.</p></div><div class="loading-row" aria-hidden="true"><span></span><span></span><span></span></div>'
+  results.innerHTML = `<div class="results-heading"><h2>${t('searchingPlaces')}</h2><p>${t('searchDescription')}</p></div><div class="loading-row" aria-hidden="true"><span></span><span></span><span></span></div>`
   setSheetMode('loading')
   scrollToResults()
 }
@@ -545,14 +680,14 @@ function showError(message: string): void {
   panel.className = 'message-state error-state'
   panel.setAttribute('role', 'alert')
   const heading = document.createElement('h2')
-  heading.textContent = 'Маршрут пока не готов'
+  heading.textContent = t('routeNotReady')
   const detail = document.createElement('p')
   detail.textContent = message
   appendNodes(panel, heading, detail)
   const retry = document.createElement('button')
   retry.type = 'button'
   retry.className = 'edit-route-button'
-  retry.textContent = 'Изменить запрос'
+  retry.textContent = t('edit')
   retry.addEventListener('click', () => {
     setSheetMode('expanded')
     prompt.focus()
@@ -572,7 +707,7 @@ function addFact(parent: HTMLElement, text: string): void {
 function formatPriceDate(value: string): string | null {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date)
+  return new Intl.DateTimeFormat(language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date)
 }
 
 function createPriceBlock(item: Recommendation): HTMLElement | null {
@@ -582,10 +717,10 @@ function createPriceBlock(item: Recommendation): HTMLElement | null {
   if (!checkedAt) return null
   if (evidence.qualifier === 'range' && (!Number.isFinite(evidence.maxKzt) || (evidence.maxKzt ?? 0) < evidence.minKzt)) return null
 
-  const unit = evidence.unit === 'entry' ? 'Вход' : evidence.unit === 'average_bill' ? 'Средний чек' : 'Одна позиция'
+  const unit = evidence.unit === 'entry' ? t('entry') : evidence.unit === 'average_bill' ? t('averageBill') : t('oneItem')
   const amount = evidence.qualifier === 'range'
     ? `${formatKzt(evidence.minKzt)}–${formatKzt(evidence.maxKzt!)}`
-    : evidence.qualifier === 'from' ? `от ${formatKzt(evidence.minKzt)}` : formatKzt(evidence.minKzt)
+    : evidence.qualifier === 'from' ? t('fromPrice', { amount: formatKzt(evidence.minKzt) }) : formatKzt(evidence.minKzt)
   const block = document.createElement('div')
   block.className = 'place-price'
   const value = document.createElement('strong')
@@ -594,15 +729,15 @@ function createPriceBlock(item: Recommendation): HTMLElement | null {
   const meta = document.createElement('div')
   meta.className = 'price-meta'
   const date = document.createElement('span')
-  date.textContent = `Проверено ${checkedAt}`
-  const source = createLink('Источник цены ↗', evidence.sourceUrl, 'price-source')
+  date.textContent = t('checked', { date: checkedAt })
+  const source = createLink(t('priceSource'), evidence.sourceUrl, 'price-source')
   appendNodes(meta, date)
   if (source) meta.appendChild(source)
   appendNodes(block, value, meta)
   if (evidence.unit === 'item') {
     const note = document.createElement('span')
     note.className = 'price-note'
-    note.textContent = 'Цена одной позиции, не всего посещения.'
+    note.textContent = t('itemPriceNote')
     block.appendChild(note)
   }
   const plannedBudget = Number(budget.value)
@@ -610,9 +745,7 @@ function createPriceBlock(item: Recommendation): HTMLElement | null {
     && evidence.unit !== 'item') {
     const note = document.createElement('span')
     note.className = 'price-note'
-    note.textContent = evidence.unit === 'entry'
-      ? 'Указанная цена билета выше вашего бюджета на человека.'
-      : 'Опубликованный средний чек выше вашего бюджета на человека.'
+    note.textContent = evidence.unit === 'entry' ? t('entryOverBudget') : t('billOverBudget')
     block.appendChild(note)
   }
   return block
@@ -624,13 +757,13 @@ function showMapPreview(item: Recommendation): void {
   preview.replaceChildren()
   const meta = document.createElement('span')
   meta.className = 'preview-label'
-  meta.textContent = categoryLabels[item.category] || (item.kind === 'trip' ? 'Поездка' : 'Остановка')
+  meta.textContent = categoryLabel(item.category) || (item.kind === 'trip' ? t('trip') : t('stop'))
   const name = document.createElement('strong')
   name.textContent = item.name
   const text = document.createElement('div')
   appendNodes(text, meta, name)
   preview.appendChild(text)
-  const source = createLink('Источник ↗', item.sourceUrl, 'preview-source')
+  const source = createLink(t('source'), item.sourceUrl, 'preview-source')
   if (source) preview.appendChild(source)
   preview.hidden = false
   results.querySelectorAll<HTMLElement>('.place-card').forEach((card) => {
@@ -650,11 +783,11 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   number.textContent = String(index + 1)
   const category = document.createElement('span')
   category.className = 'place-category'
-  category.textContent = categoryLabels[item.category] || (item.kind === 'trip' ? 'Поездка' : 'Место')
+  category.textContent = categoryLabel(item.category) || (item.kind === 'trip' ? t('trip') : t('place'))
   const mapButton = document.createElement('button')
   mapButton.type = 'button'
   mapButton.className = 'place-map-button'
-  mapButton.textContent = 'На карте ↗'
+  mapButton.textContent = t('onMap')
   mapButton.addEventListener('click', () => {
     mapController?.select(item.id)
     showMapPreview(item)
@@ -669,24 +802,24 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   const facts = document.createElement('div')
   facts.className = 'place-facts'
   const priceBlock = createPriceBlock(item)
-  if (typeof item.travelMinutesApprox === 'number') addFact(facts, `≈ ${formatMinutes(item.travelMinutesApprox)} ${travelModeLabel(item.travelMode)}`)
-  else if (typeof item.walkMinutes === 'number') addFact(facts, `≈ ${formatMinutes(item.walkMinutes)} пешком`)
-  else addFact(facts, 'Время дороги неизвестно')
-  if (typeof item.visitMinutes === 'number') addFact(facts, `≈ ${formatMinutes(item.visitMinutes)} на месте`)
+  if (typeof item.travelMinutesApprox === 'number') addFact(facts, t('travelApprox', { time: formatMinutes(item.travelMinutesApprox), mode: travelModeLabel(item.travelMode) }))
+  else if (typeof item.walkMinutes === 'number') addFact(facts, t('travelApprox', { time: formatMinutes(item.walkMinutes), mode: t('walkLower') }))
+  else addFact(facts, t('unknownTravel'))
+  if (typeof item.visitMinutes === 'number') addFact(facts, t('onSiteApprox', { time: formatMinutes(item.visitMinutes) }))
   if (item.estimatedCostKzt) {
-    addFact(facts, `Расходы на дорогу ≈ ${formatKzt(item.estimatedCostKzt.min)}–${formatKzt(item.estimatedCostKzt.max)}`)
-  } else if (!priceBlock) addFact(facts, 'Стоимость посещения неизвестна')
+    addFact(facts, t('roadCost', { min: formatKzt(item.estimatedCostKzt.min), max: formatKzt(item.estimatedCostKzt.max) }))
+  } else if (!priceBlock) addFact(facts, t('unknownCost'))
   if (item.hoursStatus) addFact(facts, item.hoursStatus)
   const action = document.createElement('div')
   action.className = 'place-action'
   const actionLabel = document.createElement('span')
-  actionLabel.textContent = 'Что здесь сделать'
+  actionLabel.textContent = t('whatToDo')
   const actionText = document.createElement('p')
   actionText.textContent = item.action
   appendNodes(action, actionLabel, actionText)
   if (item.actionSource === 'ai') {
     const caveat = document.createElement('small')
-    caveat.textContent = 'Идея создана ИИ; детали места проверьте перед выходом.'
+    caveat.textContent = t('aiCaveat')
     action.appendChild(caveat)
   }
   const evidence = (item as Recommendation & { evidence?: Array<{ claim: string; sourceUrl: string }> }).evidence
@@ -702,17 +835,17 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   if (evidenceBlock.childElementCount) {
     const evidenceLabel = document.createElement('span')
     evidenceLabel.className = 'evidence-label'
-    evidenceLabel.textContent = 'Подробности в источниках'
+    evidenceLabel.textContent = t('evidence')
     evidenceBlock.insertBefore(evidenceLabel, evidenceBlock.firstChild)
   }
   const links = document.createElement('div')
   links.className = 'place-links'
   for (const [label, value, className] of [
-    ['Маршрут до места ↗', item.routeUrl, 'map-link'],
-    ['Сайт из OSM ↗', item.venueWebsite, 'source-link'],
-    ['Источник места ↗', item.sourceUrl, 'source-link'],
-    ['Источник времени ↗', item.travelSourceUrl, 'source-link'],
-    ['Источник стоимости ↗', item.costSourceUrl, 'source-link'],
+    [t('directions'), item.routeUrl, 'map-link'],
+    [t('osmWebsite'), item.venueWebsite, 'source-link'],
+    [t('placeSource'), item.sourceUrl, 'source-link'],
+    [t('timeSource'), item.travelSourceUrl, 'source-link'],
+    [t('costSource'), item.costSourceUrl, 'source-link'],
   ] as const) {
     const link = createLink(label, value, className)
     if (link) links.appendChild(link)
@@ -751,7 +884,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   const routes = response.routes?.filter((candidate) => Array.isArray(candidate.stops) && candidate.stops.length > 0) ?? []
   const route = routes[selectedRoute] ?? routes[0]
   if (!route) {
-    showError(response.summary || 'По вашему запросу пока не нашлось подтверждённых мест. Попробуйте описать интересы иначе или выделить больше времени.')
+    showError(response.summary || t('noPlaces'))
     return
   }
   rememberShownStops(routes)
@@ -761,25 +894,25 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   heading.className = 'results-heading'
   const eyebrow = document.createElement('span')
   eyebrow.className = 'results-eyebrow'
-  eyebrow.textContent = state.scope === 'day_trip' ? 'Поездка из Астаны' : 'Маршрут по Астане'
+  eyebrow.textContent = state.scope === 'day_trip' ? t('astanaTrip') : t('cityRoute')
   const title = document.createElement('h2')
-  title.textContent = route.title || 'Ваш маршрут'
+  title.textContent = route.title || t('yourRoute')
   const summary = document.createElement('p')
   summary.textContent = route.summary || response.summary
   const meta = document.createElement('div')
   meta.className = 'route-meta'
   addFact(meta, stopCount(state.stops.length))
-  addFact(meta, `${groupSize.value} чел.`)
+  addFact(meta, `${groupSize.value} ${Number(groupSize.value) === 1 ? t('personOne') : t('personMany')}`)
   if (typeof route.totalMinutesApprox === 'number' && state.transport === 'walk') {
-    addFact(meta, `≈ ${formatMinutes(route.totalMinutesApprox)} пешком и на местах`)
+    addFact(meta, t('walkAndStops', { time: formatMinutes(route.totalMinutesApprox) }))
   }
   appendNodes(heading, eyebrow, title, summary, meta)
-  const routeLink = createLink('Открыть весь маршрут ↗', route.routeUrl, 'route-link')
+  const routeLink = createLink(t('openRoute'), route.routeUrl, 'route-link')
   if (routeLink) heading.appendChild(routeLink)
   const editButton = document.createElement('button')
   editButton.type = 'button'
   editButton.className = 'edit-route-button'
-  editButton.textContent = 'Изменить запрос'
+  editButton.textContent = t('edit')
   editButton.addEventListener('click', () => setSheetMode('expanded'))
   heading.appendChild(editButton)
   const preview = document.createElement('div')
@@ -794,7 +927,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     const variantSection = document.createElement('section')
     variantSection.className = 'route-variants'
     const variantHeading = document.createElement('h3')
-    variantHeading.textContent = state.scope === 'day_trip' ? 'Варианты поездки' : 'Варианты маршрута'
+    variantHeading.textContent = state.scope === 'day_trip' ? t('tripVariants') : t('routeVariants')
     const variants = document.createElement('div')
     variants.className = 'trip-variants'
     variants.setAttribute('role', 'group')
@@ -807,12 +940,12 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
       button.setAttribute('aria-pressed', String(candidate === route))
       const number = document.createElement('span')
       number.className = 'variant-number'
-      number.textContent = `${state.scope === 'day_trip' ? 'Поездка' : 'Маршрут'} ${index + 1}`
+      number.textContent = `${state.scope === 'day_trip' ? t('trip') : t('route')} ${index + 1}`
       const name = document.createElement('span')
       name.className = 'variant-name'
       name.textContent = state.scope === 'city'
-        ? candidate.stops[0]?.name || `Вариант ${index + 1}`
-        : candidate.title || candidate.stops[0]?.name || `Вариант ${index + 1}`
+        ? candidate.stops[0]?.name || `${t('variant')} ${index + 1}`
+        : candidate.title || candidate.stops[0]?.name || `${t('variant')} ${index + 1}`
       appendNodes(button, number, name)
       button.addEventListener('click', () => showResults(response, index, true))
       variants.appendChild(button)
@@ -825,13 +958,11 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   const geometryIsRoad = geometry.length >= 2
   const mapNote = document.createElement('p')
   mapNote.className = 'map-disclosure'
-  mapNote.textContent = geometryIsRoad
-    ? 'Линия показывает рассчитанный путь. Перед дорогой проверьте его во внешней карте.'
-    : 'Пунктир показывает порядок остановок, а не дорогу по улицам. Точный путь откройте во внешней карте.'
+  mapNote.textContent = geometryIsRoad ? t('roadLine') : t('dottedLine')
   const stopPanel = document.createElement('section')
   stopPanel.className = 'route-stops'
   const stopTitle = document.createElement('h3')
-  stopTitle.textContent = 'Остановки по порядку'
+  stopTitle.textContent = t('stopsOrder')
   const list = document.createElement('div')
   list.className = 'place-list'
   state.stops.forEach((item, index) => list.appendChild(createStopCard(item, index)))
@@ -849,7 +980,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     const moreButton = document.createElement('button')
     moreButton.type = 'button'
     moreButton.className = 'more-ideas-button'
-    moreButton.textContent = 'Ещё идеи →'
+    moreButton.textContent = t('moreIdeas')
     moreButton.setAttribute('aria-describedby', 'moreIdeasStatus')
     const status = document.createElement('p')
     status.id = 'moreIdeasStatus'
@@ -879,13 +1010,13 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
   const validated = validateForm()
   if (!validated) return
   if (!telegram?.initData) {
-    status.textContent = 'Откройте приложение через бота в Telegram и попробуйте снова.'
+    status.textContent = t('openInTelegram')
     return
   }
-  setLoading(true, 'Ищем ещё…')
+  setLoading(true, t('loadingMore'))
   button.disabled = true
-  button.textContent = 'Ищем идеи…'
-  status.textContent = 'Ищем другие места по тем же условиям.'
+  button.textContent = t('searchingIdeas')
+  status.textContent = t('otherPlaces')
   const controller = new AbortController()
   const version = ++requestVersion
   activeRecommendation = controller
@@ -894,22 +1025,22 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
   try {
     const response = await fetch('/api/recommend', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
       body: JSON.stringify(makeRequest(validated, recentExcludedPlaceIds())),
       signal: controller.signal,
     })
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) throw new Error('Сессия Telegram устарела. Откройте приложение через бота заново.')
-      if (response.status === 429) throw new Error('Слишком много запросов. Подождите немного и попробуйте снова.')
-      throw new Error('Не удалось найти новые идеи. Попробуйте чуть позже.')
+      if (response.status === 401 || response.status === 403) throw new Error(t('telegramExpired'))
+      if (response.status === 429) throw new Error(t('rateLimit'))
+      throw new Error(t('newIdeasError'))
     }
     const data: RouteResponse = await response.json()
     if (version !== requestVersion) return
-    if (!data || !Array.isArray(data.routes)) throw new Error('Ответ сервера неполный. Попробуйте ещё раз.')
+    if (!data || !Array.isArray(data.routes)) throw new Error(t('incomplete'))
     const hasStops = data.routes.some((route) => Array.isArray(route.stops) && route.stops.length > 0)
     if (!hasStops) {
       exhausted = true
-      status.textContent = 'Новых мест пока не нашлось. Попробуйте изменить запрос или параметры.'
+      status.textContent = t('noNewPlaces')
       return
     }
     showResults(data)
@@ -921,8 +1052,8 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
   } catch (error) {
     if (version !== requestVersion) return
     status.textContent = error instanceof DOMException && error.name === 'AbortError'
-      ? 'Поиск занял слишком много времени. Попробуйте ещё раз.'
-      : error instanceof Error ? error.message : 'Не удалось найти новые идеи. Попробуйте ещё раз.'
+      ? t('searchTimeoutShort')
+      : error instanceof Error ? error.message : t('newIdeasRetry')
   } finally {
     window.clearTimeout(timeout)
     if (version === requestVersion) {
@@ -930,7 +1061,7 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
       setLoading(false)
       if (button.isConnected) {
         button.disabled = exhausted
-        button.textContent = 'Ещё идеи →'
+        button.textContent = t('moreIdeas')
       }
     }
   }
@@ -938,11 +1069,12 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
 
 planner.addEventListener('submit', async (event) => {
   event.preventDefault()
+  requiredElement<HTMLElement>('#languageNotice').hidden = true
   if (state.isLoading) return
   const validated = validateForm()
   if (!validated) return
   if (!telegram?.initData) {
-    showError('Для составления маршрута откройте приложение через бота в Telegram. Так мы сможем безопасно обработать ваш запрос.')
+    showError(t('telegramRequired'))
     return
   }
   prompt.blur()
@@ -956,26 +1088,26 @@ planner.addEventListener('submit', async (event) => {
   try {
     const response = await fetch('/api/recommend', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
       body: JSON.stringify(makeRequest(validated)),
       signal: controller.signal,
     })
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) throw new Error('Не удалось подтвердить запуск в Telegram. Полностью закройте окно приложения и откройте его снова через @smart_city_ryadombot.')
-      if (response.status === 429) throw new Error('Слишком много запросов. Подождите немного и попробуйте снова.')
-      throw new Error('Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.')
+      if (response.status === 401 || response.status === 403) throw new Error(t('telegramInvalid'))
+      if (response.status === 429) throw new Error(t('rateLimit'))
+      throw new Error(t('serviceError'))
     }
     const data: RouteResponse = await response.json()
     if (version !== requestVersion) return
     if (!data || typeof data.summary !== 'string' || !Array.isArray(data.routes)) {
-      throw new Error('Ответ сервера неполный. Попробуйте ещё раз.')
+      throw new Error(t('incomplete'))
     }
     showResults(data)
   } catch (error) {
     if (version !== requestVersion) return
     showError(error instanceof DOMException && error.name === 'AbortError'
-      ? 'Поиск занял слишком много времени. Проверьте соединение и попробуйте ещё раз.'
-      : error instanceof Error ? error.message : 'Произошла ошибка. Попробуйте ещё раз.')
+      ? t('searchTimeout')
+      : error instanceof Error ? error.message : t('unknownError'))
   } finally {
     window.clearTimeout(timeout)
     if (version === requestVersion) {
@@ -985,20 +1117,18 @@ planner.addEventListener('submit', async (event) => {
   }
 })
 
-renderDurationChoices()
-renderTransportChoices()
-updateSettingsSummary()
-
 const mapStage = requiredElement<HTMLElement>('.map-stage')
 const routeSheet = requiredElement<HTMLElement>('#routeSheet')
 mapController = mountRecommendationsMap(requiredElement<HTMLElement>('#map'), {
   markers: [],
   center: ASTANA_CENTER,
+  language,
   onSelect: (id) => {
     const item = state.stops.find((stop) => stop.id === id)
     if (item) showMapPreview(item)
   },
 })
+applyTranslations()
 
 function syncMapInset(): void {
   const stage = mapStage.getBoundingClientRect()

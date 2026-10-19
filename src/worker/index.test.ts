@@ -62,6 +62,35 @@ describe('Worker API integration', () => {
     expect(body.note).toContain('места')
   })
 
+  it('returns route explanations in the selected language, regardless of prompt language', async () => {
+    const kazakh = await recommend({ language: 'kk', text: 'Хочу кофе и почитать книгу', minutes: 180 })
+    expect(kazakh.response.status).toBe(200)
+    expect(kazakh.body.summary).toContain('сұрауыңызға сай')
+    expect(kazakh.body.routes?.[0]?.summary).toContain('Астанада')
+    expect(kazakh.body.routes?.[0]?.stops[0].why).toContain('сұрауыңызға сай')
+    expect(kazakh.body.routes?.[0]?.stops[0].action).toMatch(/нақтылаңыз|тексеріңіз/)
+    expect(kazakh.body.note).toContain('Іздеу негізі')
+
+    const english = await recommend({ language: 'en', text: 'Хочу кофе и почитать книгу', minutes: 180 })
+    expect(english.response.status).toBe(200)
+    expect(english.body.summary).toContain('matched your request')
+    expect(english.body.routes?.[0]?.summary).toContain('in Astana')
+    expect(english.body.routes?.[0]?.stops[0].why).toContain('matches your request')
+    expect(english.body.routes?.[0]?.stops[0].action).toMatch(/Check/)
+    expect(english.body.note).toContain('Search is based on OpenStreetMap')
+  })
+
+  it('localizes empty results, day trips and auth errors', async () => {
+    const empty = await recommend({ language: 'en', latitude: 50, longitude: 70 })
+    expect(empty.body.summary).toContain('outside Astana')
+    const trip = await recommend({ language: 'kk', scope: 'day_trip', transport: 'car', minutes: 1440 })
+    expect(trip.response.status).toBe(200)
+    expect(trip.body.summary).toContain('Астанадан қала сыртына')
+    expect(trip.body.routes?.[0]?.stops[0].why).toContain('тексерілмеген')
+    const invalid = await worker.fetch(requestBody({ language: 'en' }, ''), { TELEGRAM_BOT_TOKEN: token })
+    expect((await invalid.json() as { error: string }).error).toContain('Reopen the app')
+  })
+
   it('rejects unsigned or invalid Telegram launch data', async () => {
     expect((await worker.fetch(requestBody({}, ''), { TELEGRAM_BOT_TOKEN: token })).status).toBe(401)
     const invalid = new URLSearchParams({
@@ -242,5 +271,21 @@ describe('Worker API integration', () => {
     expect(response.status).toBe(200)
     expect(body.method).toBe('sendMessage')
     expect(body.reply_markup.inline_keyboard[0][0].web_app.url).toBe('https://example.test/app')
+  })
+
+  it('uses Telegram language for the bot launch message', async () => {
+    const sendStart = async (language_code: string) => {
+      const request = new Request('https://example.test/telegram/webhook', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'X-Telegram-Bot-Api-Secret-Token': 'secret' },
+        body: JSON.stringify({ message: { text: '/start', chat: { id: 123, type: 'private' },
+          from: { language_code } } }),
+      })
+      return await (await worker.fetch(request, {
+        TELEGRAM_WEBHOOK_SECRET: 'secret', MINI_APP_URL: 'https://example.test/app',
+      })).json() as { text: string; reply_markup: { inline_keyboard: Array<Array<{ text: string }>> } }
+    }
+    expect((await sendStart('kk-KZ')).reply_markup.inline_keyboard[0][0].text).toBe('Серуенді ашу')
+    expect((await sendStart('en-US')).text).toContain('available time')
   })
 })

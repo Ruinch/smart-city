@@ -80,8 +80,11 @@ export interface TripCatalog {
 
 export type TripScope = 'city' | 'day_trip'
 export type TransportMode = 'walk' | 'car' | 'transit'
+export type Language = 'ru' | 'kk' | 'en'
 
 export interface WalkRequest {
+  /** Language explicitly selected in the Mini App; independent of the prompt language. */
+  language?: Language
   cityId?: string
   scope?: TripScope
   transport?: TransportMode

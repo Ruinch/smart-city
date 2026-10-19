@@ -11,24 +11,8 @@
   --brand: #236a54;
   --brand-soft: #e5f2e9;
   --sun: #b17c23;
-  --button: var(--tg-theme-button-color, #1d493b);
-  --button-text: var(--tg-theme-button-text-color, #ffffff);
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --page: #111916;
-  --surface: #1d2721;
-  --surface-soft: #28342c;
-  --ink: #f3f6f1;
-  --muted: #b6c2b9;
-  --border: #344238;
-  --control-border: #536657;
-  --brand: #a7dcb8;
-  --brand-soft: #31493a;
-  --sun: #e1bc6d;
-  --button: var(--tg-theme-button-color, #a7dcb8);
-  --button-text: var(--tg-theme-button-text-color, #102017);
+  --button: #236a54;
+  --button-text: #ffffff;
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +30,7 @@ body {
 button, input, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
-button:focus-visible, input:focus-visible, textarea:focus-visible,
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible,
 a:focus-visible, .rec-map__viewport:focus-visible {
   outline: 3px solid var(--sun);
   outline-offset: 2px;
@@ -130,7 +114,8 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   min-height: 46px;
-  gap: 11px;
+  max-width: calc(100% - 32px);
+  gap: 9px;
   padding: 5px 13px 5px 10px;
   border: 1px solid rgb(17 42 28 / 8%);
   border-radius: 14px;
@@ -173,6 +158,29 @@ a { color: inherit; }
   color: var(--muted);
   font-size: 13px;
   line-height: 22px;
+}
+.language-notice { margin: 8px 0; color: var(--brand); font-size: 12px; line-height: 1.45; }
+.language-picker {
+  display: block;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+.language-picker select {
+  display: block;
+  min-width: 51px;
+  height: 44px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .map-stage .rec-map__controls { top: calc(77px + var(--tg-content-safe-area-inset-top, 0px)); }
 }
 .map-actions {
   position: absolute;
@@ -305,7 +313,6 @@ a { color: inherit; }
 .planner textarea::placeholder,
 .planner input::placeholder { color: var(--muted); opacity: 1; }
 .field-error { margin: 7px 0 0; color: #a3312d; font-size: 13px; line-height: 1.4; }
-:root[data-theme="dark"] .field-error { color: #ffb7a8; }
 .example-row {
   display: flex;
   gap: 7px;
@@ -567,6 +574,7 @@ a { color: inherit; }
   .app-shell[data-sheet="peek-results"] { --sheet-height: 33dvh; }
   .sheet-heading { margin-bottom: 10px; }
   .sheet-heading p { display: none; }
+  .sheet-heading .language-notice:not([hidden]) { display: block; }
 }
 
 @media (min-width: 761px) {
