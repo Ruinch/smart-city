@@ -18,6 +18,7 @@ interface TelegramWebApp {
   setHeaderColor?(color: string): void
   setBackgroundColor?(color: string): void
   setBottomBarColor?(color: string): void
+  disableVerticalSwipes?(): void
   openLink?(url: string): void
   onEvent?(event: string, callback: () => void): void
 }
@@ -364,6 +365,7 @@ document.documentElement.dataset.theme = 'light'
 if (telegram?.isVersionAtLeast?.('7.0')) telegram.setHeaderColor?.('#ffffff')
 if (telegram?.isVersionAtLeast?.('6.1')) telegram.setBackgroundColor?.('#e6ece8')
 if (telegram?.isVersionAtLeast?.('7.10')) telegram.setBottomBarColor?.('#ffffff')
+if (telegram?.isVersionAtLeast?.('7.7')) telegram.disableVerticalSwipes?.()
 telegram?.ready()
 telegram?.expand()
 
