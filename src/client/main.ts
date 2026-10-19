@@ -65,47 +65,62 @@ const categoryLabels: Record<string, string> = {
 
 app.innerHTML = `
   <a class="skip-link" href="#content">К содержимому</a>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand" aria-label="Рядом — маршруты из Астаны">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <span class="brand-name">рядом<span class="brand-period">.</span></span>
-      </div>
-      <span class="topbar-country">Астана</span>
-    </header>
-
-    <main id="content">
-      <div class="page-intro">
-        <h1>Что хочется сегодня?</h1>
-        <p>Расскажите своими словами. Соберём маршрут по Астане или поездку из города с учётом времени и компании.</p>
-      </div>
-
-      <form id="planner" class="planner" novalidate>
-        <div class="planner-lead">
-          <label for="prompt">Ваш план</label>
-          <p id="promptHint">Настроение, места и детали, которые важны именно вам.</p>
+  <div class="app-shell" data-sheet="peek">
+    <main id="content" class="map-stage" aria-label="Карта Астаны и маршрута">
+      <div id="map" class="map-canvas" role="region" aria-label="Карта Астаны"></div>
+      <header class="map-topbar topbar">
+        <div class="brand" aria-label="Рядом — маршруты из Астаны">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span class="brand-name">рядом<span class="brand-period">.</span></span>
         </div>
-        <textarea id="prompt" name="prompt" rows="3" maxlength="300" aria-describedby="promptHint promptError" placeholder="Например: хочу тихое кафе с кофе, где можно почитать книгу"></textarea>
+        <span class="topbar-country">Астана</span>
+      </header>
+      <div class="map-actions" aria-label="Управление картой">
+        <button id="recenterButton" class="map-action" type="button" aria-label="Показать начало маршрута" title="Показать начало маршрута"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
+        <button id="fitButton" class="map-action" type="button" aria-label="Показать весь маршрут" title="Показать весь маршрут" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5m0 6v5h-5M4 15v5h5"/></svg></button>
+      </div>
+      <footer class="map-credits">
+        <span>© участники OpenStreetMap</span>
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Лицензия</a>
+        <a href="/privacy.html">О данных</a>
+      </footer>
+    </main>
+
+    <section id="routeSheet" class="route-sheet" aria-label="Планировщик маршрута">
+      <button id="sheetHandle" class="sheet-handle" type="button" aria-label="Развернуть панель" aria-expanded="false" aria-controls="sheetBody">
+        <span class="sheet-grip" aria-hidden="true"></span>
+      </button>
+      <div id="sheetBody" class="sheet-scroll">
+        <div class="sheet-heading">
+          <h1>Куда хочется?</h1>
+          <p>Расскажите, какой вечер или прогулку вы задумали.</p>
+          <button id="returnToRouteButton" class="return-route-button" type="button" hidden>← К маршруту</button>
+        </div>
+        <form id="planner" class="planner" novalidate>
+        <div class="planner-lead">
+          <label for="prompt">Что вам интересно</label>
+          <p id="promptHint" class="visually-hidden">Опишите настроение, места и детали своими словами.</p>
+        </div>
+        <textarea id="prompt" name="prompt" rows="2" maxlength="300" aria-describedby="promptHint promptError" placeholder="Например, тихое кафе с книгой или танцы до ночи"></textarea>
         <p id="promptError" class="field-error" role="alert" hidden></p>
         <div class="example-row" role="group" aria-label="Примеры запросов">
-          <span>Можно начать так:</span>
           <button type="button" data-example="Хочу в клуб: музыка, танцы и движная ночь">Клуб и танцы</button>
           <button type="button" data-example="Тихое кафе, где можно попить кофе и почитать книгу">Кофе и книга</button>
           <button type="button" data-example="Прогулка с друзьями по интересным местам Астаны">С друзьями</button>
-          <button type="button" data-example="Хочу боулинг или квест с друзьями, а потом перекусить">Боулинг или квест</button>
-          <button type="button" data-example="Покажи необычные памятники и интересные места для прогулки">Необычная прогулка</button>
         </div>
-
-        <div class="form-divider"></div>
-        <div class="scope-row">
+        <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="advancedSettings">
+          <span id="settingsSummary">Астана · 2 ч · пешком · 1 человек</span>
+          <span class="settings-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div id="advancedSettings" class="advanced-settings">
+          <div class="scope-row">
           <div class="field-label">Где искать</div>
           <div class="scope-switch" role="group" aria-label="Где искать маршрут">
             <button type="button" class="scope-button is-selected" data-scope="city" aria-pressed="true">В Астане</button>
             <button type="button" class="scope-button" data-scope="day_trip" aria-pressed="false">Поездка из города</button>
           </div>
-        </div>
-
-        <div class="settings-grid">
+          </div>
+          <div class="settings-grid">
           <fieldset class="field-group">
             <legend>Сколько времени есть</legend>
             <div id="durationChoices" class="choice-row" aria-label="Время вместе с дорогой"></div>
@@ -125,12 +140,12 @@ app.innerHTML = `
             <p id="groupSizeHint" class="field-hint">От 1 до 12 человек.</p>
             <p id="groupSizeError" class="field-error" role="alert" hidden></p>
           </div>
-        </div>
-
-        <p id="transportHint" class="form-note">Время дороги ориентировочное. Перед выходом проверьте маршрут и часы работы.</p>
-        <div id="locationRow" class="location-row" hidden>
-          <button id="deviceButton" type="button" class="text-button">Взять мою геопозицию</button>
-          <p id="locationStatus" class="field-hint" role="status">Без геопозиции начнём от центра Астаны.</p>
+          </div>
+          <p id="transportHint" class="form-note">Время дороги ориентировочное. Перед выходом проверьте маршрут и часы работы.</p>
+          <div id="locationRow" class="location-row" hidden>
+            <button id="deviceButton" type="button" class="text-button">Взять мою геопозицию</button>
+            <p id="locationStatus" class="field-hint" role="status">Без геопозиции начнём от центра Астаны.</p>
+          </div>
         </div>
         <div class="submit-dock">
           <button id="submitButton" class="submit-button" type="submit">
@@ -139,17 +154,9 @@ app.innerHTML = `
           </button>
         </div>
       </form>
-
       <section id="results" class="results" aria-live="polite" aria-label="Готовый маршрут" hidden></section>
-    </main>
-
-    <footer class="footer">
-      <span>Карта: © участники OpenStreetMap</span>
-      <span class="footer-links">
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Лицензия OSM</a>
-        <a href="/privacy.html">О данных</a>
-      </span>
-    </footer>
+      </div>
+    </section>
   </div>
 `
 
@@ -173,6 +180,16 @@ const submitButton = requiredElement<HTMLButtonElement>('#submitButton')
 const submitLabel = requiredElement<HTMLElement>('.submit-label')
 const results = requiredElement<HTMLElement>('#results')
 const locationStatus = requiredElement<HTMLElement>('#locationStatus')
+const shell = requiredElement<HTMLElement>('.app-shell')
+const sheetHandle = requiredElement<HTMLButtonElement>('#sheetHandle')
+const sheetScroll = requiredElement<HTMLElement>('#sheetBody')
+const settingsToggle = requiredElement<HTMLButtonElement>('#settingsToggle')
+const settingsSummary = requiredElement<HTMLElement>('#settingsSummary')
+const recenterButton = requiredElement<HTMLButtonElement>('#recenterButton')
+const fitButton = requiredElement<HTMLButtonElement>('#fitButton')
+const returnToRouteButton = requiredElement<HTMLButtonElement>('#returnToRouteButton')
+
+type SheetMode = 'peek' | 'expanded' | 'loading' | 'results' | 'peek-results'
 
 const state: {
   scope: Scope
@@ -193,7 +210,44 @@ const state: {
 let requestVersion = 0
 let activeRecommendation: AbortController | null = null
 let mapController: RecommendationsMapController | null = null
+let currentRouteOrigin: MapCoordinate | null = null
 const seenPlaceIds = new Set<string>()
+
+function setSheetMode(mode: SheetMode): void {
+  shell.dataset.sheet = mode
+  const expanded = mode === 'expanded' || mode === 'results'
+  sheetHandle.setAttribute('aria-expanded', String(expanded))
+  sheetHandle.setAttribute('aria-label', mode === 'results' ? 'Свернуть маршрут' : mode === 'peek-results' ? 'Развернуть маршрут' : expanded ? 'Свернуть панель' : 'Развернуть панель')
+  sheetHandle.disabled = mode === 'loading'
+  settingsToggle.setAttribute('aria-expanded', String(mode === 'expanded'))
+  planner.hidden = mode === 'loading' || mode === 'results' || mode === 'peek-results'
+  if (mode !== 'results' && mode !== 'loading' && mode !== 'peek-results') results.hidden = true
+  returnToRouteButton.hidden = !currentRouteOrigin || (mode !== 'peek' && mode !== 'expanded')
+  sheetScroll.scrollTop = 0
+}
+
+function updateSettingsSummary(): void {
+  const travel = state.transport === 'car' ? 'на машине' : state.transport === 'transit' ? 'транспорт' : 'пешком'
+  const count = Number(groupSize.value) || 1
+  const people = count === 1 ? '1 человек' : `${count} чел.`
+  const money = budget.value.trim() === '' ? '' : ` · ${formatKzt(Number(budget.value))} на чел.`
+  settingsSummary.textContent = `${state.scope === 'city' ? 'Астана' : 'Из Астаны'} · ${state.minutes === 1440 ? 'весь день' : formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
+}
+
+sheetHandle.addEventListener('click', () => {
+  const mode = shell.dataset.sheet as SheetMode
+  if (mode === 'results') {
+    setSheetMode('peek-results')
+  } else if (mode === 'peek-results') {
+    setSheetMode('results')
+  } else if (mode !== 'loading') setSheetMode(mode === 'expanded' ? 'peek' : 'expanded')
+})
+settingsToggle.addEventListener('click', () => setSheetMode(shell.dataset.sheet === 'expanded' ? 'peek' : 'expanded'))
+returnToRouteButton.addEventListener('click', () => setSheetMode('results'))
+prompt.addEventListener('focus', () => setSheetMode('expanded'))
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && shell.dataset.sheet === 'expanded') setSheetMode('peek')
+})
 
 function setTheme(): void {
   document.documentElement.dataset.theme = telegram?.colorScheme === 'dark' ? 'dark' : 'light'
@@ -254,23 +308,22 @@ function origin(): MapCoordinate {
 }
 
 function scrollToResults(): void {
-  results.scrollIntoView({
-    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-    block: 'start',
-  })
+  sheetScroll.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
 }
 
 function clearResults(): void {
   requestVersion += 1
   activeRecommendation?.abort()
   activeRecommendation = null
-  mapController?.destroy()
-  mapController = null
+  mapController?.update([], origin())
+  currentRouteOrigin = null
+  fitButton.hidden = true
   state.stops = []
   seenPlaceIds.clear()
   if (state.isLoading) setLoading(false)
   results.hidden = true
   results.replaceChildren()
+  if (shell.dataset.sheet === 'results' || shell.dataset.sheet === 'peek-results' || shell.dataset.sheet === 'loading') setSheetMode('expanded')
 }
 
 function renderDurationChoices(): void {
@@ -294,6 +347,7 @@ function renderDurationChoices(): void {
         candidate.setAttribute('aria-pressed', String(active))
       })
       clearResults()
+      updateSettingsSummary()
     })
     row.appendChild(button)
   }
@@ -323,6 +377,7 @@ function renderTransportChoices(): void {
       })
       updateTransportHint()
       clearResults()
+      updateSettingsSummary()
     })
     row.appendChild(button)
   }
@@ -349,6 +404,7 @@ function setScope(scope: Scope): void {
   renderDurationChoices()
   renderTransportChoices()
   clearResults()
+  updateSettingsSummary()
 }
 
 document.querySelectorAll<HTMLButtonElement>('[data-scope]').forEach((button) => {
@@ -369,10 +425,12 @@ prompt.addEventListener('input', () => {
 budget.addEventListener('input', () => {
   budget.setCustomValidity('')
   clearResults()
+  updateSettingsSummary()
 })
 groupSize.addEventListener('input', () => {
   groupSizeError.hidden = true
   clearResults()
+  updateSettingsSummary()
 })
 
 function distanceMeters(a: MapCoordinate, b: MapCoordinate): number {
@@ -476,12 +534,11 @@ function setLoading(value: boolean, loadingLabel = 'Ищем маршрут…')
 function showLoading(): void {
   results.hidden = false
   results.innerHTML = '<div class="results-heading"><h2>Ищем подходящие места</h2><p>Проверяем реальные места и собираем маршрут. Это может занять до минуты.</p></div><div class="loading-row" aria-hidden="true"><span></span><span></span><span></span></div>'
+  setSheetMode('loading')
   scrollToResults()
 }
 
 function showError(message: string): void {
-  mapController?.destroy()
-  mapController = null
   results.hidden = false
   results.replaceChildren()
   const panel = document.createElement('div')
@@ -492,7 +549,17 @@ function showError(message: string): void {
   const detail = document.createElement('p')
   detail.textContent = message
   appendNodes(panel, heading, detail)
+  const retry = document.createElement('button')
+  retry.type = 'button'
+  retry.className = 'edit-route-button'
+  retry.textContent = 'Изменить запрос'
+  retry.addEventListener('click', () => {
+    setSheetMode('expanded')
+    prompt.focus()
+  })
+  panel.appendChild(retry)
   results.appendChild(panel)
+  setSheetMode('results')
   scrollToResults()
 }
 
@@ -552,7 +619,8 @@ function createPriceBlock(item: Recommendation): HTMLElement | null {
 }
 
 function showMapPreview(item: Recommendation): void {
-  const preview = requiredElement<HTMLElement>('#mapPreview')
+  const preview = results.querySelector<HTMLElement>('#mapPreview')
+  if (!preview) return
   preview.replaceChildren()
   const meta = document.createElement('span')
   meta.className = 'preview-label'
@@ -568,6 +636,7 @@ function showMapPreview(item: Recommendation): void {
   results.querySelectorAll<HTMLElement>('.place-card').forEach((card) => {
     card.classList.toggle('is-map-selected', card.dataset.id === item.id)
   })
+  if (shell.dataset.sheet === 'peek-results') setSheetMode('results')
 }
 
 function createStopCard(item: Recommendation, index: number): HTMLElement {
@@ -589,10 +658,7 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   mapButton.addEventListener('click', () => {
     mapController?.select(item.id)
     showMapPreview(item)
-    requiredElement<HTMLElement>('#map').scrollIntoView({
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      block: 'center',
-    })
+    setSheetMode('peek-results')
   })
   appendNodes(top, number, category, mapButton)
   const name = document.createElement('h3')
@@ -680,8 +746,6 @@ function recentExcludedPlaceIds(): string[] {
 }
 
 function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = false): void {
-  mapController?.destroy()
-  mapController = null
   results.hidden = false
   results.replaceChildren()
   const routes = response.routes?.filter((candidate) => Array.isArray(candidate.stops) && candidate.stops.length > 0) ?? []
@@ -712,6 +776,18 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   appendNodes(heading, eyebrow, title, summary, meta)
   const routeLink = createLink('Открыть весь маршрут ↗', route.routeUrl, 'route-link')
   if (routeLink) heading.appendChild(routeLink)
+  const editButton = document.createElement('button')
+  editButton.type = 'button'
+  editButton.className = 'edit-route-button'
+  editButton.textContent = 'Изменить запрос'
+  editButton.addEventListener('click', () => setSheetMode('expanded'))
+  heading.appendChild(editButton)
+  const preview = document.createElement('div')
+  preview.id = 'mapPreview'
+  preview.className = 'map-preview'
+  preview.setAttribute('role', 'status')
+  preview.hidden = true
+  heading.appendChild(preview)
   results.appendChild(heading)
 
   if (routes.length > 1) {
@@ -745,28 +821,6 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     results.appendChild(variantSection)
   }
 
-  const layout = document.createElement('div')
-  layout.className = 'route-layout'
-  const mapPanel = document.createElement('section')
-  mapPanel.className = 'route-map-panel'
-  mapPanel.setAttribute('aria-label', 'Карта маршрута')
-  const mapHeading = document.createElement('div')
-  mapHeading.className = 'map-heading'
-  const mapTitle = document.createElement('h3')
-  mapTitle.textContent = 'На карте'
-  const mapCount = document.createElement('span')
-  mapCount.textContent = stopCount(state.stops.length)
-  appendNodes(mapHeading, mapTitle, mapCount)
-  const map = document.createElement('div')
-  map.id = 'map'
-  map.className = 'map-canvas'
-  map.setAttribute('role', 'region')
-  map.setAttribute('aria-label', 'Карта остановок маршрута')
-  const preview = document.createElement('div')
-  preview.id = 'mapPreview'
-  preview.className = 'map-preview'
-  preview.setAttribute('role', 'status')
-  preview.hidden = true
   const geometry = Array.isArray(route.geometry) ? route.geometry.filter(validPoint) : []
   const geometryIsRoad = geometry.length >= 2
   const mapNote = document.createElement('p')
@@ -774,11 +828,6 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   mapNote.textContent = geometryIsRoad
     ? 'Линия показывает рассчитанный путь. Перед дорогой проверьте его во внешней карте.'
     : 'Пунктир показывает порядок остановок, а не дорогу по улицам. Точный путь откройте во внешней карте.'
-  const privacyNote = document.createElement('p')
-  privacyNote.className = 'map-privacy-note'
-  privacyNote.textContent = 'При просмотре карты загружаются данные OpenStreetMap. При открытии внешнего маршрута его точки передаются картографическому сервису.'
-  appendNodes(mapPanel, mapHeading, map, preview, mapNote, privacyNote)
-
   const stopPanel = document.createElement('section')
   stopPanel.className = 'route-stops'
   const stopTitle = document.createElement('h3')
@@ -786,9 +835,8 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   const list = document.createElement('div')
   list.className = 'place-list'
   state.stops.forEach((item, index) => list.appendChild(createStopCard(item, index)))
-  appendNodes(stopPanel, stopTitle, list)
-  appendNodes(layout, mapPanel, stopPanel)
-  results.appendChild(layout)
+  appendNodes(stopPanel, stopTitle, list, mapNote)
+  results.appendChild(stopPanel)
   if (response.note) {
     const note = document.createElement('p')
     note.className = 'results-note'
@@ -817,16 +865,10 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     .map((item) => ({ id: item.id, name: item.name, lat: item.lat, lon: item.lon, kind: item.kind, category: item.category, sourceUrl: item.sourceUrl }))
   const routeOrigin = validPoint(route.origin) ? route.origin : origin()
   const routeLine = geometryIsRoad ? geometry : [routeOrigin, ...markers]
-  mapController = mountRecommendationsMap(map, {
-    markers,
-    center: routeOrigin,
-    routeLine,
-    schematic: !geometryIsRoad,
-    onSelect: (id) => {
-      const item = state.stops.find((stop) => stop.id === id)
-      if (item) showMapPreview(item)
-    },
-  })
+  currentRouteOrigin = routeOrigin
+  mapController?.update(markers, routeOrigin, routeLine, !geometryIsRoad)
+  fitButton.hidden = false
+  setSheetMode('results')
   if (focusVariant) {
     results.querySelector<HTMLButtonElement>('.trip-variant.is-selected')?.focus({ preventScroll: true })
   } else scrollToResults()
@@ -945,3 +987,29 @@ planner.addEventListener('submit', async (event) => {
 
 renderDurationChoices()
 renderTransportChoices()
+updateSettingsSummary()
+
+const mapStage = requiredElement<HTMLElement>('.map-stage')
+const routeSheet = requiredElement<HTMLElement>('#routeSheet')
+mapController = mountRecommendationsMap(requiredElement<HTMLElement>('#map'), {
+  markers: [],
+  center: ASTANA_CENTER,
+  onSelect: (id) => {
+    const item = state.stops.find((stop) => stop.id === id)
+    if (item) showMapPreview(item)
+  },
+})
+
+function syncMapInset(): void {
+  const stage = mapStage.getBoundingClientRect()
+  const sheet = routeSheet.getBoundingClientRect()
+  const isBottomSheet = window.matchMedia('(max-width: 760px)').matches
+  mapController?.setBottomInset(isBottomSheet ? Math.max(0, stage.bottom - sheet.top) : 0)
+}
+const sheetObserver = new ResizeObserver(syncMapInset)
+sheetObserver.observe(routeSheet)
+window.addEventListener('resize', syncMapInset)
+requestAnimationFrame(syncMapInset)
+
+recenterButton.addEventListener('click', () => mapController?.focus(currentRouteOrigin ?? origin()))
+fitButton.addEventListener('click', () => mapController?.fit())

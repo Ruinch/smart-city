@@ -263,3 +263,28 @@
   .rec-map__marker,
   .rec-map__details summary::before { transition: none; }
 }
+
+/* The map-first screen lets the map fill the space above the bottom sheet. */
+.map-stage .rec-map {
+  height: 100%;
+  min-height: 0;
+}
+
+.map-stage .rec-map__viewport {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.map-stage .rec-map__details {
+  display: none;
+}
+
+.map-stage .rec-map__attribution {
+  bottom: calc(var(--map-bottom-inset, 0px) + 8px);
+}
+
+.map-stage .rec-map__failure {
+  bottom: calc(var(--map-bottom-inset, 0px) + 44px);
+}

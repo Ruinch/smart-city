@@ -26,6 +26,9 @@ export interface RecommendationsMapOptions {
 export interface RecommendationsMapController {
   update(markers: MapMarker[], center?: MapCoordinate, routeLine?: MapCoordinate[], schematic?: boolean): void
   select(id: string): void
+  focus(point: MapCoordinate): void
+  fit(): void
+  setBottomInset(px: number): void
   destroy(): void
 }
 
@@ -35,6 +38,8 @@ const MAX_ZOOM = 18
 const MAX_FIT_ZOOM = 15
 const MAX_LATITUDE = 85.05112878
 const OSM_TILE_BASE = 'https://tile.openstreetmap.org/'
+const ASTANA_CENTER: MapCoordinate = { lat: 51.1283, lon: 71.4305 }
+const CITY_ZOOM = 12
 
 interface Pixel {
   x: number
@@ -105,7 +110,7 @@ export function mountRecommendationsMap(
 ): RecommendationsMapController {
   const root = document.createElement('section')
   root.className = 'rec-map'
-  root.setAttribute('aria-label', 'Карта маршрута')
+  root.setAttribute('aria-label', 'Карта Астаны и маршрута')
 
   const viewport = document.createElement('div')
   viewport.className = 'rec-map__viewport'
@@ -185,10 +190,11 @@ export function mountRecommendationsMap(
   let routeLine = cleanRouteLine(options.routeLine)
   let schematic = options.schematic ?? true
   let preferredCenter = validCoordinate(options.center) ? options.center : undefined
-  let center: MapCoordinate = preferredCenter ?? markers[0] ?? { lat: 51.1283, lon: 71.4305 }
-  let zoom = 14
+  let center: MapCoordinate = preferredCenter ?? markers[0] ?? ASTANA_CENTER
+  let zoom = CITY_ZOOM
   let selectedId = ''
   let resizedAfterInteraction = false
+  let bottomInset = 0
   let frame = 0
   let destroyed = false
   let activePointer: number | null = null
@@ -204,13 +210,31 @@ export function mountRecommendationsMap(
     }
   }
 
+  function effectiveBottomInset(height: number): number {
+    return Math.min(bottomInset, Math.max(0, height - 80))
+  }
+
+  function visibleHeight(height: number): number {
+    return height - effectiveBottomInset(height)
+  }
+
+  function mapAnchorY(height: number): number {
+    return visibleHeight(height) / 2
+  }
+
   function fitMarkers(): void {
     const points: MapCoordinate[] = [...markers, ...routeLine]
     if (preferredCenter) points.push(preferredCenter)
+    if (markers.length === 0 && routeLine.length === 0) {
+      center = preferredCenter ?? ASTANA_CENTER
+      zoom = CITY_ZOOM
+      queueRender()
+      return
+    }
     if (points.length === 0) return
     const { width, height } = viewportSize()
     const availableWidth = Math.max(80, width - 88)
-    const availableHeight = Math.max(80, height - 88)
+    const availableHeight = Math.max(80, visibleHeight(height) - 88)
     for (let candidateZoom = MAX_FIT_ZOOM; candidateZoom >= MIN_ZOOM; candidateZoom -= 1) {
       const projected = points.map((point) => project(point, candidateZoom))
       const xs = projected.map((point) => point.x)
@@ -238,13 +262,8 @@ export function mountRecommendationsMap(
   }
 
   function renderTiles(centerPixel: Pixel, width: number, height: number): void {
-    if (markers.length === 0) {
-      for (const image of tiles.values()) image.remove()
-      tiles.clear()
-      return
-    }
     const left = centerPixel.x - width / 2
-    const top = centerPixel.y - height / 2
+    const top = centerPixel.y - mapAnchorY(height)
     const startX = Math.floor(left / TILE_SIZE)
     const endX = Math.floor((left + width - 1) / TILE_SIZE)
     const startY = Math.floor(top / TILE_SIZE)
@@ -299,7 +318,7 @@ export function mountRecommendationsMap(
       if (deltaX > world / 2) deltaX -= world
       if (deltaX < -world / 2) deltaX += world
       const x = width / 2 + deltaX
-      const y = height / 2 + pixel.y - centerPixel.y
+      const y = mapAnchorY(height) + pixel.y - centerPixel.y
       button.style.left = Math.round(x) + 'px'
       button.style.top = Math.round(y) + 'px'
       button.hidden = x < -30 || x > width + 30 || y < -30 || y > height + 30
@@ -331,7 +350,7 @@ export function mountRecommendationsMap(
       cluster.style.top = Math.round(y) + 'px'
       cluster.addEventListener('click', () => {
         if (zoom >= MAX_ZOOM) {
-          fallbackDetails.open = true
+          selectMarker(group[0].marker.id, true)
           return
         }
         const centerLat = group.reduce((sum, point) => sum + point.marker.lat, 0) / group.length
@@ -359,7 +378,7 @@ export function mountRecommendationsMap(
       let deltaX = pixel.x - centerPixel.x
       if (deltaX > world / 2) deltaX -= world
       if (deltaX < -world / 2) deltaX += world
-      return { x: width / 2 + deltaX, y: height / 2 + pixel.y - centerPixel.y }
+      return { x: width / 2 + deltaX, y: mapAnchorY(height) + pixel.y - centerPixel.y }
     })
     const path = positions.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
     routeHalo.setAttribute('d', path)
@@ -371,12 +390,15 @@ export function mountRecommendationsMap(
   function render(): void {
     if (destroyed) return
     const { width, height } = viewportSize()
+    viewport.style.setProperty('--map-bottom-inset', Math.round(effectiveBottomInset(height)) + 'px')
     const centerPixel = project(center, zoom)
     renderTiles(centerPixel, width, height)
     renderRouteLine(centerPixel, width, height)
     renderMarkers(centerPixel, width, height)
     zoomIn.disabled = zoom >= MAX_ZOOM
     zoomOut.disabled = zoom <= MIN_ZOOM
+    fitButton.textContent = markers.length ? 'Все' : 'Астана'
+    fitButton.setAttribute('aria-label', markers.length ? 'Показать весь маршрут' : 'Вернуться к Астане')
   }
 
   function syncSelection(): void {
@@ -402,8 +424,9 @@ export function mountRecommendationsMap(
     const { width, height } = viewportSize()
     const markerPixel = project(marker, zoom)
     const centerPixel = project(center, zoom)
+    const selectedY = mapAnchorY(height) + markerPixel.y - centerPixel.y
     if (Math.abs(markerPixel.x - centerPixel.x) > width * 0.32
-      || Math.abs(markerPixel.y - centerPixel.y) > height * 0.32) {
+      || selectedY < 40 || selectedY > visibleHeight(height) - 40) {
       center = { lat: marker.lat, lon: marker.lon }
       queueRender()
     }
@@ -429,6 +452,7 @@ export function mountRecommendationsMap(
     markerLayer.replaceChildren()
     fallbackList.replaceChildren()
     fallbackSummary.textContent = 'Остановки маршрута (' + markers.length + ')'
+    fallbackDetails.hidden = markers.length === 0
     markerButtons.clear()
     listButtons.clear()
     markers.forEach((marker, index) => {
@@ -554,6 +578,24 @@ export function mountRecommendationsMap(
     },
     select(id) {
       selectMarker(id, false)
+    },
+    focus(point) {
+      if (!validCoordinate(point)) return
+      center = { lat: point.lat, lon: point.lon }
+      zoom = Math.max(zoom, 14)
+      resizedAfterInteraction = true
+      queueRender()
+    },
+    fit() {
+      resizedAfterInteraction = false
+      fitMarkers()
+    },
+    setBottomInset(px) {
+      const next = Number.isFinite(px) ? Math.max(0, px) : 0
+      if (Math.abs(next - bottomInset) < 1) return
+      bottomInset = next
+      if (resizedAfterInteraction) queueRender()
+      else fitMarkers()
     },
     destroy() {
       if (destroyed) return
