@@ -131,6 +131,7 @@ function chooseOrigin(catalog: PoiCatalog, request: WalkRequest): { origin: Rank
 
 export function rankCandidates(catalog: PoiCatalog, request: WalkRequest): Ranking {
   const { origin, label } = chooseOrigin(catalog, request)
+  const transport = request.transport ?? 'walk'
   const wantsOutdoor = request.intents.includes('outdoors')
   const wantsIndoor = request.intents.includes('indoors')
   const wantsFamily = request.intents.includes('child')
@@ -141,11 +142,16 @@ export function rankCandidates(catalog: PoiCatalog, request: WalkRequest): Ranki
     if (request.landmarkId === catalog.zone.id && distanceMeters(origin, poi) < 40) continue
     if (wantsOutdoor && !wantsIndoor && !isOutdoor(poi)) continue
     if (wantsIndoor && !wantsOutdoor && !isIndoor(poi)) continue
+    // A zero budget rules out explicitly paid entry. Missing fee data does not
+    // mean free entry and remains marked as an unknown cost in the response.
+    if (request.budgetKzt === 0 && poi.tags.fee?.trim().toLowerCase() === 'yes') continue
 
     // No street routing API is called here. The 1.3 factor is only a walking estimate.
     const walkMinutes = Math.ceil(distanceMeters(origin, poi) * 1.3 / 75)
     const visitMinutes = Number.isFinite(poi.visitMinutes) && poi.visitMinutes > 0 ? poi.visitMinutes : 20
-    if (walkMinutes + visitMinutes > request.minutes) continue
+    // Road and transit travel times are unknown for city POIs. For those modes we
+    // only check the visit allowance and label the total time as unverified.
+    if ((transport === 'walk' ? walkMinutes + visitMinutes : visitMinutes) > request.minutes) continue
 
     const themeMatch = categoryMatchesText(poi, request.text)
     const familyHeuristic = wantsFamily
@@ -156,7 +162,7 @@ export function rankCandidates(catalog: PoiCatalog, request: WalkRequest): Ranki
       : 0
     const score = (themeMatch ? 25 : 0)
       + familyHeuristic
-      - walkMinutes * 1.7
+      - walkMinutes * (transport === 'walk' ? 1.7 : 0.65)
       - visitMinutes * 0.05
     candidates.push({ poi, walkMinutes, visitMinutes, score })
   }
@@ -206,12 +212,12 @@ export function validateSelections(raw: unknown, candidates: Candidate[]): Selec
   return selected
 }
 
-function routeUrl(origin: Ranking['origin'], poi: Poi): string {
+export function routeUrl(origin: Ranking['origin'], poi: Pick<Poi, 'lat' | 'lon'>, transport: WalkRequest['transport'] = 'walk'): string {
   const url = new URL('https://www.google.com/maps/dir/')
   url.searchParams.set('api', '1')
   url.searchParams.set('origin', `${origin.lat},${origin.lon}`)
   url.searchParams.set('destination', `${poi.lat},${poi.lon}`)
-  url.searchParams.set('travelmode', 'walking')
+  url.searchParams.set('travelmode', transport === 'car' ? 'driving' : transport === 'transit' ? 'transit' : 'walking')
   return url.toString()
 }
 
@@ -226,8 +232,12 @@ function hoursStatus(poi: Poi): string {
     : 'Доступность и часы работы не проверены'
 }
 
-function explanation(candidate: Candidate, request: WalkRequest, reason: ReasonCode): string {
+function explanation(candidate: Candidate, request: WalkRequest, reason: ReasonCode, origin: Ranking['origin']): string {
   const label = CATEGORY_LABELS[candidate.poi.category] ?? 'точка интереса'
+  if (request.transport && request.transport !== 'walk') {
+    const mode = request.transport === 'car' ? 'на автомобиле' : 'на общественном транспорте'
+    return `Это ${label} примерно в ${(distanceMeters(origin, candidate.poi) / 1000).toFixed(1)} км по прямой от старта; время дороги ${mode} не проверено.`
+  }
   const walk = candidate.walkMinutes === 0 ? 'рядом со стартом' : `примерно в ${candidate.walkMinutes} мин пешком от старта`
   if (reason === 'theme' && categoryMatchesText(candidate.poi, request.text)) {
     return `Это ${label} по теме вашего запроса, ${walk}.`
@@ -284,18 +294,28 @@ export function toRecommendation(
 ): Recommendation {
   const reason = selection?.reason ?? (categoryMatchesText(candidate.poi, request.text) ? 'theme' : 'nearby')
   const action = selection?.action ?? (isIndoor(candidate.poi) ? 'check_hours' : 'open_route')
+  const transport = request.transport ?? 'walk'
   return {
     id: candidate.poi.id,
     name: candidate.poi.name,
     category: candidate.poi.category,
-    why: explanation(candidate, request, reason),
+    kind: 'place',
+    cityId: request.cityId ?? 'astana',
+    lat: candidate.poi.lat,
+    lon: candidate.poi.lon,
+    travelMode: transport,
+    travelMinutesApprox: transport === 'walk' ? candidate.walkMinutes : undefined,
+    distanceKmApprox: Math.round(distanceMeters(origin, candidate.poi) / 100) / 10,
+    budgetStatus: 'unknown',
+    timeStatus: transport === 'walk' ? 'within' : 'unknown',
+    why: explanation(candidate, request, reason, origin),
     action: selection?.idea ?? actionText(candidate.poi, action),
     actionSource: selection?.idea ? 'ai' : 'template',
-    walkMinutes: candidate.walkMinutes,
+    walkMinutes: transport === 'walk' ? candidate.walkMinutes : undefined,
     visitMinutes: candidate.visitMinutes,
     hoursStatus: hoursStatus(candidate.poi),
     sourceUrl: safeOsmSource(candidate.poi),
-    routeUrl: routeUrl(origin, candidate.poi),
+    routeUrl: routeUrl(origin, candidate.poi, transport),
     approximate: true,
   }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import catalog from '../../data/pois.json'
+import tripsCatalog from '../../data/astana-trips.json'
 import worker from './index'
 
 const now = Math.floor(Date.now() / 1000)
@@ -86,6 +87,67 @@ describe('Worker API integration', () => {
     expect(response.status).toBe(200)
     expect(body.recommendations).toEqual([])
     expect(body.summary).toContain('пилотной зоне')
+  })
+
+  it('publishes only Astana pilot POIs and trips from Astana on the map', async () => {
+    const response = await worker.fetch(new Request('https://example.test/api/catalog'), {})
+    const body = await response.json() as {
+      cities: Array<{ id: string; name: string; poiCount: number }>
+      places: Array<{ id: string; cityId: string; kind: string; lat: number; lon: number; sourceUrl: string }>
+      source: { licenseUrl: string }
+    }
+    expect(response.status).toBe(200)
+    expect(body.cities).toEqual([{ id: 'astana', name: 'Астана', center: catalog.zone.center,
+      radiusMeters: catalog.zone.radiusMeters, poiCount: catalog.pois.length }])
+    expect(body.places.length).toBe(catalog.pois.length + tripsCatalog.trips.length)
+    expect(body.places.every((place) => place.cityId === 'astana')).toBe(true)
+    expect(body.places.some((place) => place.kind === 'trip')).toBe(true)
+    expect(body.places.every((place) => Number.isFinite(place.lat) && Number.isFinite(place.lon))).toBe(true)
+    expect(body.places.every((place) => place.sourceUrl.startsWith('https://www.openstreetmap.org/'))).toBe(true)
+    expect(body.source.licenseUrl).toBe('https://www.openstreetmap.org/copyright')
+  })
+
+  it('keeps city recommendations inside the Astana pilot', async () => {
+    const response = await worker.fetch(new Request('https://example.test/api/recommend', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        initData: await validInitData(),
+        request: { cityId: 'astana', scope: 'city', transport: 'walk', minutes: 120, intents: [], text: '' },
+      }),
+    }), { TELEGRAM_BOT_TOKEN: token })
+    const body = await response.json() as { recommendations: Array<{ cityId: string; lat: number; lon: number }> }
+    expect(response.status).toBe(200)
+    expect(body.recommendations.length).toBeGreaterThan(0)
+    expect(body.recommendations.every((place) => place.cityId === 'astana')).toBe(true)
+  })
+
+  it('rejects unknown cities and malformed budget before recommendation', async () => {
+    const send = (request: Record<string, unknown>) => worker.fetch(new Request('https://example.test/api/recommend', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: 'invalid', request }),
+    }), { TELEGRAM_BOT_TOKEN: token })
+    expect((await send({ cityId: 'made-up', minutes: 60, intents: [], text: '' })).status).toBe(400)
+    expect((await send({ cityId: 'astana', minutes: 60, intents: [], text: '', budgetKzt: -1 })).status).toBe(400)
+  })
+
+  it('keeps short requests from presenting a day trip as a two-hour outing', async () => {
+    const send = async (minutes: number) => worker.fetch(new Request('https://example.test/api/recommend', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: await validInitData(),
+        request: { cityId: 'astana', scope: 'day_trip', transport: 'car', minutes, intents: [], text: '' } }),
+    }), { TELEGRAM_BOT_TOKEN: token })
+    const short = await (await send(120)).json() as { recommendations: unknown[] }
+    expect(short.recommendations).toEqual([])
+    const halfDay = await (await send(240)).json() as { recommendations: Array<{ name: string }> }
+    expect(halfDay.recommendations.some((item) => item.name.includes('АЛЖИР'))).toBe(true)
+    const long = await (await send(1440)).json() as {
+      recommendations: Array<{ kind: string; cityId: string; routeUrl: string; timeStatus: string; budgetStatus: string; durationSourceUrl?: string }>
+    }
+    expect(long.recommendations.length).toBeGreaterThan(0)
+    expect(long.recommendations.every((item) => item.kind === 'trip' && item.cityId === 'astana')).toBe(true)
+    expect(long.recommendations.every((item) => item.timeStatus === 'unknown' && item.budgetStatus === 'unknown')).toBe(true)
+    expect(long.recommendations.some((item) => item.durationSourceUrl?.startsWith('https://www.visitastana.kz/'))).toBe(true)
+    expect(long.recommendations[0].routeUrl).toContain('travelmode=driving')
   })
 
   it('discloses unsupported free-text preferences', async () => {

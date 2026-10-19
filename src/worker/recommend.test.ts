@@ -88,6 +88,24 @@ describe('deterministic recommendation guardrails', () => {
     expect(indoor.candidates.map((candidate) => candidate.poi.id)).toEqual(['10'])
   })
 
+  it('does not present straight-line proximity as verified driving time', () => {
+    const ranked = rankCandidates(catalog, { ...baseRequest, transport: 'car', minutes: 20 })
+    const card = toRecommendation(ranked.candidates[0], ranked.origin, { ...baseRequest, transport: 'car', minutes: 20 })
+    expect(card.travelMode).toBe('car')
+    expect(card.travelMinutesApprox).toBeUndefined()
+    expect(card.timeStatus).toBe('unknown')
+    expect(card.routeUrl).toContain('travelmode=driving')
+    expect(card.why).toContain('не проверено')
+  })
+
+  it('excludes explicitly paid entry for a zero budget, while leaving unknown prices unknown', () => {
+    const paid = { ...poi('20', 'museum', 51.1285, 15), tags: { fee: 'yes' } }
+    const unknown = poi('21', 'park', 51.1286, 15)
+    const ranked = rankCandidates({ ...catalog, pois: [paid, unknown] }, { ...baseRequest, budgetKzt: 0 })
+    expect(ranked.candidates.map((candidate) => candidate.poi.id)).toEqual(['21'])
+    expect(toRecommendation(ranked.candidates[0], ranked.origin, { ...baseRequest, budgetKzt: 0 }).budgetStatus).toBe('unknown')
+  })
+
   it('labels raw OSM hours as unverified without claiming current availability', () => {
     const cafe: Poi = { ...poi('13', 'cafe', 51.1285, 15), tags: { opening_hours: 'Mo-Su 10:00-22:00' } }
     const withCafe = { ...catalog, pois: [cafe] }

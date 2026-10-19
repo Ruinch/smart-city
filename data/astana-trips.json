@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "provider": "OpenStreetMap",
+    "importedAt": "2026-10-19T13:09:42.881Z",
+    "attribution": "© OpenStreetMap contributors",
+    "licenseUrl": "https://www.openstreetmap.org/copyright"
+  },
+  "trips": [
+    {
+      "id": "osm:way:1465089835",
+      "name": "Музей АЛЖИР",
+      "cityId": "astana",
+      "category": "museum",
+      "description": "Мемориально-музейный комплекс в селе Акмол. В OSM отмечен как музей; условия посещения нужно проверить перед выездом.",
+      "descriptionSource": "osm_tags",
+      "lat": 51.0788268,
+      "lon": 70.9724733,
+      "visitMinutes": 90,
+      "sourceUrl": "https://www.openstreetmap.org/way/1465089835",
+      "osmType": "way",
+      "osmId": 1465089835,
+      "tags": {
+        "tourism": "museum",
+        "fee": "yes",
+        "name:ru": "Мемориально-музейный комплекс памяти жертв политических репрессий и тоталитаризма, Алжир"
+      },
+      "setting": "indoor",
+      "settingSourceUrl": "https://museum-alzhir.kz/ru/istoriya-muzeya",
+      "durationClass": "half_day",
+      "durationSourceUrl": "https://www.visitastana.kz/ru/weekend-tours/ekskursiya-v-muzey-alzhir-tayny-malinovki/",
+      "travel": {
+        "roadKmApprox": 37,
+        "sourceUrl": "https://kgd.gov.kz/ru/news/news/segodnya-sotrudniki-komiteta-gosudarstvennyh-dohodov-mf-rk-kollektivno-posetili-muzeyno",
+        "notes": "Госисточник указывает около 37 км от Астаны по Коргалжынской трассе. Время дороги и общий бюджет самостоятельной поездки не проверены. Источник длительности описывает организованную экскурсию 3–3,5 часа, а не гарантию для самостоятельного визита."
+      }
+    },
+    {
+      "id": "osm:node:6522625814",
+      "name": "Бурабай: смотровая Болектау",
+      "cityId": "astana",
+      "category": "viewpoint",
+      "description": "Смотровая точка Болектау в районе Бурабая. В OSM отмечена как viewpoint; доступность тропы нужно проверить перед выездом.",
+      "descriptionSource": "osm_tags",
+      "lat": 53.08932,
+      "lon": 70.2596921,
+      "visitMinutes": 45,
+      "sourceUrl": "https://www.openstreetmap.org/node/6522625814",
+      "osmType": "node",
+      "osmId": 6522625814,
+      "tags": {
+        "tourism": "viewpoint",
+        "name": "Болектау"
+      },
+      "setting": "outdoor",
+      "settingSourceUrl": "https://www.openstreetmap.org/node/6522625814",
+      "durationClass": "full_day",
+      "durationSourceUrl": "https://www.visitastana.kz/ru/weekend-tours/odnodnevnyy-tur-v-burabay/",
+      "travel": {
+        "notes": "Туристический портал указывает около 260 км от Астаны до парка Бурабай (https://kazakhstan.travel/ru/parks/burabay), но длина маршрута именно до смотровой Болектау, время дороги и полный бюджет самостоятельной поездки не проверены."
+      }
+    },
+    {
+      "id": "osm:way:1116434315",
+      "name": "Бурабай: музей Ботай",
+      "cityId": "astana",
+      "category": "museum",
+      "description": "Историко-культурный музей в районе Бурабая. В OSM отмечен как museum=history; часы и условия посещения нужно проверить отдельно.",
+      "descriptionSource": "osm_tags",
+      "lat": 53.0226479,
+      "lon": 70.1143791,
+      "visitMinutes": 60,
+      "sourceUrl": "https://www.openstreetmap.org/way/1116434315",
+      "osmType": "way",
+      "osmId": 1116434315,
+      "tags": {
+        "tourism": "museum",
+        "museum": "history",
+        "name": "Государственный историко-культурный музей-заповедник Ботай"
+      },
+      "setting": "outdoor",
+      "settingSourceUrl": "https://www.kazakhstan.travel/ru/attractions/1",
+      "travel": {
+        "notes": "Музей указан на туристическом портале Казахстана: https://www.kazakhstan.travel/ru/attractions/1. Время дороги, точная длина маршрута и полный бюджет самостоятельной поездки не проверены."
+      }
+    }
+  ]
+}
