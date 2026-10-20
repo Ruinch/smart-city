@@ -42,7 +42,6 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 180ms ease-out;
 }
 .rec-map[data-basemap="vector"] .rec-map__vector { opacity: 1; }
 .rec-map[data-basemap="vector"] .rec-map__tiles { visibility: hidden; }

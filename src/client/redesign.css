@@ -490,5 +490,3 @@ button, input, textarea, select { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .settings-dialog[open], .start-dialog[open] { animation: none; }
 }
-
-.app-shell[data-screen] .rec-map__start-point { transform: translate(-50%, calc(-100% - 28px)); }

@@ -1,6 +1,6 @@
 import './map.css'
 import { ASTANA_CENTER } from '../shared/astana'
-import type { VectorBasemapController } from './vector-basemap'
+import type { VectorBasemapController, VectorBasemapFrame } from './vector-basemap'
 
 export interface MapMarker {
   id: string
@@ -424,6 +424,7 @@ export function mountRecommendationsMap(
             queueRender()
           },
           onFailure: useRasterFallback,
+          onRender: renderVectorOverlays,
         })
         // The camera may have moved while the renderer's chunk was downloading.
         queueRender()
@@ -669,18 +670,12 @@ export function mountRecommendationsMap(
     }
   }
 
-  function renderMarkers(centerPixel: Pixel, width: number, height: number): void {
-    const world = TILE_SIZE * 2 ** zoom
+  function renderMarkers({ project: toScreen, width, height, zoom: renderedZoom }: VectorBasemapFrame): void {
     const visible: Array<{ marker: MapMarker; button: HTMLButtonElement; x: number; y: number }> = []
     for (const marker of markers) {
       const button = markerButtons.get(marker.id)
       if (!button) continue
-      const pixel = project(marker, zoom)
-      let deltaX = pixel.x - centerPixel.x
-      if (deltaX > world / 2) deltaX -= world
-      if (deltaX < -world / 2) deltaX += world
-      const x = width / 2 + deltaX
-      const y = mapAnchorY(height) + pixel.y - centerPixel.y
+      const { x, y } = toScreen(marker)
       button.style.left = x.toFixed(1) + 'px'
       button.style.top = y.toFixed(1) + 'px'
       button.hidden = x < -30 || x > width + 30 || y < -30 || y > height + 30
@@ -724,7 +719,7 @@ export function mountRecommendationsMap(
         clusterButtons.set(key, cluster)
         clusterLayer.appendChild(cluster)
       }
-      cluster.setAttribute('aria-label', zoom >= MAX_ZOOM ? copy().clusterOpen(group.length) : copy().clusterZoom(group.length))
+      cluster.setAttribute('aria-label', renderedZoom >= MAX_ZOOM ? copy().clusterOpen(group.length) : copy().clusterZoom(group.length))
       cluster.style.left = x.toFixed(1) + 'px'
       cluster.style.top = y.toFixed(1) + 'px'
     }
@@ -735,41 +730,29 @@ export function mountRecommendationsMap(
     }
   }
 
-  function renderStartPoint(centerPixel: Pixel, width: number, height: number): void {
+  function renderStartPoint({ project: toScreen, width, height }: VectorBasemapFrame): void {
     if (!startPoint) {
       startPin.hidden = true
       return
     }
-    const world = TILE_SIZE * 2 ** zoom
-    const pixel = project(startPoint, zoom)
-    let deltaX = pixel.x - centerPixel.x
-    if (deltaX > world / 2) deltaX -= world
-    if (deltaX < -world / 2) deltaX += world
-    const x = width / 2 + deltaX
-    const y = mapAnchorY(height) + pixel.y - centerPixel.y
+    const { x, y } = toScreen(startPoint)
     startPin.style.left = x.toFixed(1) + 'px'
     startPin.style.top = y.toFixed(1) + 'px'
     startPin.hidden = x < -60 || x > width + 60 || y < -60 || y > height + 60
   }
 
-  function renderTargetArea(centerPixel: Pixel, width: number, height: number): void {
+  function renderTargetArea({ project: toScreen, width, height }: VectorBasemapFrame): void {
     if (!targetArea) {
       targetPin.hidden = true
       return
     }
-    const world = TILE_SIZE * 2 ** zoom
-    const pixel = project(targetArea, zoom)
-    let deltaX = pixel.x - centerPixel.x
-    if (deltaX > world / 2) deltaX -= world
-    if (deltaX < -world / 2) deltaX += world
-    const x = width / 2 + deltaX
-    const y = mapAnchorY(height) + pixel.y - centerPixel.y
+    const { x, y } = toScreen(targetArea)
     targetPin.style.left = x.toFixed(1) + 'px'
     targetPin.style.top = y.toFixed(1) + 'px'
     targetPin.hidden = x < -80 || x > width + 80 || y < -80 || y > height + 80
   }
 
-  function renderRouteLine(centerPixel: Pixel, width: number, height: number): void {
+  function renderRouteLine({ project: toScreen, width, height }: VectorBasemapFrame): void {
     if (routeLine.length < 2) {
       routeSvg.style.display = 'none'
       return
@@ -779,14 +762,7 @@ export function mountRecommendationsMap(
     routeSvg.setAttribute('width', String(width))
     routeSvg.setAttribute('height', String(height))
     routeSvg.classList.toggle('is-schematic', schematic)
-    const world = TILE_SIZE * 2 ** zoom
-    const positions = routeLine.map((point) => {
-      const pixel = project(point, zoom)
-      let deltaX = pixel.x - centerPixel.x
-      if (deltaX > world / 2) deltaX -= world
-      if (deltaX < -world / 2) deltaX += world
-      return { x: width / 2 + deltaX, y: mapAnchorY(height) + pixel.y - centerPixel.y }
-    })
+    const positions = routeLine.map(toScreen)
     const path = positions.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
     routeHalo.setAttribute('d', path)
     routePath.setAttribute('d', path)
@@ -794,16 +770,39 @@ export function mountRecommendationsMap(
     routeStart.setAttribute('cy', positions[0].y.toFixed(1))
   }
 
+  function renderOverlays(displayedFrame: VectorBasemapFrame): void {
+    renderRouteLine(displayedFrame)
+    renderMarkers(displayedFrame)
+    renderStartPoint(displayedFrame)
+    renderTargetArea(displayedFrame)
+  }
+
+  function renderVectorOverlays(displayedFrame: VectorBasemapFrame): void {
+    if (destroyed || !vectorReady) return
+    // MapLibre has just drawn this camera. Update every overlay in the same
+    // browser frame, rather than moving pins ahead of the WebGL canvas.
+    renderOverlays(displayedFrame)
+  }
+
   function render(): void {
     if (destroyed) return
     const { width, height } = viewportSize()
     viewport.style.setProperty('--map-bottom-inset', Math.round(effectiveBottomInset(height)) + 'px')
-    const centerPixel = project(center, zoom)
     renderBasemap(width, height)
-    renderRouteLine(centerPixel, width, height)
-    renderMarkers(centerPixel, width, height)
-    renderStartPoint(centerPixel, width, height)
-    renderTargetArea(centerPixel, width, height)
+    if (!vectorReady) {
+      const centerPixel = project(center, zoom)
+      const world = TILE_SIZE * 2 ** zoom
+      renderOverlays({
+        width, height, zoom,
+        project(point) {
+          const pixel = project(point, zoom)
+          let deltaX = pixel.x - centerPixel.x
+          if (deltaX > world / 2) deltaX -= world
+          if (deltaX < -world / 2) deltaX += world
+          return { x: width / 2 + deltaX, y: mapAnchorY(height) + pixel.y - centerPixel.y }
+        },
+      })
+    }
     zoomIn.disabled = zoom >= MAX_ZOOM
     zoomOut.disabled = zoom <= MIN_ZOOM
     fitButton.textContent = markers.length ? copy().fitAll : copy().fitCity

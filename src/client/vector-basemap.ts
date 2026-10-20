@@ -7,7 +7,7 @@ import {
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
+const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const LOAD_TIMEOUT_MS = 12_000
 // The existing overlay projects a 256 px world tile; MapLibre uses a 512 px world tile.
 const OVERLAY_ZOOM_OFFSET = 1
@@ -26,9 +26,20 @@ export interface VectorBasemapController {
   destroy(): void
 }
 
+export interface VectorBasemapFrame {
+  width: number
+  height: number
+  /** Zoom in the overlay's 256 px world-tile convention. */
+  zoom: number
+  /** Project synchronously during onRender, using the camera that was just drawn. */
+  project(point: { lat: number; lon: number }): { x: number; y: number }
+}
+
 export interface VectorBasemapCallbacks {
   /** Called after MapLibre's first visually complete render. */
   onReady(): void
+  /** Called synchronously after a canvas render, after onReady has been delivered. */
+  onRender?(frame: VectorBasemapFrame): void
   /** Called once if the vector map cannot become or remain usable. */
   onFailure(error: Error): void
 }
@@ -90,6 +101,7 @@ export function mountVectorBasemap(
   let destroyed = false
   let failed = false
   let ready = false
+  let readyNotified = false
   let initialLoadComplete = false
   let loadTimeout: ReturnType<typeof setTimeout> | undefined
   let lastWidth = -1
@@ -123,9 +135,34 @@ export function mountVectorBasemap(
     }
     ready = true
     if (loadTimeout !== undefined) clearTimeout(loadTimeout)
-    map.off('render', tryReady)
     queueMicrotask(() => {
-      if (!destroyed && !failed) callbacks.onReady()
+      if (destroyed || failed || !map) return
+      callbacks.onReady()
+      if (destroyed || failed || !map) return
+      readyNotified = true
+      // A ready callback may leave the camera unchanged. Still draw one frame so
+      // the overlay receives its initial projection after readiness is delivered.
+      map.triggerRepaint()
+    })
+  }
+
+  const handleRender = (): void => {
+    if (destroyed || failed || !map) return
+    tryReady()
+    if (!readyNotified || !callbacks.onRender) return
+    const renderedMap = map
+    const canvas = renderedMap.getCanvas()
+    const mapContainer = renderedMap.getContainer()
+    const centerLng = renderedMap.getCenter().lng
+    callbacks.onRender({
+      width: canvas.clientWidth || mapContainer.clientWidth,
+      height: canvas.clientHeight || mapContainer.clientHeight,
+      zoom: renderedMap.getZoom() + OVERLAY_ZOOM_OFFSET,
+      project(point) {
+        const longitude = point.lon + 360 * Math.round((centerLng - point.lon) / 360)
+        const projected = renderedMap.project([longitude, point.lat])
+        return { x: projected.x, y: projected.y }
+      },
     })
   }
 
@@ -186,15 +223,19 @@ export function mountVectorBasemap(
         }
         const padding = cameraPadding(camera)
         const cameraKey = [camera.center.lat, camera.center.lon, camera.zoom, padding].join('/')
-        if (cameraKey === lastCameraKey) return
-        lastCameraKey = cameraKey
-        map.jumpTo({
-          center: [camera.center.lon, camera.center.lat],
-          zoom: camera.zoom - OVERLAY_ZOOM_OFFSET,
-          bearing: 0,
-          pitch: 0,
-          padding: { top: 0, right: 0, bottom: padding, left: 0 },
-        })
+        if (cameraKey !== lastCameraKey) {
+          lastCameraKey = cameraKey
+          map.jumpTo({
+            center: [camera.center.lon, camera.center.lat],
+            zoom: camera.zoom - OVERLAY_ZOOM_OFFSET,
+            bearing: 0,
+            pitch: 0,
+            padding: { top: 0, right: 0, bottom: padding, left: 0 },
+          })
+        }
+        // Markers may have changed even with an identical camera. Deliver their
+        // projection on the next canvas frame, never ahead of the basemap.
+        map.triggerRepaint()
       } catch (error) {
         fail(toError(error, 'The vector map could not update.'))
       }
@@ -205,7 +246,7 @@ export function mountVectorBasemap(
       if (loadTimeout !== undefined) clearTimeout(loadTimeout)
       if (!map) return
       map.off('load', handleLoad)
-      map.off('render', tryReady)
+      map.off('render', handleRender)
       map.off('error', handleError)
       map.off('webglcontextlost', handleContextLost)
       map.off('style.load', handleStyleLoad)
@@ -233,7 +274,7 @@ export function mountVectorBasemap(
       renderWorldCopies: true,
     })
     map.on('load', handleLoad)
-    map.on('render', tryReady)
+    map.on('render', handleRender)
     map.on('error', handleError)
     map.on('webglcontextlost', handleContextLost)
     map.on('style.load', handleStyleLoad)
@@ -244,7 +285,7 @@ export function mountVectorBasemap(
   } catch (error) {
     if (map) {
       map.off('load', handleLoad)
-      map.off('render', tryReady)
+      map.off('render', handleRender)
       map.off('error', handleError)
       map.off('webglcontextlost', handleContextLost)
       map.off('style.load', handleStyleLoad)
