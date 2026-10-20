@@ -45,8 +45,8 @@ function duration(value: number | undefined, fallback: number, ceiling: number):
  * The fallback timer and the skip button release the interface even if initialization fails.
  */
 export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenController {
-  const maximumMs = duration(options.maximumMs, 2800, 5000)
-  const minimumMs = Math.min(duration(options.minimumMs, 560, 1600), maximumMs)
+  const maximumMs = duration(options.maximumMs, 3500, 5000)
+  const minimumMs = Math.min(duration(options.minimumMs, 2000, 3000), maximumMs)
   const startedAt = performance.now()
   // Reuse an optional first-paint shell from index.html, shown before the JS bundle loads.
   const screen = document.querySelector<HTMLDivElement>('#launch-screen') ?? document.createElement('div')

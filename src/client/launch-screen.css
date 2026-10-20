@@ -72,7 +72,7 @@
   stroke-linejoin: round;
   stroke-dasharray: 148;
   stroke-dashoffset: 148;
-  animation: launch-draw 620ms cubic-bezier(.2, 0, 0, 1) 50ms forwards;
+  animation: launch-draw 1250ms cubic-bezier(.2, 0, 0, 1) 160ms forwards;
 }
 
 .launch-screen__symbol-start {
@@ -120,7 +120,7 @@
   background: #236a54;
   transform: scaleX(0);
   transform-origin: left center;
-  animation: launch-progress 2200ms cubic-bezier(.2, 0, 0, 1) forwards;
+  animation: launch-progress 2000ms cubic-bezier(.2, 0, 0, 1) forwards;
 }
 
 .launch-screen__bottom-line { min-height: 48px; }
