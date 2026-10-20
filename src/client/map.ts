@@ -1,5 +1,6 @@
 import './map.css'
 import { ASTANA_CENTER } from '../shared/astana'
+import type { VectorBasemapController } from './vector-basemap'
 
 export interface MapMarker {
   id: string
@@ -28,6 +29,7 @@ export interface RecommendationsMapOptions {
   onSelect?: (id: string) => void
   onStartPointSelect?: (point: MapCoordinate) => void
   onTargetAreaSelect?: (point: MapCoordinate) => void
+  onBasemapChange?: (mode: 'vector' | 'raster') => void
 }
 
 export interface RecommendationsMapController {
@@ -193,7 +195,8 @@ function makeButton(className: string, label: string, visibleText: string): HTML
 }
 
 /**
- * Mounts a small, token-free OSM map. The caller owns API requests and synchronizes
+ * Mounts a token-free vector map with a raster compatibility fallback. The caller
+ * owns API requests and synchronizes
  * result cards with the returned select method. Tiles are loaded only for the visible
  * viewport, with the browser's normal cache and a visible OSM attribution link.
  */
@@ -223,6 +226,10 @@ export function mountRecommendationsMap(
   activeTilePlane.className = 'rec-map__tile-plane rec-map__tile-plane--active'
   tileLayer.appendChild(fallbackTilePlane)
   tileLayer.appendChild(activeTilePlane)
+  const vectorLayer = document.createElement('div')
+  vectorLayer.className = 'rec-map__vector'
+  vectorLayer.setAttribute('aria-hidden', 'true')
+  vectorLayer.inert = true
   const routeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   routeSvg.classList.add('rec-map__route')
   routeSvg.setAttribute('aria-hidden', 'true')
@@ -267,14 +274,11 @@ export function mountRecommendationsMap(
   failure.hidden = true
   failure.textContent = copy().failure
 
-  const attribution = document.createElement('a')
+  const attribution = document.createElement('div')
   attribution.className = 'rec-map__attribution'
-  attribution.href = 'https://www.openstreetmap.org/copyright'
-  attribution.target = '_blank'
-  attribution.rel = 'noopener noreferrer'
-  attribution.textContent = copy().attribution
 
   viewport.appendChild(tileLayer)
+  viewport.appendChild(vectorLayer)
   viewport.appendChild(routeSvg)
   viewport.appendChild(markerLayer)
   viewport.appendChild(clusterLayer)
@@ -334,6 +338,9 @@ export function mountRecommendationsMap(
   let fallbackTileOrigin: Pixel = { x: 0, y: 0 }
   let fallbackRemovalTimer = 0
   let tileGeneration = 0
+  let vectorMap: VectorBasemapController | null = null
+  let vectorAttempted = false
+  let vectorReady = false
   const markerButtons = new Map<string, HTMLButtonElement>()
   const listButtons = new Map<string, HTMLButtonElement>()
   const clusterButtons = new Map<string, HTMLButtonElement>()
@@ -350,7 +357,7 @@ export function mountRecommendationsMap(
     zoomIn.setAttribute('aria-label', copy().zoomIn)
     zoomOut.setAttribute('aria-label', copy().zoomOut)
     failure.textContent = copy().failure
-    attribution.textContent = copy().attribution
+    renderAttribution()
     startPin.setAttribute('aria-label', copy().startPin)
     startPin.textContent = copy().startLabel
     targetPin.setAttribute('aria-label', copy().targetPin)
@@ -358,6 +365,72 @@ export function mountRecommendationsMap(
     fallbackList.setAttribute('aria-label', copy().mapPoints)
     rebuildMarkerControls()
     queueRender()
+  }
+
+  function renderAttribution(): void {
+    attribution.replaceChildren()
+    const credits = vectorReady
+      ? [['© OpenMapTiles', 'https://openmaptiles.org/'], ['© OpenStreetMap', 'https://www.openstreetmap.org/copyright']]
+      : [[copy().attribution, 'https://www.openstreetmap.org/copyright']]
+    for (const [label, url] of credits) {
+      const link = document.createElement('a')
+      link.textContent = label
+      link.href = url
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      attribution.appendChild(link)
+    }
+  }
+
+  function clearRaster(): void {
+    if (fallbackRemovalTimer) window.clearTimeout(fallbackRemovalTimer)
+    fallbackRemovalTimer = 0
+    tileGeneration += 1
+    tiles.clear()
+    activeTilePlane.replaceChildren()
+    fallbackTilePlane.replaceChildren()
+    activeTileZoom = fallbackTileZoom = -1
+  }
+
+  function useRasterFallback(): void {
+    if (destroyed) return
+    vectorReady = false
+    vectorMap?.destroy()
+    vectorMap = null
+    root.dataset.basemap = 'raster'
+    renderAttribution()
+    options.onBasemapChange?.('raster')
+    queueRender()
+  }
+
+  function renderBasemap(width: number, height: number): void {
+    // The request form hides the map; do not fetch a second map in the background.
+    if (getComputedStyle(viewport).visibility === 'hidden') return
+    const camera = { center, zoom, width, height, bottomInset: effectiveBottomInset(height), language }
+    if (!vectorAttempted && width > 1 && height > 1) {
+      vectorAttempted = true
+      root.dataset.basemap = 'loading'
+      void import('./vector-basemap').then(({ mountVectorBasemap }) => {
+        if (destroyed) return
+        vectorMap = mountVectorBasemap(vectorLayer, camera, {
+          onReady() {
+            if (destroyed) return
+            vectorReady = true
+            root.dataset.basemap = 'vector'
+            failure.hidden = true
+            renderAttribution()
+            options.onBasemapChange?.('vector')
+            clearRaster()
+            queueRender()
+          },
+          onFailure: useRasterFallback,
+        })
+        // The camera may have moved while the renderer's chunk was downloading.
+        queueRender()
+      }).catch(useRasterFallback)
+    }
+    vectorMap?.update(camera)
+    if (!vectorReady) renderTiles(width, height)
   }
 
   function viewportSize(): { width: number; height: number } {
@@ -550,7 +623,7 @@ export function mountRecommendationsMap(
           tileImage.alt = ''
           tileImage.draggable = false
           tileImage.decoding = 'async'
-          tileImage.loading = 'lazy'
+          tileImage.loading = 'eager'
           tileImage.referrerPolicy = 'strict-origin-when-cross-origin'
           tileImage.addEventListener('load', () => {
             tileImage.classList.add('is-loaded')
@@ -726,7 +799,7 @@ export function mountRecommendationsMap(
     const { width, height } = viewportSize()
     viewport.style.setProperty('--map-bottom-inset', Math.round(effectiveBottomInset(height)) + 'px')
     const centerPixel = project(center, zoom)
-    renderTiles(width, height)
+    renderBasemap(width, height)
     renderRouteLine(centerPixel, width, height)
     renderMarkers(centerPixel, width, height)
     renderStartPoint(centerPixel, width, height)
@@ -994,6 +1067,7 @@ export function mountRecommendationsMap(
     })
     : null
   resizeObserver?.observe(viewport)
+  renderAttribution()
   rebuildMarkerControls()
   fitMarkers()
 
@@ -1080,6 +1154,7 @@ export function mountRecommendationsMap(
       if (insetFitTimer) window.clearTimeout(insetFitTimer)
       if (fallbackRemovalTimer) window.clearTimeout(fallbackRemovalTimer)
       cancelCamera()
+      vectorMap?.destroy()
       resizeObserver?.disconnect()
       tiles.clear()
       markerButtons.clear()

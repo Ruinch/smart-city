@@ -481,8 +481,9 @@ app.innerHTML = `
         <button id="fitButton" class="map-action" type="button" aria-label="Показать весь маршрут" title="Показать весь маршрут" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5m0 6v5h-5M4 15v5h5"/></svg></button>
       </div>
       <footer class="map-credits">
-        <span>© участники OpenStreetMap</span>
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Лицензия</a>
+        <a class="vector-map-credit" href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer" hidden>© OpenMapTiles</a>
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>
+        <a class="vector-map-credit" href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer" hidden>OpenFreeMap</a>
         <a id="privacyLink" href="/privacy.html">О данных</a>
       </footer>
     </main>
@@ -909,7 +910,6 @@ function applyTranslations(): void {
   for (const option of languageSelect.options) option.title = languageNames[option.value as Language]
   const textTargets: Array<[string, MessageKey]> = [
     ['.skip-link', 'skip'], ['.topbar-country', 'astana'],
-    ['.map-credits span', 'osm'], ['.map-credits a[href^="https://www.openstreetmap.org"]', 'license'],
     ['#privacyLink', 'data'], ['.sheet-heading h1', 'heading'], ['.sheet-heading p', 'subtitle'],
     ['#keyboardDone', 'keyboardDone'],
     ['#returnToRouteButton', 'backRoute'], ['.planner-lead label', 'interest'],
@@ -2784,6 +2784,9 @@ mapController = mountRecommendationsMap(requiredElement<HTMLElement>('#map'), {
   center: ASTANA_CENTER,
   startPoint: origin(),
   language,
+  onBasemapChange: (mode) => {
+    document.querySelectorAll<HTMLElement>('.vector-map-credit').forEach((credit) => { credit.hidden = mode !== 'vector' })
+  },
   onSelect: (id) => {
     const item = state.stops.find((stop) => stop.id === id)
     if (item) showMapPreview(item)

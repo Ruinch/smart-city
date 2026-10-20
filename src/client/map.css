@@ -36,6 +36,17 @@
 }
 
 .rec-map__tiles { z-index: 0; }
+.rec-map .rec-map__vector {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+.rec-map[data-basemap="vector"] .rec-map__vector { opacity: 1; }
+.rec-map[data-basemap="vector"] .rec-map__tiles { visibility: hidden; }
+.rec-map__vector .maplibregl-canvas { outline: none; }
 .rec-map__tile-plane {
   position: absolute;
   inset: 0;
@@ -272,6 +283,7 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.rec-map__attribution a { color: inherit; margin-inline: 3px; }
 
 .rec-map__selected {
   position: absolute;
@@ -364,6 +376,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rec-map__tile,
+  .rec-map__vector,
   .rec-map__marker,
   .rec-map__control,
   .rec-map__details summary::before { transition: none; }

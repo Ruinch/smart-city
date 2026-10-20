@@ -25,5 +25,8 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.5",
     "wrangler": "^4.151.1"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.15.0"
   }
 }
