@@ -2,3 +2,7 @@ OPENAI_API_KEY=replace-with-your-project-key
 TELEGRAM_BOT_TOKEN=replace-with-your-bot-token
 TELEGRAM_WEBHOOK_SECRET=replace-with-a-random-secret
 MINI_APP_URL=https://your-worker.your-subdomain.workers.dev
+# Optional live venue search; demo access is time- and request-limited.
+# TWO_GIS_API_KEY=replace-with-your-2gis-places-key
+# Enable only after confirming your API terms allow showing results on this map.
+# TWO_GIS_ENABLED=true

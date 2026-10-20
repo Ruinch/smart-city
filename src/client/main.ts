@@ -1485,15 +1485,28 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   }
   const links = document.createElement('div')
   links.className = 'place-links'
+  const venueWebsiteLabel = item.sourceProvider === 'OpenStreetMap' ? t('osmWebsite')
+    : language === 'kk' ? 'Орын сайты ↗' : language === 'en' ? 'Venue website ↗' : 'Сайт места ↗'
   for (const [label, value, className] of [
     [t('directions'), item.routeUrl, 'map-link'],
-    [t('osmWebsite'), item.venueWebsite, 'source-link'],
+    [venueWebsiteLabel, item.venueWebsite, 'source-link'],
     [t('placeSource'), item.sourceUrl, 'source-link'],
     [t('timeSource'), item.travelSourceUrl, 'source-link'],
     [t('costSource'), item.costSourceUrl, 'source-link'],
   ] as const) {
     const link = createLink(label, value, className)
     if (link) links.appendChild(link)
+  }
+  if (item.sourceProvider === '2GIS') {
+    const attribution = createLink('2ГИС', 'https://dev.2gis.ru', 'source-link')
+    if (attribution) links.appendChild(attribution)
+  }
+  if (item.sourceProvider === 'Overture Maps') {
+    const dataset = typeof item.sourceDataset === 'string' && /^[A-Za-z ]{2,32}$/.test(item.sourceDataset)
+      ? ` · ${item.sourceDataset}` : ''
+    const attribution = createLink(`Overture Maps${dataset}`,
+      'https://docs.overturemaps.org/attribution/', 'source-link')
+    if (attribution) links.appendChild(attribution)
   }
   appendNodes(card, top, name, why, facts)
   if (accessibilityTag) card.appendChild(accessibilityTag)
@@ -1520,7 +1533,7 @@ function rememberShownStops(routes: RoutePlan[]): void {
 
 function recentExcludedPlaceIds(): string[] {
   return [...seenPlaceIds]
-    .filter((id) => /^osm:(?:node|way|relation):[1-9]\d{0,12}$/.test(id))
+    .filter((id) => /^(?:osm:(?:node|way|relation):[1-9]\d{0,12}|overture:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|2gis:[1-9]\d{0,20})$/.test(id))
     .slice(-36)
 }
 

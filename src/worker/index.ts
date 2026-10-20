@@ -1,6 +1,7 @@
 import snapshotJson from '../../data/astana-dynamic-fallback.json'
 import tripsJson from '../../data/astana-trips.json'
 import exclusionsJson from '../../data/astana-place-exclusions.json'
+import overtureJson from '../../data/astana-overture-verified.json'
 import type { CityCatalog, Language, Poi, PoiCatalog, RecommendRequest, RecommendResponse, TripCatalog, WalkRequest } from '../shared/types'
 import { constantTimeEqual, verifyTelegramInitData } from './auth'
 import { distanceMeters } from './recommend'
@@ -16,9 +17,13 @@ import { countPeople, countPlaces, languageOf, pick, placeName } from './i18n'
 import { insideTripPlanningArea } from '../shared/astana'
 import { directionMetrics } from './direction'
 import { onCityHeading } from './direction'
+import { importVerifiedOverture, sameVenue } from './overture'
+import { search2GisVenues } from './two-gis'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
+const overtureImport = importVerifiedOverture(overtureJson, snapshotPlaces)
+const catalogPlaces: DynamicPlace[] = [...snapshotPlaces, ...overtureImport.places]
 const snapshotLandmarks: DynamicPlace[] = snapshot.landmarks.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
 const tripCatalog = tripsJson as unknown as TripCatalog
 const excludedCategories = new Set(exclusionsJson.exclusions.map((item) => `${item.id}|${item.category}`))
@@ -38,6 +43,8 @@ interface Env {
   ASSETS?: { fetch(request: Request): Promise<Response> }
   RECOMMEND_RATE?: { limit(input: { key: string }): Promise<{ success: boolean }> }
   OPENAI_API_KEY?: string
+  TWO_GIS_API_KEY?: string
+  TWO_GIS_ENABLED?: string
   TELEGRAM_BOT_TOKEN?: string
   TELEGRAM_WEBHOOK_SECRET?: string
   MINI_APP_URL?: string
@@ -182,7 +189,8 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
   }
   const excludePlaceIds = rawRequest.excludePlaceIds
   if (excludePlaceIds !== undefined && (!Array.isArray(excludePlaceIds) || excludePlaceIds.length > 36
-    || excludePlaceIds.some((id) => typeof id !== 'string' || !/^osm:(?:node|way|relation):[1-9]\d{0,12}$/.test(id))
+    || excludePlaceIds.some((id) => typeof id !== 'string'
+      || !/^(?:osm:(?:node|way|relation):[1-9]\d{0,12}|overture:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|2gis:[1-9]\d{0,20})$/.test(id))
     || new Set(excludePlaceIds).size !== excludePlaceIds.length)) {
     throw new HttpError(400, pick(language, 'Некорректный список уже показанных мест.',
       'Бұрын көрсетілген орындар тізімі қате.', 'Invalid list of previously shown places.'))
@@ -276,9 +284,9 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
       ? pick(language, `Из ${city.name} пока нет загородных вариантов с проверенными данными, подходящих выбранным условиям.`,
         'Таңдалған шарттарға сай дерегі тексерілген қала сыртындағы нұсқалар табылмады.',
         'No sourced trips from Astana matched your selected conditions.')
-      : pick(language, 'По вашему запросу не нашлось подходящих точек OpenStreetMap в Астане для выбранного времени.',
-        'Сұрауыңыз бен таңдаған уақытыңызға сай Астанадағы OpenStreetMap орындары табылмады.',
-        'No OpenStreetMap places in Astana matched your request and available time.'),
+      : pick(language, 'По вашему запросу не нашлось подходящих мест в доступных каталогах Астаны для выбранного времени.',
+        'Сұрауыңыз бен таңдаған уақытыңызға сай Астана каталогтарынан орын табылмады.',
+        'No places in the available Astana catalogs matched your request and available time.'),
     recommendations: [],
     routes: [],
     note: appendUnverifiedPreferenceNote(request.targetArea
@@ -289,9 +297,9 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
       ? pick(language, 'Попробуйте увеличить время или выбрать автомобиль. Цены и время дороги показываются только при наличии источника.',
         'Уақытты көбейтіп немесе көлікпен жүруді таңдап көріңіз. Бағалар мен жол уақыты тек дереккөзі болса көрсетіледі.',
         'Try allowing more time or choosing a car. Prices and travel times appear only when a source is available.')
-      : pick(language, `Попробуйте увеличить время, изменить пожелание или выбрать другой старт. Полнота данных OpenStreetMap зависит от разметки мест. ${cityBudgetNote(request.budgetKzt, 0, language)}`,
-        `Уақытты көбейтіп, тілегіңізді өзгертіп немесе басқа бастапқы нүктені таңдаңыз. OpenStreetMap деректерінің толықтығы орындардың белгіленуіне байланысты. ${cityBudgetNote(request.budgetKzt, 0, language)}`,
-        `Try allowing more time, changing your request or choosing another start. OpenStreetMap coverage depends on how places are mapped. ${cityBudgetNote(request.budgetKzt, 0, language)}`),
+      : pick(language, `Попробуйте увеличить время, изменить пожелание или выбрать другой старт. Каталоги мест могут быть неполными. ${cityBudgetNote(request.budgetKzt, 0, language)}`,
+        `Уақытты көбейтіп, тілегіңізді өзгертіп немесе басқа бастапқы нүктені таңдаңыз. Орындар каталогтары толық болмауы мүмкін. ${cityBudgetNote(request.budgetKzt, 0, language)}`,
+        `Try allowing more time, changing your request or choosing another start. Place catalogs may be incomplete. ${cityBudgetNote(request.budgetKzt, 0, language)}`),
       request.text, language),
   }
 }
@@ -433,7 +441,7 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     : namedArea ? { lat: namedArea.lat, lon: namedArea.lon } : city.center
   const categories = new Set<string>(intent.categories)
   const exactName = quotedVenueName(body.request.text)
-  const nearbySnapshot = snapshotPlaces.filter((place) => usablePlace(place) && insideAstana(place)
+  const nearbySnapshot = catalogPlaces.filter((place) => usablePlace(place) && insideAstana(place)
     && ((categories.has(place.category) && distanceMeters(origin, place) <= (body.request.targetArea ? 50_000 : 25_000))
       || (exactName && matchesVenueName(place.name, exactName))))
   const nearbyInHeading = body.request.targetArea
@@ -443,16 +451,26 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const accessibleNearby = wheelchairOnly
     ? nearbyInHeading.filter((place) => place.tags.wheelchair === 'yes') : nearbyInHeading
   const scarceCategories = scarceSearchCategories(intent.categories, accessibleNearby)
-  const live = scarceCategories.length > 0 || needsLiveRefresh(body.request.text)
-    ? await discoverPlaces(body.request.targetArea ?? origin,
-      scarceCategories.length ? scarceCategories : intent.categories, exactName, wheelchairOnly) : null
+  const [live, twoGis] = await Promise.all([
+    scarceCategories.length > 0 || needsLiveRefresh(body.request.text)
+      ? discoverPlaces(body.request.targetArea ?? origin,
+        scarceCategories.length ? scarceCategories : intent.categories, exactName, wheelchairOnly)
+      : Promise.resolve(null),
+    wheelchairOnly || env.TWO_GIS_ENABLED !== 'true'
+      ? Promise.resolve({ places: [], status: 'disabled' as const })
+      : search2GisVenues(env.TWO_GIS_API_KEY, {
+        categories: intent.categories,
+        center: body.request.targetArea ?? origin,
+        language,
+      }),
+  ])
   const merged = new Map<string, DynamicPlace>(nearbySnapshot.map((place) => [place.id, place]))
   for (const place of live ?? []) if (usablePlace(place)) merged.set(place.id, place)
+  for (const place of twoGis.places) {
+    if (!usablePlace(place) || [...merged.values()].some((known) => sameVenue(known, place))) continue
+    merged.set(place.id, place)
+  }
   const places = [...merged.values()]
-  if (!places.length && live === null && !wheelchairOnly) return json({ error: pick(language,
-    'Поиск мест временно недоступен. Попробуйте позже.',
-    'Орындарды іздеу уақытша қолжетімсіз. Кейінірек қайталаңыз.',
-    'Place search is temporarily unavailable. Try again later.') }, 503)
   const previouslyShown = new Set(body.request.excludePlaceIds ?? [])
   const candidates = rankDynamicPlaces(places, body.request, intent, origin)
     .filter((place) => !previouslyShown.has(place.id))
@@ -470,6 +488,7 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   if (!routes.length) return json(noPlacesResponse(body.request, city))
   const selectedPlaces = [...new Set(routes.flatMap((candidate) => candidate.stops.map((stop) => stop.id)))]
     .map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
+  const sourceProviders = new Set(selectedPlaces.map((place) => place.provider))
   const [findings, prices] = await Promise.all([
     searchVenueEvidence(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
     researchVenuePrices(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
@@ -489,6 +508,14 @@ async function recommend(request: Request, env: Env): Promise<Response> {
       `Основа поиска — выгрузка OpenStreetMap от ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Дополнено живым поиском Overpass.' : ''}`,
       `Іздеу негізі — ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)} күнгі OpenStreetMap деректері.${live?.length ? ' Overpass арқылы жаңа деректер қосылды.' : ''}`,
       `Search is based on OpenStreetMap data from ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Supplemented by a live Overpass search.' : ''}`)
+      + (sourceProviders.has('Overture Maps') ? ` ${pick(language,
+        'В маршруте есть места Overture Maps с отдельно сверенными адресами и точками; работу заведений и часы проверьте перед визитом.',
+        'Бағытта мекенжайы мен орны бөлек салыстырылған Overture Maps орындары бар; мекеменің жұмысын және уақытын барар алдында тексеріңіз.',
+        'The route includes Overture Maps places with separately checked addresses and locations; confirm that each venue still operates and check its hours.')}` : '')
+      + (sourceProviders.has('2GIS') ? ` ${pick(language,
+        'В маршруте есть заведения из живого поиска 2ГИС; актуальность и свободные места уточните перед визитом.',
+        'Бағытта 2ГИС-тің ағымдағы іздеуінен орындар бар; өзектілігі мен бос орындарды барар алдында нақтылаңыз.',
+        'The route includes venues from a live 2GIS search; check current details and availability before visiting.')}` : '')
       + ` ${body.request.transport === 'walk'
         ? pick(language,
           'Время пешком приблизительное, расстояние между точками — по прямой; обратный путь не учтён.',
@@ -578,8 +605,10 @@ export default {
       if (pathname === '/api/health') {
         if (request.method !== 'GET') return json({ error: pick(language,
           'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
-        return json({ status: 'ok', cities: 1, discovery: 'osm-snapshot-and-live-search',
-          snapshotSize: snapshot.pois.length, snapshotDate: snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt })
+        return json({ status: 'ok', cities: 1, discovery: 'osm-overture-and-live-search',
+          snapshotSize: snapshot.pois.length, snapshotDate: snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt,
+          overtureSize: overtureImport.places.length, overtureRelease: overtureJson.source.release,
+          twoGisEnabled: env.TWO_GIS_ENABLED === 'true' && !!env.TWO_GIS_API_KEY })
       }
       if (pathname === '/api/catalog') {
         if (request.method !== 'GET') return json({ error: pick(language,

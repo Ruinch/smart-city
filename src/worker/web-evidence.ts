@@ -177,7 +177,8 @@ export async function searchVenueEvidence(apiKey: string | undefined, request: W
       method: 'POST', signal: controller.signal,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-6-luna', reasoning: { effort: 'none' }, store: false, max_output_tokens: 500,
+        model: 'gpt-6-luna', reasoning: { effort: 'none' }, store: false,
+        max_output_tokens: 500, max_tool_calls: 1,
         tools: [{ type: 'web_search', search_context_size: 'low',
           user_location: { type: 'approximate', country: 'KZ', city: 'Astana' } }],
         tool_choice: 'required', include: ['web_search_call.action.sources'],

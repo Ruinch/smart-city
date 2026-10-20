@@ -50,5 +50,7 @@ describe('optional web evidence', () => {
     expect(findings).toHaveLength(1)
     expect(findings[0]).toMatchObject({ id: place.id, feature: 'quiet' })
     expect(findings[0].sourceUrl).toMatch(/^https:\/\//)
+    const searchBody = JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))
+    expect(searchBody.max_tool_calls).toBe(1)
   })
 })

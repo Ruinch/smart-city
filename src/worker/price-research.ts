@@ -283,7 +283,7 @@ export async function researchVenuePrices(apiKey: string | undefined, request: W
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-6-luna', reasoning: { effort: 'none' }, store: false,
-        max_output_tokens: 900,
+        max_output_tokens: 900, max_tool_calls: 1,
         tools: [{ type: 'web_search', search_context_size: 'low',
           user_location: { type: 'approximate', country: 'KZ', city: 'Astana' } }],
         tool_choice: 'required', include: ['web_search_call.action.sources'],

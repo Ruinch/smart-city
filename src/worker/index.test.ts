@@ -122,11 +122,17 @@ describe('Worker API integration', () => {
     expect(catalog.source.licenseUrl).toBe('https://www.openstreetmap.org/copyright')
 
     const healthResponse = await worker.fetch(new Request('https://example.test/api/health'), {})
-    const health = await healthResponse.json() as { snapshotSize: number; snapshotDate: string }
+    const health = await healthResponse.json() as {
+      snapshotSize: number; snapshotDate: string; overtureSize: number; overtureRelease: string;
+      twoGisEnabled: boolean
+    }
     expect(healthResponse.status).toBe(200)
     expect(health.snapshotSize).toBe(snapshot.pois.length)
     expect(health.snapshotSize).toBeGreaterThan(200)
     expect(health.snapshotDate).toBe(snapshot.source.osmBaseTimestamp)
+    expect(health.overtureSize).toBeGreaterThan(0)
+    expect(health.overtureRelease).toMatch(/^\d{4}-\d{2}-\d{2}\.\d+$/)
+    expect(health.twoGisEnabled).toBe(false)
   })
 
   it('uses a named Astana landmark as the route origin', async () => {

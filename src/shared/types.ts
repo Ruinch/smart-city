@@ -108,7 +108,7 @@ export interface WalkRequest {
   text: string
   /** Number of people travelling together. Capacity remains unverified. */
   groupSize?: number
-  /** Previously shown OSM places to skip when asking for more ideas. */
+  /** Previously shown sourced places to skip when asking for more ideas. */
   excludePlaceIds?: string[]
 }
 
@@ -162,7 +162,9 @@ export interface Recommendation {
   stopOrder?: number
   /** Optional sourced claim verified separately from the OSM location. */
   evidence?: Array<{ claim: string; sourceUrl: string }>
-  sourceProvider?: 'OpenStreetMap' | 'Overture Maps'
+  sourceProvider?: 'OpenStreetMap' | 'Overture Maps' | '2GIS'
+  /** Original Overture supplier when present, displayed with the source link. */
+  sourceDataset?: string
 }
 
 /** A route is an ordered itinerary selected at request time from sourced places. */

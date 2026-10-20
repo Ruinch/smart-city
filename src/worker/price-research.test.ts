@@ -60,6 +60,7 @@ describe('sourced venue price research', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const body = JSON.parse(String(fetchMock.mock.calls[0][1].body)) as Record<string, unknown>
     expect(body.tools).toMatchObject([{ type: 'web_search' }])
+    expect(body.max_tool_calls).toBe(1)
     expect((body.input as Array<{ content: string }>)[1].content).toContain('price-cap-5')
     expect((body.input as Array<{ content: string }>)[1].content).not.toContain('price-cap-6')
   })
