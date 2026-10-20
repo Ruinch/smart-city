@@ -450,7 +450,7 @@ button, input, textarea, select { font-family: inherit; }
 .app-shell[data-screen="map"] .sheet-handle-label { color: var(--brand); font-size: 14px; }
 .app-shell[data-screen="map"] .map-actions { right: 16px; bottom: calc(84px + var(--app-safe-bottom, 0px)); }
 .app-shell[data-screen="map"] .map-credits { left: 12px; bottom: calc(70px + var(--app-safe-bottom, 0px)); }
-.app-shell[data-screen="map"] .map-pick-hint { left: 16px; right: 76px; bottom: calc(105px + var(--app-safe-bottom, 0px)); max-width: calc(100% - 92px); }
+.app-shell[data-screen="map"] .map-pick-hint { left: 16px; right: 76px; bottom: calc(150px + var(--app-safe-bottom, 0px)); max-width: calc(100% - 92px); }
 .app-shell[data-screen="map"] .rec-map__failure { bottom: calc(100px + var(--app-safe-bottom, 0px)); }
 .app-shell[data-screen].is-keyboard-open .submit-dock { position: static; padding-bottom: 8px; }
 
