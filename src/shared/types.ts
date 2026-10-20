@@ -107,6 +107,8 @@ export interface WalkRequest {
   mood?: Mood
   /** One sourced nearby discovery instead of a multi-stop route. */
   surprise?: boolean
+  /** Include dated Astana events alongside the place route. Explicit event wording also enables this. */
+  includeEvents?: boolean
   landmarkId?: string
   minutes: number
   intents: Intent[]
@@ -205,10 +207,36 @@ export interface MapPlace {
   sourceUrl: string
 }
 
+/** A dated event from a named public schedule, separate from a persistent POI. */
+export interface LiveEvent {
+  id: string
+  title: string
+  category: 'exhibition' | 'concert' | 'festival' | 'sport' | 'evening'
+  /** YYYY-MM-DD when a source gives a date only; otherwise ISO with an explicit offset. */
+  startsAt: string
+  endsAt?: string
+  venueName: string
+  /** Attached only after a separate location/venue identity check. */
+  placeId?: string
+  lat?: number
+  lon?: number
+  sourceUrl: string
+  sourceName: string
+  /** When our server retrieved the source; this does not guarantee tickets or that it has not changed. */
+  checkedAt: string
+  publishedAt?: string
+  /** Published per-person price, if separately established. Unknown is omitted. */
+  priceKzt?: number
+}
+
 export interface RecommendResponse {
   summary: string
   recommendations: Recommendation[]
   routes?: RoutePlan[]
+  /** Upcoming dated events, never counted as route stops without verified venue and visit time. */
+  events?: LiveEvent[]
+  /** Distinguishes a genuine empty listing from a temporary source outage. */
+  eventsStatus?: 'ok' | 'partial' | 'unavailable'
   note?: string
   /** The chosen heading was softened to return more relevant nearby places. */
   headingAdjusted?: boolean

@@ -1,4 +1,4 @@
-import type { Recommendation, WalkRequest } from '../shared/types'
+import type { LiveEvent, Recommendation, WalkRequest } from '../shared/types'
 import { ASTANA_CENTER, insideAstana, insideTripPlanningArea } from '../shared/astana'
 import { mountRecommendationsMap, type MapCoordinate, type RecommendationsMapController } from './map'
 import { mountLaunchScreen } from './launch-screen'
@@ -45,6 +45,8 @@ interface RoutePlan {
 interface RouteResponse {
   summary: string
   routes?: RoutePlan[]
+  events?: LiveEvent[]
+  eventsStatus?: 'ok' | 'partial' | 'unavailable'
   note?: string
   headingAdjusted?: boolean
   replacementUnchanged?: boolean
@@ -340,6 +342,74 @@ const moodSearchText: Record<Language, Record<Mood, string>> = {
   en: { relax: 'I want to unwind somewhere pleasant', fun: 'I want to have fun and do something lively', photo: 'I want unusual photogenic places', learn: 'I want to learn something new and interesting', quiet: 'I want a quiet peaceful place', unsure: 'Suggest an interesting nearby place or walk' },
 }
 
+const eventSearchText: Record<Language, string> = {
+  ru: 'Интересные выставки, концерты, фестивали, спортивные или вечерние события в Астане',
+  kk: 'Астанадағы көрмелер, концерттер, фестивальдер, спорт немесе кешкі іс-шаралар',
+  en: 'Interesting exhibitions, concerts, festivals, sports or evening events in Astana',
+}
+
+const eventCopy: Record<Language, {
+  toggle: string
+  toggleHint: string
+  summary: string
+  heading: string
+  intro: string
+  noEvents: string
+  noEventsPartial: string
+  unavailable: string
+  partial: string
+  types: Record<LiveEvent['category'], string>
+  venue: string
+  source: string
+  checked: string
+  zone: string
+  older: string
+  noTime: string
+  price: string
+  priceUnknown: string
+  availability: string
+}> = {
+  ru: {
+    toggle: 'События и афиша', toggleHint: 'Покажем временные мероприятия с датой и источником. Они не входят в маршрут автоматически.', summary: 'события',
+    heading: 'Афиша Астаны', intro: 'События показаны отдельно от маршрута: расстояние до площадки не рассчитано. Перед выходом проверьте расписание у организатора.',
+    noEvents: 'Событий с подтверждённой датой по этому запросу пока не нашлось.',
+    noEventsPartial: 'Часть источников сейчас недоступна. По проверенным источникам подходящие события пока не нашлись.',
+    unavailable: 'Афиши временно недоступны. Попробуйте проверить события позже.',
+    partial: 'Часть источников афиши сейчас недоступна.',
+    types: { exhibition: 'Выставка', concert: 'Концерт', festival: 'Фестиваль', sport: 'Спорт', evening: 'Вечернее событие' },
+    venue: 'Место: {name}', source: 'Источник: {name} ↗', checked: 'Сведения прочитаны {date}', zone: 'время Астаны',
+    older: 'Источник проверялся более суток назад.', noTime: 'Время начала не указано в источнике.',
+    price: 'Цена в источнике: {amount}', priceUnknown: 'Цена не подтверждена.',
+    availability: 'Наличие билетов и изменения программы проверьте у организатора.',
+  },
+  kk: {
+    toggle: 'Іс-шаралар афишасы', toggleHint: 'Күні мен дереккөзі белгілі уақытша іс-шаралар көрсетіледі. Олар бағытқа автоматты түрде қосылмайды.', summary: 'іс-шаралар',
+    heading: 'Астанадағы іс-шаралар', intro: 'Іс-шаралар бағыттан бөлек көрсетіледі: өтетін жерге дейінгі қашықтық есептелмеген. Шығар алдында кестені ұйымдастырушыдан тексеріңіз.',
+    noEvents: 'Бұл сұрауға сай күні расталған іс-шаралар әзірге табылмады.',
+    noEventsPartial: 'Кей дереккөздер қазір қолжетімсіз. Тексерілген дереккөздерден лайықты іс-шара табылмады.',
+    unavailable: 'Афиша дереккөздері уақытша қолжетімсіз. Кейінірек қайталап көріңіз.',
+    partial: 'Афишаның кей дереккөздері қазір қолжетімсіз.',
+    types: { exhibition: 'Көрме', concert: 'Концерт', festival: 'Фестиваль', sport: 'Спорт', evening: 'Кешкі іс-шара' },
+    venue: 'Өтетін орны: {name}', source: 'Дереккөз: {name} ↗', checked: 'Мәлімет {date} оқылды', zone: 'Астана уақыты',
+    older: 'Дереккөз бір тәуліктен астам бұрын тексерілген.', noTime: 'Басталу уақыты дереккөзде көрсетілмеген.',
+    price: 'Дереккөздегі баға: {amount}', priceUnknown: 'Бағасы расталмаған.',
+    availability: 'Билеттер мен бағдарлама өзгерістерін ұйымдастырушыдан тексеріңіз.',
+  },
+  en: {
+    toggle: 'Events and listings', toggleHint: 'Show temporary events with a date and source. They are not added to the route automatically.', summary: 'events',
+    heading: 'Events in Astana', intro: 'Events are separate from the route; distance to each venue has not been calculated. Check the schedule with the organizer before leaving.',
+    noEvents: 'No events with a sourced date matched this request yet.',
+    noEventsPartial: 'Some event sources are unavailable. No matching events were found in the sources we could check.',
+    unavailable: 'Event listings are temporarily unavailable. Please try again later.',
+    partial: 'Some event sources are currently unavailable.',
+    types: { exhibition: 'Exhibition', concert: 'Concert', festival: 'Festival', sport: 'Sport', evening: 'Evening event' },
+    venue: 'Venue: {name}', source: 'Source: {name} ↗', checked: 'Information read {date}', zone: 'Astana time',
+    older: 'The source was checked more than a day ago.', noTime: 'The source does not give a start time.',
+    price: 'Price in source: {amount}', priceUnknown: 'Price is unconfirmed.',
+    availability: 'Check ticket availability and schedule changes with the organizer.',
+  },
+}
+
 const categoryLabelsRu: Record<string, string> = {
   cafe: 'Кафе', nightclub: 'Клуб', bar: 'Бар', music_venue: 'Концертная площадка',
   events_venue: 'Площадка для мероприятий', restaurant: 'Ресторан',
@@ -433,6 +503,12 @@ app.innerHTML = `
             <button type="button" data-mood="unsure" aria-pressed="false">Не знаю</button>
           </div>
         </fieldset>
+        <div id="eventOption" class="event-option">
+          <label class="option-card" for="includeEvents">
+            <input id="includeEvents" type="checkbox" aria-labelledby="includeEventsLabel" aria-describedby="includeEventsHint" />
+            <span class="option-copy"><strong id="includeEventsLabel">События и афиша</strong><small id="includeEventsHint">Покажем временные мероприятия с датой и источником. Они не входят в маршрут автоматически.</small></span>
+          </label>
+        </div>
         <div id="startPicker" class="start-picker" role="group" aria-labelledby="startLabel">
           <div class="start-heading">
             <span id="startLabel">Откуда начнём?</span>
@@ -571,6 +647,7 @@ const wheelchairOnly = requiredElement<HTMLInputElement>('#wheelchairOnly')
 const shortLegs = requiredElement<HTMLInputElement>('#shortLegs')
 const gentlePace = requiredElement<HTMLInputElement>('#gentlePace')
 const microQuest = requiredElement<HTMLInputElement>('#microQuest')
+const includeEvents = requiredElement<HTMLInputElement>('#includeEvents')
 const submitButton = requiredElement<HTMLButtonElement>('#submitButton')
 const surpriseButton = requiredElement<HTMLButtonElement>('#surpriseButton')
 const submitLabel = requiredElement<HTMLElement>('.submit-label')
@@ -628,6 +705,7 @@ const state: {
   shortLegs: boolean
   gentlePace: boolean
   microQuest: boolean
+  includeEvents: boolean
   mood: Mood | null
   stops: Recommendation[]
 } = {
@@ -642,6 +720,7 @@ const state: {
   shortLegs: false,
   gentlePace: false,
   microQuest: false,
+  includeEvents: false,
   mood: null,
   stops: [],
 }
@@ -783,6 +862,8 @@ function applyTranslations(): void {
   for (const [selector, attribute, key] of ariaTargets) document.querySelector(selector)?.setAttribute(attribute, t(key))
   prompt.placeholder = t('promptPlaceholder')
   budget.placeholder = t('noLimit')
+  requiredElement<HTMLElement>('#includeEventsLabel').textContent = eventCopy[language].toggle
+  requiredElement<HTMLElement>('#includeEventsHint').textContent = eventCopy[language].toggleHint
   surpriseButton.title = t('surpriseHint')
   surpriseButton.setAttribute('aria-label', `${t('surprise')}. ${t('surpriseHint')}`)
   const exampleKeys: Array<[string, MessageKey]> = [['club', 'exampleClubPrompt'], ['coffee', 'exampleCoffeePrompt'], ['friends', 'exampleFriendsPrompt']]
@@ -835,6 +916,7 @@ function updateSettingsSummary(): void {
     state.shortLegs ? t('shortLegsSummary') : '',
     state.gentlePace ? t('gentleSummary') : '',
     state.microQuest ? t('questSummary') : '',
+    state.includeEvents ? eventCopy[language].summary : '',
   ].filter(Boolean).map((label) => ` · ${label}`).join('')
   settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${formatMinutes(state.minutes)} · ${travel} · ${people}${money}${extras}`
 }
@@ -845,6 +927,7 @@ function renderSpecialSettings(): void {
   if (state.scope !== 'city') {
     state.gentlePace = false
     state.microQuest = false
+    state.includeEvents = false
   }
   wheelchairOnly.checked = state.wheelchairOnly
   wheelchairOnly.setAttribute('aria-describedby', state.scope === 'day_trip' && state.wheelchairOnly
@@ -858,7 +941,10 @@ function renderSpecialSettings(): void {
   microQuest.checked = state.microQuest
   microQuest.disabled = state.scope !== 'city'
   microQuest.setAttribute('aria-describedby', state.scope === 'city' ? 'questHint' : 'questHint questAvailability')
-  for (const input of [wheelchairOnly, shortLegs, gentlePace, microQuest]) {
+  includeEvents.checked = state.includeEvents
+  includeEvents.disabled = state.scope !== 'city'
+  requiredElement<HTMLElement>('#eventOption').hidden = state.scope !== 'city'
+  for (const input of [wheelchairOnly, shortLegs, gentlePace, microQuest, includeEvents]) {
     input.closest('.option-card')?.classList.toggle('is-selected', input.checked)
     input.closest('.option-card')?.classList.toggle('is-disabled', input.disabled)
   }
@@ -925,6 +1011,12 @@ gentlePace.addEventListener('change', () => {
 })
 microQuest.addEventListener('change', () => {
   state.microQuest = microQuest.checked
+  renderSpecialSettings()
+  clearResults()
+  updateSettingsSummary()
+})
+includeEvents.addEventListener('change', () => {
+  state.includeEvents = includeEvents.checked
   renderSpecialSettings()
   clearResults()
   updateSettingsSummary()
@@ -1409,7 +1501,7 @@ type ValidatedForm = { text: string; group: number; budgetKzt?: number }
 function validateForm(surprise = false): ValidatedForm | null {
   budget.setCustomValidity('')
   const text = prompt.value.trim()
-  if (!surprise && text.length < 3 && !state.mood) {
+  if (!surprise && text.length < 3 && !state.mood && !state.includeEvents) {
     promptError.textContent = t('promptError')
     promptError.hidden = false
     prompt.focus()
@@ -1436,11 +1528,12 @@ function validateForm(surprise = false): ValidatedForm | null {
   return { text, group, budgetKzt: amount }
 }
 
-function makeRequest(validated: ValidatedForm, excludePlaceIds: string[] = [], surprise = false): { initData: string; request: WalkRequest & { groupSize: number; mood?: Mood; surprise?: boolean } } {
+function makeRequest(validated: ValidatedForm, excludePlaceIds: string[] = [], surprise = false): { initData: string; request: WalkRequest & { groupSize: number; mood?: Mood; surprise?: boolean; includeEvents?: boolean } } {
+  const usefulText = validated.text.length >= 3 ? validated.text : ''
   const text = surprise
     ? ''
-    : validated.text || moodSearchText[language][state.mood ?? 'unsure']
-  const request: WalkRequest & { groupSize: number; mood?: Mood; surprise?: boolean } = {
+    : usefulText || (state.includeEvents ? eventSearchText[language] : moodSearchText[language][state.mood ?? 'unsure'])
+  const request: WalkRequest & { groupSize: number; mood?: Mood; surprise?: boolean; includeEvents?: boolean } = {
     cityId: 'astana',
     scope: state.scope,
     transport: state.transport,
@@ -1453,6 +1546,7 @@ function makeRequest(validated: ValidatedForm, excludePlaceIds: string[] = [], s
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
   if (state.mood && state.scope === 'city') request.mood = state.mood
   if (surprise) request.surprise = true
+  if (state.includeEvents && state.scope === 'city') request.includeEvents = true
   if (state.wheelchairOnly) request.accessibility = 'osm_wheelchair_yes'
   if (state.shortLegs && state.scope === 'city' && state.transport === 'walk') request.shortLegs = true
   if (state.gentlePace && state.scope === 'city') request.gentlePace = true
@@ -1991,13 +2085,127 @@ function createRouteDirection(from: MapCoordinate, to: MapCoordinate): HTMLEleme
   return card
 }
 
+type EventMoment = { date: Date; label: string; dateOnly: boolean }
+
+function formatEventMoment(value: string): EventMoment | null {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  if (!dateOnly && !/^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) return null
+  const date = new Date(dateOnly ? `${value}T12:00:00Z` : value)
+  if (!Number.isFinite(date.getTime()) || dateOnly && date.toISOString().slice(0, 10) !== value) return null
+  const locale = language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU'
+  const label = new Intl.DateTimeFormat(locale, dateOnly
+    ? { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }
+    : { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Almaty' }).format(date)
+  return { date, label, dateOnly }
+}
+
+function createEventsSection(events: LiveEvent[] | undefined, requested: boolean,
+  status?: RouteResponse['eventsStatus']): HTMLElement | null {
+  const copy = eventCopy[language]
+  const visible = (Array.isArray(events) ? events : []).filter((event) =>
+    event && typeof event.title === 'string' && event.title.trim()
+    && typeof event.sourceUrl === 'string' && safeUrl(event.sourceUrl)
+    && typeof event.startsAt === 'string' && formatEventMoment(event.startsAt)
+    && typeof event.checkedAt === 'string' && formatEventMoment(event.checkedAt))
+  if (!visible.length && !requested) return null
+  const section = document.createElement('section')
+  section.className = 'live-events'
+  section.setAttribute('aria-labelledby', 'liveEventsHeading')
+  const heading = document.createElement('h3')
+  heading.id = 'liveEventsHeading'
+  heading.textContent = copy.heading
+  const intro = document.createElement('p')
+  intro.className = 'live-events-intro'
+  intro.textContent = copy.intro
+  appendNodes(section, heading, intro)
+  if (!visible.length) {
+    const empty = document.createElement('p')
+    empty.className = 'live-events-empty'
+    empty.textContent = status === 'unavailable' ? copy.unavailable
+      : status === 'partial' ? copy.noEventsPartial : copy.noEvents
+    section.appendChild(empty)
+    return section
+  }
+  if (status === 'partial') {
+    const partial = document.createElement('p')
+    partial.className = 'live-events-partial'
+    partial.textContent = copy.partial
+    section.appendChild(partial)
+  }
+  const list = document.createElement('div')
+  list.className = 'live-event-list'
+  for (const event of visible.slice(0, 6)) {
+    const start = formatEventMoment(event.startsAt)!
+    const end = typeof event.endsAt === 'string' ? formatEventMoment(event.endsAt) : null
+    const checked = formatEventMoment(event.checkedAt)!
+    const card = document.createElement('article')
+    card.className = 'live-event-card'
+    const category = document.createElement('span')
+    category.className = 'live-event-category'
+    category.textContent = copy.types[event.category] ?? copy.heading
+    const title = document.createElement('h4')
+    title.textContent = event.title.trim()
+    const when = document.createElement('p')
+    when.className = 'live-event-when'
+    const time = document.createElement('time')
+    time.dateTime = event.startsAt
+    time.textContent = end && end.date.getTime() >= start.date.getTime()
+      ? `${start.label} – ${end.label}` : start.label
+    when.appendChild(time)
+    if (!start.dateOnly) {
+      const zone = document.createElement('span')
+      zone.textContent = ` · ${copy.zone}`
+      when.appendChild(zone)
+    }
+    const venue = document.createElement('p')
+    venue.className = 'live-event-venue'
+    venue.textContent = copy.venue.replace('{name}', typeof event.venueName === 'string' && event.venueName.trim()
+      ? event.venueName.trim() : language === 'kk' ? 'дереккөзден қараңыз' : language === 'en' ? 'see source' : 'уточните в источнике')
+    const price = document.createElement('p')
+    price.className = 'live-event-price'
+    price.textContent = typeof event.priceKzt === 'number' && Number.isFinite(event.priceKzt) && event.priceKzt >= 0
+      ? copy.price.replace('{amount}', formatKzt(event.priceKzt)) : copy.priceUnknown
+    const sourceName = typeof event.sourceName === 'string' && event.sourceName.trim()
+      ? event.sourceName.trim() : new URL(event.sourceUrl).hostname.replace(/^www\./, '')
+    const source = createLink(copy.source.replace('{name}', sourceName), event.sourceUrl, 'live-event-source')!
+    const checkedLine = document.createElement('p')
+    checkedLine.className = 'live-event-checked'
+    const checkedTime = document.createElement('time')
+    checkedTime.dateTime = event.checkedAt
+    checkedTime.textContent = `${copy.checked.replace('{date}', checked.label)}${checked.dateOnly ? '' : ` · ${copy.zone}`}`
+    checkedLine.appendChild(checkedTime)
+    if (Date.now() - checked.date.getTime() > 24 * 60 * 60 * 1000) {
+      const older = document.createElement('span')
+      older.className = 'live-event-older'
+      older.textContent = copy.older
+      checkedLine.appendChild(older)
+    }
+    const caveat = document.createElement('p')
+    caveat.className = 'live-event-caveat'
+    caveat.textContent = `${start.dateOnly ? `${copy.noTime} ` : ''}${copy.availability}`
+    appendNodes(card, category, title, when, venue, price, source, checkedLine, caveat)
+    list.appendChild(card)
+  }
+  section.appendChild(list)
+  return section
+}
+
 function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = false): void {
   results.hidden = false
   results.replaceChildren()
   const routes = response.routes?.filter((candidate) => Array.isArray(candidate.stops) && candidate.stops.length > 0) ?? []
   const route = routes[selectedRoute] ?? routes[0]
+  const eventsSection = createEventsSection(response.events,
+    Boolean(lastRequest?.includeEvents || response.events !== undefined), response.eventsStatus)
   if (!route) {
+    currentResponse = response
+    currentRoute = null
+    currentRouteOrigin = null
+    state.stops = []
+    mapController?.update([], origin())
+    fitButton.hidden = true
     showNoResults()
+    if (eventsSection) results.insertBefore(eventsSection, results.firstChild)
     return
   }
   currentResponse = response
@@ -2155,6 +2363,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   })
   appendNodes(stopPanel, stopTitle, list, mapNote)
   results.appendChild(stopPanel)
+  if (eventsSection) results.appendChild(eventsSection)
   if (response.note) {
     const note = document.createElement('p')
     note.className = 'results-note'

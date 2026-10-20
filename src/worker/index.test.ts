@@ -84,6 +84,32 @@ async function replace(request: Partial<WalkRequest>, route: unknown, stopIndex:
 }
 
 describe('Worker API integration', () => {
+  it('returns sourced upcoming events alongside a signed city request without making them route stops', async () => {
+    const future = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Almaty', day: '2-digit',
+      month: '2-digit', year: 'numeric' }).format(new Date(Date.now() + 7 * 86_400_000))
+    const concertHtml = `<div class="concert__card"><a href="/ru/poster/test-concert" class="concert__caption">Тестовый концерт</a><span class="concert__date">Дата: ${future}</span><span class="concert__time">Время: 19:00</span><div class="concert__hall">Зал: Большой зал</div></div>`
+    const originalFetch = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) =>
+      String(url) === 'https://qazaqconcert.kz/ru/'
+        ? new Response(concertHtml, { headers: { 'content-type': 'text/html' } })
+        : /overpass|interpreter/u.test(String(url))
+          ? new Response(JSON.stringify({ elements: [] }), { headers: { 'content-type': 'application/json' } })
+          : new Response('', { headers: { 'content-type': 'text/html' } })))
+    try {
+      const response = await worker.fetch(requestBody({ text: 'Хочу на концерт', includeEvents: true },
+        await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+      const body = await response.json() as RecommendResponse
+      expect(response.status).toBe(200)
+      expect(body.eventsStatus).toBe('ok')
+      expect(body.events).toEqual([expect.objectContaining({
+        title: 'Тестовый концерт', sourceName: 'Қазақконцерт',
+        sourceUrl: 'https://qazaqconcert.kz/ru/poster/test-concert',
+        checkedAt: expect.any(String),
+      })])
+      expect(body.routes?.flatMap((route) => route.stops.map((stop) => stop.id))).not.toContain(body.events?.[0].id)
+    } finally { vi.stubGlobal('fetch', originalFetch) }
+  })
+
   it('accepts signed Telegram launch data and builds an ordered route from sourced Astana places', async () => {
     const { response, body } = await recommend({ text: 'Хочу кофе и почитать книгу', groupSize: 3, minutes: 180 })
     expect(response.status).toBe(200)

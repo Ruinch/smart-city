@@ -21,6 +21,8 @@ import { onCityHeading } from './direction'
 import { importVerifiedOverture, sameVenue } from './overture'
 import { search2GisVenues } from './two-gis'
 import { replaceRouteStop, type ReplaceReason } from './replace'
+import { fetchLiveEventsWithStatus, type LiveEventsStatus } from './live-events'
+import { selectLiveEvents, wantsLiveEvents } from './event-selection'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
@@ -183,6 +185,14 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
     throw new HttpError(400, pick(language, 'Некорректный режим «Удиви меня».',
       '«Таңғалдыр» режимі қате.', 'Invalid surprise mode.'))
   }
+  if (rawRequest.includeEvents !== undefined && typeof rawRequest.includeEvents !== 'boolean') {
+    throw new HttpError(400, pick(language, 'Некорректный фильтр событий.',
+      'Іс-шаралар сүзгісі қате.', 'Invalid events filter.'))
+  }
+  if (scope !== 'city' && rawRequest.includeEvents === true) {
+    throw new HttpError(400, pick(language, 'Афиша доступна только для Астаны.',
+      'Іс-шаралар тек Астана үшін қолжетімді.', 'Events are available only for Astana.'))
+  }
   if (scope !== 'city' && (rawRequest.mood !== undefined || rawRequest.surprise === true)) {
     throw new HttpError(400, pick(language, 'Настроение и «Удиви меня» доступны для прогулок по Астане.',
       'Көңіл күйі мен «Таңғалдыр» Астанадағы серуенге арналған.',
@@ -259,6 +269,7 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
   if (rawRequest.microQuest === true) walkRequest.microQuest = true
   if (rawRequest.mood !== undefined) walkRequest.mood = rawRequest.mood as WalkRequest['mood']
   if (rawRequest.surprise === true) walkRequest.surprise = true
+  if (rawRequest.includeEvents === true) walkRequest.includeEvents = true
   if (budgetKzt !== undefined) walkRequest.budgetKzt = budgetKzt as number
   if (groupSize !== undefined) walkRequest.groupSize = groupSize as number
   if (Array.isArray(excludePlaceIds) && excludePlaceIds.length) walkRequest.excludePlaceIds = excludePlaceIds as string[]
@@ -450,6 +461,23 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     } satisfies RecommendResponse)
   }
 
+  const eventNow = new Date()
+  // The dated calendar is independent of the permanent venue catalog. Start its
+  // bounded fetch while the usual place search runs, then attach it to every
+  // city result, including an otherwise empty route.
+  const eventLookup = wantsLiveEvents(body.request)
+    ? fetchLiveEventsWithStatus({ now: eventNow, language }).catch((): LiveEventsStatus => ({
+      events: [], checkedSources: [], failedSources: ['Қазақконцерт', 'Astana Tourism'],
+    })) : null
+  const respond = async (result: RecommendResponse): Promise<Response> => {
+    if (!eventLookup) return json(result)
+    const lookup = await eventLookup
+    const events = selectLiveEvents(lookup.events, body.request, eventNow)
+    const eventsStatus = lookup.checkedSources.length === 0 ? 'unavailable'
+      : lookup.failedSources.length ? 'partial' : 'ok'
+    return json({ ...result, events, eventsStatus } satisfies RecommendResponse)
+  }
+
   const intent = await searchIntentWithAI(env.OPENAI_API_KEY, body.request)
   const namedArea = body.request.latitude === undefined
     ? (body.request.landmarkId && body.request.landmarkId !== city.id
@@ -526,11 +554,11 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   }
   if (body.request.surprise) {
     const pool = surpriseCandidatePool(candidates, body.request, origin)
-    if (!pool.length) return json(noPlacesResponse(body.request, city))
+    if (!pool.length) return respond(noPlacesResponse(body.request, city))
     const random = crypto.getRandomValues(new Uint32Array(1))[0]
     candidates = [pool[random % pool.length]]
   }
-  if (!candidates.length) return json(noPlacesResponse(body.request, city))
+  if (!candidates.length) return respond(noPlacesResponse(body.request, city))
   const routeRequest = headingRelaxed ? { ...body.request, targetArea: undefined } : body.request
   const aiIds = body.request.surprise ? []
     : await selectStopsWithAI(env.OPENAI_API_KEY, routeRequest, intent, candidates, origin)
@@ -555,7 +583,7 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     headingRelaxed = routes.length > 0
     byId = new Map(candidates.map((poi) => [poi.id, poi]))
   }
-  if (!routes.length) return json(noPlacesResponse(body.request, city))
+  if (!routes.length) return respond(noPlacesResponse(body.request, city))
   const selectedPlaces = [...new Set(routes.flatMap((candidate) => candidate.stops.map((stop) => stop.id)))]
     .map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
   const sourceProviders = new Set(selectedPlaces.map((place) => place.provider))
@@ -649,7 +677,7 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     'Это реальное место из источника, а необычность — субъективная оценка.',
     'Бұл дереккөздегі нақты орын, ал ерекшелігі субъективті бағалау.',
     'This is a sourced place; whether it feels unusual is subjective.')}`
-  return json(result)
+  return respond(result)
 }
 
 /** Route content from the client is reduced to IDs and rehydrated from trusted sources. */
