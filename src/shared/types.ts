@@ -205,4 +205,6 @@ export interface RecommendResponse {
   recommendations: Recommendation[]
   routes?: RoutePlan[]
   note?: string
+  /** The chosen heading was softened to return more relevant nearby places. */
+  headingAdjusted?: boolean
 }

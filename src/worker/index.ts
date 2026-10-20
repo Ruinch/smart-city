@@ -261,9 +261,9 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
       ? pick(language, 'Для загородных поездок пока нет данных OSM о доступности мест для коляски.',
         'Қала сыртындағы сапар орындарының арбаға қолжетімділігі туралы OSM деректері әзірге жоқ.',
         'The out-of-city trips do not yet have OSM wheelchair access data.')
-      : pick(language, 'По этому запросу пока не нашлось мест с отметкой wheelchair=yes в OSM.',
-        'Бұл сұрауға OSM-де wheelchair=yes белгісі бар орындар әзірге табылмады.',
-        'No places tagged wheelchair=yes in OSM matched this request yet.'),
+      : pick(language, 'По доступным данным не удалось собрать маршрут из мест с отметкой wheelchair=yes в OSM.',
+        'Қолда бар деректермен OSM-де wheelchair=yes белгісі бар орындардан бағыт құра алмадық.',
+        'We could not build a route from places tagged wheelchair=yes in OSM using the available data.'),
     recommendations: [], routes: [],
     note: pick(language,
       'Отсутствие отметки не означает недоступность места. Попробуйте другую тему или старт; доступность тротуаров, бордюров и транспорта не проверена.',
@@ -276,16 +276,16 @@ function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendRes
         ? pick(language, 'В выбранном направлении пока нет подходящей поездки с проверенными данными.',
           'Таңдалған бағытта дерегі тексерілген қолайлы сапар табылмады.',
           'No sourced trip matched the selected heading.')
-        : pick(language, 'В выбранном направлении не нашлось подходящих мест для этого времени и запроса.',
-          'Таңдалған бағытта осы уақыт пен сұрауға сай орын табылмады.',
-          'No suitable places matched this heading, time and request.')
+        : pick(language, 'Не удалось собрать маршрут с выбранным ориентиром, временем и запросом по доступным данным.',
+          'Қолда бар деректермен таңдалған бағдар, уақыт және сұрау бойынша бағыт құра алмадық.',
+          'We could not build a route for this heading, time and request from the available data.')
       : trip
       ? pick(language, `Из ${city.name} пока нет загородных вариантов с проверенными данными, подходящих выбранным условиям.`,
         'Таңдалған шарттарға сай дерегі тексерілген қала сыртындағы нұсқалар табылмады.',
         'No sourced trips from Astana matched your selected conditions.')
-      : pick(language, 'По вашему запросу не нашлось подходящих мест в доступных каталогах Астаны для выбранного времени.',
-        'Сұрауыңыз бен таңдаған уақытыңызға сай Астана каталогтарынан орын табылмады.',
-        'No places in the available Astana catalogs matched your request and available time.'),
+      : pick(language, 'Не удалось собрать маршрут по доступным данным для этого запроса и времени.',
+        'Қолда бар деректермен осы сұрау мен уақытқа сай бағыт құра алмадық.',
+        'We could not build a route from the available data for this request and time.'),
     recommendations: [],
     routes: [],
     note: appendUnverifiedPreferenceNote(request.targetArea
@@ -453,17 +453,25 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const wheelchairOnly = body.request.accessibility === 'osm_wheelchair_yes'
   const accessibleNearby = wheelchairOnly
     ? nearbyInHeading.filter((place) => place.tags.wheelchair === 'yes') : nearbyInHeading
-  const scarceCategories = scarceSearchCategories(intent.categories, accessibleNearby)
+  const previouslyShown = new Set(body.request.excludePlaceIds ?? [])
+  // Count places that can actually fit the request. Raw POI counts can hide
+  // that every venue in the chosen corridor is too far for the time available.
+  const feasibleSnapshot = rankDynamicPlaces(accessibleNearby, body.request, intent, origin)
+    .filter((place) => !previouslyShown.has(place.id))
+  const scarceCategories = scarceSearchCategories(intent.categories, feasibleSnapshot)
+  const liveCenter = body.request.targetArea
+    && feasibleSnapshot.some((place) => place.category === intent.categories[0])
+    ? body.request.targetArea : origin
   const [live, twoGis] = await Promise.all([
     scarceCategories.length > 0 || needsLiveRefresh(body.request.text)
-      ? discoverPlaces(body.request.targetArea ?? origin,
+      ? discoverPlaces(liveCenter,
         scarceCategories.length ? scarceCategories : intent.categories, exactName, wheelchairOnly)
       : Promise.resolve(null),
     wheelchairOnly || env.TWO_GIS_ENABLED !== 'true'
       ? Promise.resolve({ places: [], status: 'disabled' as const })
       : search2GisVenues(env.TWO_GIS_API_KEY, {
         categories: intent.categories,
-        center: body.request.targetArea ?? origin,
+        center: liveCenter,
         language,
       }),
   ])
@@ -474,20 +482,48 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     merged.set(place.id, place)
   }
   const places = [...merged.values()]
-  const previouslyShown = new Set(body.request.excludePlaceIds ?? [])
-  const candidates = rankDynamicPlaces(places, body.request, intent, origin)
+  let candidates = rankDynamicPlaces(places, body.request, intent, origin)
     .filter((place) => !previouslyShown.has(place.id))
+  let headingRelaxed = false
+  const primaryCategory = intent.categories[0]
+  if (body.request.targetArea) {
+    const relaxed = rankDynamicPlaces(places, body.request, intent, origin, 'relaxed')
+      .filter((place) => !previouslyShown.has(place.id))
+    const primaryRelaxed = relaxed.filter((place) => place.category === primaryCategory)
+    // A gallery in the corridor is a poor substitute for an explicitly
+    // requested museum if a reachable museum exists just to the side.
+    if (!candidates.length || (primaryRelaxed.length > 0
+      && !candidates.some((place) => place.category === primaryCategory))) {
+      candidates = primaryRelaxed.length
+        ? [...primaryRelaxed, ...relaxed.filter((place) => place.category !== primaryCategory)]
+        : relaxed
+      headingRelaxed = candidates.length > 0
+    }
+  }
   if (!candidates.length) return json(noPlacesResponse(body.request, city))
-  const aiIds = await selectStopsWithAI(env.OPENAI_API_KEY, body.request, intent, candidates, origin)
-  const byId = new Map(candidates.map((poi) => [poi.id, poi]))
+  const routeRequest = headingRelaxed ? { ...body.request, targetArea: undefined } : body.request
+  const aiIds = await selectStopsWithAI(env.OPENAI_API_KEY, routeRequest, intent, candidates, origin)
+  let byId = new Map(candidates.map((poi) => [poi.id, poi]))
   const aiSelected = aiIds.map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
-  if (body.request.targetArea) aiSelected.sort((left, right) =>
+  if (body.request.targetArea && !headingRelaxed) aiSelected.sort((left, right) =>
     (directionMetrics(origin, body.request.targetArea!, left)?.progress ?? 0)
     - (directionMetrics(origin, body.request.targetArea!, right)?.progress ?? 0))
   const selected = [...aiSelected,
     ...candidates.filter((poi) => !aiIds.includes(poi.id))]
-  const routes = buildRouteVariants(body.request, intent, selected, origin,
+  if (headingRelaxed && candidates.some((place) => place.category === primaryCategory)) {
+    selected.sort((left, right) => Number(right.category === primaryCategory)
+      - Number(left.category === primaryCategory))
+  }
+  let routes = buildRouteVariants(routeRequest, intent, selected, origin,
     namedArea ? placeName(namedArea, language) : undefined)
+  if (!routes.length && body.request.targetArea && !headingRelaxed) {
+    candidates = rankDynamicPlaces(places, body.request, intent, origin, 'relaxed')
+      .filter((place) => !previouslyShown.has(place.id))
+    routes = buildRouteVariants({ ...body.request, targetArea: undefined }, intent, candidates, origin,
+      namedArea ? placeName(namedArea, language) : undefined)
+    headingRelaxed = routes.length > 0
+    byId = new Map(candidates.map((poi) => [poi.id, poi]))
+  }
   if (!routes.length) return json(noPlacesResponse(body.request, city))
   const selectedPlaces = [...new Set(routes.flatMap((candidate) => candidate.stops.map((stop) => stop.id)))]
     .map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
@@ -520,6 +556,7 @@ async function recommend(request: Request, env: Env): Promise<Response> {
       `${route.title}: ${countPlaces(language, route.stops.length)} matched your request${namedArea ? `, starting near ${placeName(namedArea, language)}` : ''}.`),
     recommendations: route.stops,
     routes,
+    ...(headingRelaxed ? { headingAdjusted: true } : {}),
     note: pick(language,
       `Основа поиска — выгрузка OpenStreetMap от ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)}.${live?.length ? ' Дополнено живым поиском Overpass.' : ''}`,
       `Іздеу негізі — ${(snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt).slice(0, 10)} күнгі OpenStreetMap деректері.${live?.length ? ' Overpass арқылы жаңа деректер қосылды.' : ''}`,
@@ -549,10 +586,15 @@ async function recommend(request: Request, env: Env): Promise<Response> {
         'Барар алдында бос орындар мен өзекті жұмыс уақытын тексеріңіз.',
         'Check availability and current opening hours before visiting.')}`
       + (body.request.budgetKzt === undefined ? '' : ` ${cityBudgetNote(body.request.budgetKzt, prices.length, language)}`)
-      + (body.request.targetArea ? ` ${pick(language,
-        'Ориентир использован для направления остановок; маршрут может не закончиться точно в этой точке.',
-        'Бағдар аялдамалар бағытын таңдауға қолданылды; бағыт дәл сол нүктеде аяқталмауы мүмкін.',
-        'The selected area guided the stop order; the route may not end at that exact point.')}` : '')
+      + (body.request.targetArea ? ` ${headingRelaxed
+        ? pick(language,
+          'Ориентир учтён как предпочтение: показаны близкие альтернативы, которые лучше подходят запросу и времени. Маршрут может отклоняться от выбранного направления.',
+          'Бағдар қалауыңыз ретінде ескерілді: сұрауыңыз бен уақытыңызға жақсырақ сай келетін жақын нұсқалар көрсетілді. Бағыт таңдалған жақтан ауытқуы мүмкін.',
+          'The selected area was treated as a preference: nearby alternatives better match your request and time. This route may deviate from the chosen direction.')
+        : pick(language,
+          'Ориентир использован для направления остановок; маршрут может не закончиться точно в этой точке.',
+          'Бағдар аялдамалар бағытын таңдауға қолданылды; бағыт дәл сол нүктеде аяқталмауы мүмкін.',
+          'The selected area guided the stop order; the route may not end at that exact point.')}` : '')
       + (wheelchairOnly ? ` ${pick(language,
         'У всех остановок есть отметка wheelchair=yes в OSM. Это сведения сообщества, не проверка на месте: тротуары, бордюры, вход и туалеты на всём пути не подтверждены.',
         'Барлық аялдамада OSM-де wheelchair=yes белгісі бар. Бұл — қауымдастық дерегі, жерде тексерілмеген: бүкіл жолдағы тротуар, жиек, кіреберіс және дәретхана расталмаған.',

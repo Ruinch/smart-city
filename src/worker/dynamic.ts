@@ -607,7 +607,7 @@ function walkingMinutes(from: { lat: number; lon: number }, to: { lat: number; l
 }
 
 export function rankDynamicPlaces(places: DynamicPlace[], request: WalkRequest, intent: SearchIntent,
-  origin: { lat: number; lon: number }): DynamicPlace[] {
+  origin: { lat: number; lon: number }, headingMode: 'strict' | 'relaxed' = 'strict'): DynamicPlace[] {
   const budget = request.budgetKzt
   const transport = request.transport ?? 'walk'
   return places.filter((poi) => {
@@ -617,7 +617,12 @@ export function rankDynamicPlaces(places: DynamicPlace[], request: WalkRequest, 
     if (budget === 0 && LIKELY_PAID_CATEGORIES.has(poi.category)) return false
     if (request.intents.includes('indoors') && OUTDOOR_ONLY_CATEGORIES.has(poi.category)) return false
     if (request.intents.includes('outdoors') && INDOOR_ONLY_CATEGORIES.has(poi.category)) return false
-    if (request.targetArea && !onCityHeading(origin, request.targetArea, poi, transport)) return false
+    if (request.targetArea) {
+      if (headingMode === 'strict' && !onCityHeading(origin, request.targetArea, poi, transport)) return false
+      // The selected area is a preference, not a promise to cross the city for
+      // a venue. Keep alternatives near the visitor when the corridor is empty.
+      if (headingMode === 'relaxed' && distanceMeters(origin, poi) > 15_000) return false
+    }
     if (transport === 'walk') {
       const walkTime = walkingMinutes(origin, poi, request.gentlePace)
       // Each selected leg is capped at ten estimated minutes. A point farther

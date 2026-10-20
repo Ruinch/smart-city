@@ -395,6 +395,18 @@ describe('Worker API integration', () => {
     expect(invalidTrip.status).toBe(400)
   })
 
+  it('offers a feasible nearby museum when the chosen heading has none within an hour', async () => {
+    const targetArea = { lat: ASTANA_CENTER.lat + .072, lon: ASTANA_CENTER.lon }
+    const { response, body } = await recommend({ text: 'Хочу в музей', minutes: 60, targetArea })
+    expect(response.status).toBe(200)
+    expect(body.routes?.length).toBeGreaterThan(0)
+    expect(body.routes?.[0].stops[0].category).toBe('museum')
+    expect(body.routes?.every((route) => (route.totalMinutesApprox ?? Infinity) <= 60)).toBe(true)
+    expect(body.routes?.[0].stops[0].why).not.toContain('по выбранному направлению')
+    expect(body.headingAdjusted).toBe(true)
+    expect(body.note).toContain('показаны близкие альтернативы')
+  })
+
   it('rejects unsigned webhook calls and serves a /start launch button only with the secret', async () => {
     const update = { message: { text: '/start', chat: { id: 123, type: 'private' } } }
     const request = () => new Request('https://example.test/telegram/webhook', {

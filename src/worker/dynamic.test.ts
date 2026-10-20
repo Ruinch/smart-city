@@ -95,6 +95,64 @@ describe('broader Astana retrieval', () => {
     expect(ranked.map((candidate) => candidate.id)).toEqual([inDirection.id])
   })
 
+  it('finds a nearby venue outside an empty heading corridor without a cross-city detour', () => {
+    const target = { lat: ASTANA_CENTER.lat, lon: ASTANA_CENTER.lon + .07 }
+    const nearbySide = { ...place(401, 'cafe'), lat: ASTANA_CENTER.lat + .025,
+      lon: ASTANA_CENTER.lon + .005 }
+    const nearbyBehind = { ...place(402, 'cafe'), lat: ASTANA_CENTER.lat,
+      lon: ASTANA_CENTER.lon - .008 }
+    const acrossCity = { ...place(403, 'cafe'), lat: ASTANA_CENTER.lat + .16,
+      lon: ASTANA_CENTER.lon }
+    const query = request('Хочу кофе', { transport: 'car', targetArea: target })
+    const intent = { theme: 'reading' as const, categories: ['cafe' as const] }
+    expect(rankDynamicPlaces([nearbySide, nearbyBehind, acrossCity], query, intent, ASTANA_CENTER))
+      .toEqual([])
+    const relaxed = rankDynamicPlaces([nearbySide, nearbyBehind, acrossCity], query, intent,
+      ASTANA_CENTER, 'relaxed')
+    expect(relaxed.map((candidate) => candidate.id))
+      .toEqual(expect.arrayContaining([nearbySide.id, nearbyBehind.id]))
+    expect(relaxed.map((candidate) => candidate.id)).not.toContain(acrossCity.id)
+  })
+
+  it('recovers a feasible museum from the published catalog when a northward hint is too narrow', () => {
+    const museums: DynamicPlace[] = snapshot.pois.filter((candidate) => candidate.category === 'museum')
+      .map((candidate) => ({
+        id: candidate.id, name: candidate.name, category: candidate.category,
+        lat: candidate.lat, lon: candidate.lon, visitMinutes: candidate.visitMinutes,
+        sourceUrl: candidate.sourceUrl,
+        tags: Object.fromEntries(Object.entries(candidate.tags)
+          .filter((entry): entry is [string, string] => typeof entry[1] === 'string')),
+        provider: 'OpenStreetMap',
+      }))
+    const query = request('Хочу в музей', { minutes: 60,
+      targetArea: { lat: ASTANA_CENTER.lat + .072, lon: ASTANA_CENTER.lon } })
+    const intent = { theme: 'culture' as const, categories: ['museum' as const] }
+    expect(rankDynamicPlaces(museums, query, intent, ASTANA_CENTER)).toEqual([])
+    const alternatives = rankDynamicPlaces(museums, query, intent, ASTANA_CENTER, 'relaxed')
+    expect(alternatives.length).toBeGreaterThan(0)
+    const fallbackRoute = assembleRoute({ ...query, targetArea: undefined }, intent,
+      alternatives, ASTANA_CENTER)
+    expect(fallbackRoute?.stops[0].category).toBe('museum')
+    expect(fallbackRoute?.totalMinutesApprox).toBeLessThanOrEqual(60)
+  })
+
+  it('keeps time, zero-budget and accessibility limits in the relaxed heading fallback', () => {
+    const target = { lat: ASTANA_CENTER.lat, lon: ASTANA_CENTER.lon + .07 }
+    const nearbySide = { ...place(411, 'park'), lat: ASTANA_CENTER.lat + .014,
+      lon: ASTANA_CENTER.lon, tags: { wheelchair: 'yes' } }
+    const tooFarForTime = { ...place(412, 'park'), lat: ASTANA_CENTER.lat + .03,
+      lon: ASTANA_CENTER.lon, tags: { wheelchair: 'yes' } }
+    const unknownAccess = { ...place(413, 'park'), lat: ASTANA_CENTER.lat + .014,
+      lon: ASTANA_CENTER.lon }
+    const paid = { ...place(414, 'cafe'), lat: ASTANA_CENTER.lat + .014,
+      lon: ASTANA_CENTER.lon, tags: { wheelchair: 'yes' } }
+    const query = request('Парк или кофе', { targetArea: target, minutes: 65,
+      budgetKzt: 0, accessibility: 'osm_wheelchair_yes' })
+    const ranked = rankDynamicPlaces([tooFarForTime, unknownAccess, paid, nearbySide], query,
+      { theme: 'nature', categories: ['park', 'cafe'] }, ASTANA_CENTER, 'relaxed')
+    expect(ranked.map((candidate) => candidate.id)).toEqual([nearbySide.id])
+  })
+
   it('keeps only OSM wheelchair=yes venues when the visitor requests that filter', () => {
     const yes = { ...place(501, 'cafe'), tags: { wheelchair: 'yes' } }
     const limited = { ...place(502, 'cafe'), tags: { wheelchair: 'limited' } }

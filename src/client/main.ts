@@ -44,6 +44,7 @@ interface RouteResponse {
   summary: string
   routes?: RoutePlan[]
   note?: string
+  headingAdjusted?: boolean
 }
 
 const telegram = window.Telegram?.WebApp
@@ -69,6 +70,12 @@ const ruMessages = {
   startDevice: 'Моя геопозиция',
   startMap: 'Указать на карте',
   startMapSelected: 'Точка на карте',
+  noRouteCoverage: 'По доступным данным пока не удалось собрать маршрут с выбранными условиями. Это не значит, что подходящих мест нет.',
+  noRouteTargetHint: 'Ориентир сужает поиск. Уберите его, чтобы посмотреть варианты в других местах.',
+  noRouteGeneralHint: 'Попробуйте увеличить время, изменить бюджет или описать желание чуть шире.',
+  noRouteAccessibilityHint: 'При фильтре доступности мы показываем только места с подтверждённой отметкой. Отсутствие отметки не означает, что место недоступно.',
+  retryWithoutTarget: 'Искать без ориентира',
+  routeAdjusted: 'Ориентир учтён как пожелание. Эти места лучше подходят вашему запросу и времени, но маршрут может идти в другую сторону.',
   startCancel: 'Отменить выбор',
   openPlanner: 'Открыть поиск',
   showMap: 'Показать карту',
@@ -144,6 +151,12 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     startDevice: 'Менің геолокациям',
     startMap: 'Картадан көрсету',
     startMapSelected: 'Картадағы нүкте',
+    noRouteCoverage: 'Қолда бар деректерден таңдалған шарттарға сай бағыт құра алмадық. Бұл лайықты орындар жоқ деген сөз емес.',
+    noRouteTargetHint: 'Бағдар іздеуді тарылтады. Басқа жерлердегі нұсқаларды көру үшін оны алып тастаңыз.',
+    noRouteGeneralHint: 'Уақытты көбейтіп, бюджетті өзгертіп немесе қалауыңызды кеңірек сипаттап көріңіз.',
+    noRouteAccessibilityHint: 'Қолжетімділік сүзгісі тек расталған белгісі бар орындарды көрсетеді. Белгінің болмауы орын қолжетімсіз дегенді білдірмейді.',
+    retryWithoutTarget: 'Бағдарсыз іздеу',
+    routeAdjusted: 'Бағдар қалауыңыз ретінде ескерілді. Бұл орындар сұрауыңыз бен уақытыңызға жақсырақ сай келеді, бірақ бағыт басқа жаққа кетуі мүмкін.',
     startCancel: 'Таңдауды тоқтату',
     openPlanner: 'Іздеуді ашу',
     showMap: 'Картаны көрсету',
@@ -216,6 +229,12 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     startDevice: 'My location',
     startMap: 'Pick on map',
     startMapSelected: 'Map point',
+    noRouteCoverage: 'We could not build a route from the available data under these settings. This does not mean suitable places do not exist.',
+    noRouteTargetHint: 'The chosen direction narrows the search. Remove it to explore options elsewhere.',
+    noRouteGeneralHint: 'Try allowing more time, changing your budget or describing your plans more broadly.',
+    noRouteAccessibilityHint: 'The accessibility filter shows only places with a confirmed tag. A missing tag does not mean a place is inaccessible.',
+    retryWithoutTarget: 'Search without direction',
+    routeAdjusted: 'We treated your chosen direction as a preference. These places better match your request and time, but the route may go another way.',
     startCancel: 'Cancel selection',
     openPlanner: 'Open search',
     showMap: 'Show map',
@@ -1411,6 +1430,53 @@ function showError(message: string, note?: string): void {
   scrollToResults()
 }
 
+function showNoResults(): void {
+  results.hidden = false
+  results.replaceChildren()
+  const panel = document.createElement('div')
+  panel.className = 'message-state no-results-state'
+  panel.setAttribute('role', 'status')
+  const heading = document.createElement('h2')
+  heading.textContent = t('routeNotReady')
+  const detail = document.createElement('p')
+  detail.textContent = t('noRouteCoverage')
+  const suggestion = document.createElement('p')
+  suggestion.className = 'message-note'
+  suggestion.textContent = t(state.targetArea ? 'noRouteTargetHint' : 'noRouteGeneralHint')
+  appendNodes(panel, heading, detail, suggestion)
+  if (state.wheelchairOnly) {
+    const accessibilityNote = document.createElement('p')
+    accessibilityNote.className = 'message-note'
+    accessibilityNote.textContent = t('noRouteAccessibilityHint')
+    panel.appendChild(accessibilityNote)
+    const accessibilityMap = createLink(t('accessibilityMap'), 'https://inva.gov.kz/ru#map-box', 'accessibility-map-link')
+    if (accessibilityMap) panel.appendChild(accessibilityMap)
+  }
+  const actions = document.createElement('div')
+  actions.className = 'no-results-actions'
+  if (state.targetArea) {
+    const retryWithoutTarget = document.createElement('button')
+    retryWithoutTarget.type = 'button'
+    retryWithoutTarget.className = 'retry-without-target'
+    retryWithoutTarget.textContent = t('retryWithoutTarget')
+    retryWithoutTarget.addEventListener('click', () => {
+      setTargetArea(null)
+      planner.requestSubmit()
+    })
+    actions.appendChild(retryWithoutTarget)
+  }
+  const edit = document.createElement('button')
+  edit.type = 'button'
+  edit.className = 'edit-route-button'
+  edit.textContent = t('edit')
+  edit.addEventListener('click', () => setSheetMode('expanded'))
+  actions.appendChild(edit)
+  panel.appendChild(actions)
+  results.appendChild(panel)
+  setSheetMode('results')
+  scrollToResults()
+}
+
 function addFact(parent: HTMLElement, text: string): void {
   const fact = document.createElement('span')
   fact.textContent = text
@@ -1712,7 +1778,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   const routes = response.routes?.filter((candidate) => Array.isArray(candidate.stops) && candidate.stops.length > 0) ?? []
   const route = routes[selectedRoute] ?? routes[0]
   if (!route) {
-    showError(response.summary || t('noPlaces'), response.note)
+    showNoResults()
     return
   }
   rememberShownStops(routes)
@@ -1738,7 +1804,15 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   if (typeof route.totalMinutesApprox === 'number' && state.transport === 'walk') {
     addFact(meta, t('walkAndStops', { time: formatMinutes(route.totalMinutesApprox) }))
   }
-  appendNodes(heading, eyebrow, title, summary, meta)
+  appendNodes(heading, eyebrow, title, summary)
+  if (response.headingAdjusted) {
+    const adjustment = document.createElement('p')
+    adjustment.className = 'route-adjustment'
+    adjustment.setAttribute('role', 'status')
+    adjustment.textContent = t('routeAdjusted')
+    heading.appendChild(adjustment)
+  }
+  heading.appendChild(meta)
   if (lastStop) heading.appendChild(createRouteDirection(routeOrigin, lastStop))
   const routeLink = createLink(t('openRoute'), route.routeUrl, 'route-link')
   if (routeLink) heading.appendChild(routeLink)
