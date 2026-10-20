@@ -611,6 +611,6 @@ describe('Worker API integration', () => {
       })).json() as { text: string; reply_markup: { inline_keyboard: Array<Array<{ text: string }>> } }
     }
     expect((await sendStart('kk-KZ')).reply_markup.inline_keyboard[0][0].text).toBe('Серуенді ашу')
-    expect((await sendStart('en-US')).text).toContain('available time')
+    expect((await sendStart('en-US')).text).toContain('Tap “Open the walk” below')
   })
 })

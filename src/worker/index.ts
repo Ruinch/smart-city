@@ -851,9 +851,9 @@ async function telegramWebhook(request: Request, env: Env): Promise<Response> {
     : telegramLanguage.startsWith('en') ? 'en' : 'ru'
   const appUrl = safeMiniAppUrl(env.MINI_APP_URL)
   const greeting = pick(language,
-    'Привет! Опишите, куда хочется пойти в Астане: ночной клуб, кофе с книгой, музей или прогулка. Укажите время и размер компании — соберу маршрут из мест на карте. Бюджет можно добавить, но цены заведений не всегда известны.',
-    'Сәлем! Астанада қайда барғыңыз келетінін жазыңыз: түнгі клуб, кітап оқитын кафе, мұражай немесе серуен. Уақыт пен адам санын көрсетіңіз — картадағы нақты орындардан бағыт құрастырамын. Бюджетті де қосуға болады, бірақ орындардың бағасы әрдайым белгілі бола бермейді.',
-    'Hi! Tell me what you would like to do in Astana: a nightclub, coffee with a book, a museum or a walk. Add your available time and group size, and I will build a route with places on the map. You can set a budget, though venue prices are not always known.')
+    'Привет! Нажмите кнопку «Открыть прогулку» ниже, чтобы подобрать маршрут по Астане под ваше настроение.',
+    'Сәлем! Көңіл күйіңізге сай Астана бойынша маршрут таңдау үшін төмендегі «Серуенді ашу» батырмасын басыңыз.',
+    'Hi! Tap “Open the walk” below to find a route around Astana that suits your mood.')
   return json({
     method: 'sendMessage',
     chat_id: chat.id,
