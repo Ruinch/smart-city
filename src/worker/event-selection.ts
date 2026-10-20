@@ -79,10 +79,26 @@ export function selectLiveEvents(events: LiveEvent[], request: WalkRequest, now 
     return true
   })
   const today = localDate(now)
-  return selected.sort((a, b) => {
+  const byDate = (a: LiveEvent, b: LiveEvent): number => {
     const aOngoing = (dateKey(a.startsAt) ?? '') <= today && (dateKey(a.endsAt ?? a.startsAt) ?? '') >= today
     const bOngoing = (dateKey(b.startsAt) ?? '') <= today && (dateKey(b.endsAt ?? b.startsAt) ?? '') >= today
     if (aOngoing !== bOngoing) return aOngoing ? -1 : 1
     return a.startsAt.localeCompare(b.startsAt) || a.title.localeCompare(b.title)
-  }).slice(0, 5)
+  }
+  selected.sort(byDate)
+  if (categories.size === 1) return selected.slice(0, 5)
+  // A broad "what is on" request should not be filled entirely by one busy
+  // concert calendar when a sourced exhibition or home match is also listed.
+  const varied: LiveEvent[] = []
+  const seenCategories = new Set<EventCategory>()
+  for (const event of selected) {
+    if (seenCategories.has(event.category)) continue
+    varied.push(event)
+    seenCategories.add(event.category)
+  }
+  for (const event of selected) {
+    if (varied.length >= 5) break
+    if (!varied.includes(event)) varied.push(event)
+  }
+  return varied.sort(byDate).slice(0, 5)
 }

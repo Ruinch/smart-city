@@ -52,6 +52,16 @@ describe('dated event selection', () => {
       new Set(['osm:node:1'])).map((item) => item.id)).toEqual(['free'])
   })
 
+  it('shows different kinds of sourced events for a broad listings request', () => {
+    const items = Array.from({ length: 6 }, (_, index) => event(`concert-${index}`,
+      `2026-10-${String(index + 21).padStart(2, '0')}`))
+    items.push(event('expo', '2026-10-28', { category: 'exhibition' }))
+    items.push(event('match', '2026-11-12', { category: 'sport' }))
+    const result = selectLiveEvents(items, { ...request, text: 'Какие события в Астане?' }, now)
+    expect(result).toHaveLength(5)
+    expect(new Set(result.map((item) => item.category))).toEqual(new Set(['concert', 'exhibition', 'sport']))
+  })
+
   it('drops events whose published end time already passed', () => {
     const items = [
       event('finished', '2026-10-20T17:00:00+05:00', { endsAt: '2026-10-20T22:00:00+05:00' }),
