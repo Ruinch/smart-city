@@ -1,0 +1,3 @@
+.place-details[data-disclosure-motion] > .place-details-body {
+  overflow: hidden;
+}

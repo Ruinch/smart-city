@@ -42,11 +42,15 @@ function duration(value: number | undefined, fallback: number, ceiling: number):
 
 /**
  * A short, dismissible launch layer. Call dismiss() once the initial interface is mounted.
- * The fallback timer and the skip button release the interface even if initialization fails.
+ * Ready users can skip the brand animation; the fallback always releases a stalled launch.
  */
 export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenController {
   const maximumMs = duration(options.maximumMs, 3500, 5000)
-  const minimumMs = Math.min(duration(options.minimumMs, 0, 3000), maximumMs)
+  const minimumMs = Math.min(duration(options.minimumMs, 1200, 3000), maximumMs)
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const app = document.querySelector<HTMLElement>('#app')
+  const appWasInert = app?.inert ?? false
+  if (app) app.inert = true
   const startedAt = performance.now()
   // Reuse an optional first-paint shell from index.html, shown before the JS bundle loads.
   const screen = document.querySelector<HTMLDivElement>('#launch-screen') ?? document.createElement('div')
@@ -60,7 +64,7 @@ export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenCon
     <div class="launch-screen__center">
       <svg class="launch-screen__symbol" viewBox="0 0 144 144" fill="none" aria-hidden="true">
         <circle class="launch-screen__symbol-ring" cx="72" cy="72" r="67" />
-        <path class="launch-screen__symbol-route" d="M33 99C44 99 42 53 67 53C80 53 82 86 102 77C110 73 111 58 111 46" />
+        <path class="launch-screen__symbol-route" pathLength="1" d="M33 99C44 99 42 53 67 53C80 53 82 86 102 77C110 73 111 58 111 46" />
         <circle class="launch-screen__symbol-start" cx="33" cy="99" r="5" />
         <circle class="launch-screen__symbol-end-halo" cx="111" cy="46" r="11" />
         <circle class="launch-screen__symbol-end" cx="111" cy="46" r="5" />
@@ -72,7 +76,7 @@ export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenCon
       <div class="launch-screen__progress" aria-hidden="true"><span></span></div>
       <div class="launch-screen__bottom-line">
         <span class="launch-screen__status" role="status" aria-live="polite"></span>
-        <button class="launch-screen__skip" type="button"></button>
+        <button class="launch-screen__skip" type="button" disabled></button>
       </div>
     </div>
   `
@@ -103,28 +107,48 @@ export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenCon
     window.clearTimeout(minimumTimer)
     window.clearTimeout(exitTimer)
     window.clearTimeout(fallbackTimer)
+    reducedMotion.removeEventListener('change', onMotionPreferenceChange)
+    if (app) app.inert = appWasInert
     screen.remove()
   }
 
   function beginExit(): void {
     if (removed || screen.classList.contains('is-leaving')) return
+    window.clearTimeout(minimumTimer)
+    window.clearTimeout(fallbackTimer)
     screen.classList.add('is-leaving')
-    // Release hit testing immediately, without keeping a ready interface behind the splash.
+    screen.setAttribute('aria-hidden', 'true')
+    skip.disabled = true
+    // Let the ready interface respond while the short visual exit finishes.
     screen.style.pointerEvents = 'none'
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) remove()
-    else exitTimer = window.setTimeout(remove, 180)
+    if (app) app.inert = appWasInert
+    if (reducedMotion.matches) remove()
+    else exitTimer = window.setTimeout(remove, 300)
   }
 
   function dismiss(): void {
     if (removed || dismissQueued) return
     dismissQueued = true
-    const remaining = Math.max(0, minimumMs - (performance.now() - startedAt))
+    skip.disabled = false
+    screen.classList.add('is-ready')
+    const remaining = reducedMotion.matches
+      ? 0
+      : Math.max(0, minimumMs - (performance.now() - startedAt))
     if (remaining === 0) beginExit()
     else minimumTimer = window.setTimeout(beginExit, remaining)
   }
 
+  function onMotionPreferenceChange(): void {
+    if (reducedMotion.matches && dismissQueued) remove()
+  }
+
   setLanguage(options.language)
   skip.addEventListener('click', () => { skip.blur(); beginExit() })
+  screen.addEventListener('transitionend', (event) => {
+    if (event.target === screen && event.propertyName === 'opacity'
+      && screen.classList.contains('is-leaving')) remove()
+  })
+  reducedMotion.addEventListener('change', onMotionPreferenceChange)
   document.body.appendChild(screen)
   fallbackTimer = window.setTimeout(beginExit, maximumMs)
 

@@ -2,9 +2,13 @@ import type { LiveEvent, Recommendation, WalkRequest } from '../shared/types'
 import { ASTANA_CENTER, insideAstana, insideTripPlanningArea } from '../shared/astana'
 import { mountRecommendationsMap, type MapCoordinate, type RecommendationsMapController } from './map'
 import { mountLaunchScreen } from './launch-screen'
+import { openDialog, closeAnimatedDialog } from './dialog-motion'
+import { mountDisclosure } from './disclosure-motion'
+import { mountRouteDrawer, type RouteDrawerController, type DrawerPosition } from './route-drawer'
 import { redesignCopy } from './redesign-copy'
 import './style.css'
 import './redesign.css'
+import './motion.css'
 
 interface TelegramLocation { latitude: number; longitude: number }
 interface TelegramLocationManager {
@@ -807,6 +811,7 @@ const state: {
 let requestVersion = 0
 let activeRecommendation: AbortController | null = null
 let mapController: RecommendationsMapController | null = null
+let routeDrawer: RouteDrawerController | null = null
 let currentRouteOrigin: MapCoordinate | null = null
 let currentRoute: RoutePlan | null = null
 let currentResponse: RouteResponse | null = null
@@ -967,7 +972,7 @@ function updateBackButton(): void {
 
 function openSettings(): void {
   blurActiveEditor()
-  if (!settingsDialog.open) settingsDialog.showModal()
+  openDialog(settingsDialog)
   settingsToggle.setAttribute('aria-expanded', 'true')
   requiredElement<HTMLElement>('#settingsTitle').focus({ preventScroll: true })
   updateBackButton()
@@ -975,7 +980,10 @@ function openSettings(): void {
 
 function closeDialog(dialog: HTMLDialogElement): void {
   blurActiveEditor()
-  dialog.close()
+  void closeAnimatedDialog(dialog).then(() => {
+    settingsToggle.setAttribute('aria-expanded', String(settingsDialog.open))
+    updateBackButton()
+  })
   updateSettingsSummary()
   settingsToggle.setAttribute('aria-expanded', String(settingsDialog.open))
   updateBackButton()
@@ -999,20 +1007,44 @@ function goBack(): void {
   blurActiveEditor()
   if (settingsDialog.open) closeDialog(settingsDialog)
   else if (startDialog.open) closeDialog(startDialog)
-  else if (shell.dataset.screen === 'map') returnFromMap()
+  else if (shell.dataset.screen === 'map' || shell.dataset.sheet === 'map-only') returnFromMap()
   else {
     if (state.isLoading) clearResults()
     setSheetMode('peek')
   }
 }
 
+function renderDrawerPosition(position: DrawerPosition): void {
+  const collapsed = position === 'collapsed'
+  shell.dataset.sheet = collapsed ? 'map-only' : 'results'
+  sheetReturnMode = 'results'
+  const copy = redesignCopy[language]
+  const label = collapsed ? copy.drawerOpen : position === 'half' ? copy.drawerExpand : copy.drawerCollapse
+  sheetHandleLabel.textContent = label
+  sheetHandle.setAttribute('aria-label', `${label}. ${copy.drawerHint}`)
+  sheetHandle.setAttribute('aria-expanded', String(!collapsed))
+  updateBackButton()
+}
+
+let surfaceAnimation: Animation | null = null
+function revealSurface(element: HTMLElement): void {
+  surfaceAnimation?.cancel()
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  surfaceAnimation = element.animate([
+    { opacity: .35, translate: '0 10px' }, { opacity: 1, translate: '0 0' },
+  ], { duration: 240, easing: 'cubic-bezier(.2,.7,.3,1)' })
+}
+
 function setSheetMode(mode: SheetMode): void {
   const previousMode = shell.dataset.sheet as SheetMode
+  const previousScreen = shell.dataset.screen
   if (mode === 'peek-results') mode = 'map-only'
   if (mode === 'map-only' && previousMode !== 'map-only' && previousMode !== 'loading') sheetReturnMode = previousMode
   blurActiveEditor()
+  const drawerEnabled = !!currentRoute && !pickingStart && !pickingTarget && (mode === 'results' || mode === 'map-only')
+  const mobileDrawer = drawerEnabled && window.matchMedia('(max-width: 760px)').matches
   shell.dataset.sheet = mode
-  shell.dataset.screen = mode === 'map-only' ? 'map'
+  shell.dataset.screen = mobileDrawer ? 'result' : mode === 'map-only' ? 'map'
     : mode === 'results' || mode === 'loading' ? 'result' : 'request'
   const handleLabel = pickingStart ? redesignCopy[language].cancelPoint
     : pickingTarget ? redesignCopy[language].returnSettings
@@ -1029,12 +1061,16 @@ function setSheetMode(mode: SheetMode): void {
   sheetScroll.inert = mode === 'map-only'
   sheetScroll.setAttribute('aria-hidden', String(mode === 'map-only'))
   returnToRouteButton.hidden = !currentRouteOrigin || planner.hidden
-  if (mode !== previousMode) sheetScroll.scrollTop = 0
+  // Preserve reading position when the same route is collapsed and reopened.
+  if (mode !== previousMode && !drawerEnabled) sheetScroll.scrollTop = 0
+  routeDrawer?.setEnabled(drawerEnabled, mode === previousMode && routeDrawer.active
+    ? undefined : mode === 'map-only' ? 'collapsed' : 'half')
+  if (mobileDrawer) renderDrawerPosition(routeDrawer?.position ?? 'half')
   updateBackButton()
-  // The map's new dimensions must be measured before reframing the route.
+  if (previousScreen !== shell.dataset.screen && !mobileDrawer) revealSurface(sheetScroll)
   requestAnimationFrame(() => {
     syncMapInset()
-    if (mode === 'results' && currentRoute) mapController?.fit()
+    if (mode === 'results' && currentRoute && !routeDrawer?.active) mapController?.fit()
   })
 }
 
@@ -1188,7 +1224,7 @@ includeEvents.addEventListener('change', () => {
   updateSettingsSummary()
 })
 
-sheetHandle.addEventListener('click', returnFromMap)
+sheetHandle.addEventListener('click', () => { if (!routeDrawer?.active) returnFromMap() })
 settingsToggle.addEventListener('click', openSettings)
 returnToRouteButton.addEventListener('click', () => setSheetMode('results'))
 keyboardDone.addEventListener('pointerdown', (event) => {
@@ -1358,7 +1394,7 @@ requiredElement('#customDuration').addEventListener('click', () => {
 })
 requiredElement('#startRow').addEventListener('click', () => {
   blurActiveEditor()
-  startDialog.showModal()
+  openDialog(startDialog)
   updateBackButton()
 })
 for (const dialog of [settingsDialog, startDialog]) {
@@ -2069,13 +2105,17 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   const detailsTitle = document.createElement('summary')
   detailsTitle.textContent = redesignCopy[language].details
   details.appendChild(detailsTitle)
-  if (evidenceBlock) details.appendChild(evidenceBlock)
+  const detailsBody = document.createElement('div')
+  detailsBody.className = 'place-details-body'
+  if (evidenceBlock) detailsBody.appendChild(evidenceBlock)
   if (item.hoursStatus && !venueDetails.some((detail) => detail.kind === 'hours')) {
     const note = document.createElement('p')
     note.textContent = item.hoursStatus
-    details.appendChild(note)
+    detailsBody.appendChild(note)
   }
-  details.appendChild(links)
+  detailsBody.appendChild(links)
+  details.appendChild(detailsBody)
+  mountDisclosure(details)
   card.appendChild(details)
   if (state.scope === 'city' && lastRequest && currentRoute) card.appendChild(createStopSwap(item, index))
   return card
@@ -2772,9 +2812,15 @@ mapController = mountRecommendationsMap(requiredElement<HTMLElement>('#map'), {
     setTargetArea(point)
   },
 })
+routeDrawer = mountRouteDrawer({
+  shell, handle: sheetHandle, scroll: sheetScroll,
+  onPosition: renderDrawerPosition,
+  onSettled: () => syncMapInset(),
+})
 applyTranslations()
 
 function syncMapInset(): void {
+  if (shell.classList.contains('is-drawer-moving') || shell.classList.contains('is-drawer-dragging')) return
   const stage = mapStage.getBoundingClientRect()
   const sheet = routeSheet.getBoundingClientRect()
   const isBottomSheet = window.matchMedia('(max-width: 760px)').matches
@@ -2802,6 +2848,11 @@ function syncVisualViewport(event?: { isStateStable?: boolean }): void {
     shell.style.setProperty(`--app-safe-${edge}`, `${keyboardOpen && edge === 'bottom' ? 0 : inset}px`)
   }
   shell.classList.toggle('is-keyboard-open', editing)
+  routeDrawer?.refresh()
+  if (currentRoute && !pickingStart && !pickingTarget && shell.dataset.sheet === 'map-only') {
+    shell.dataset.screen = routeDrawer?.active ? 'result' : 'map'
+    results.hidden = !routeDrawer?.active
+  }
   syncMapInset()
   if (keyboardOpen && isTextEditor(document.activeElement)) {
     document.activeElement.scrollIntoView({ block: 'nearest' })

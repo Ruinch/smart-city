@@ -1,0 +1,23 @@
+/* The data-motion state controls the native top-layer backdrop. The dialog
+   surface uses WAAPI so its exit finishes before the native .close() call. */
+dialog:is(.settings-dialog, .start-dialog)[data-motion][open] {
+  animation: none;
+}
+
+dialog:is(.settings-dialog, .start-dialog)[data-motion]::backdrop {
+  background-color: rgb(24 35 31 / 0%);
+  transition: background-color 280ms cubic-bezier(.2, 0, .2, 1);
+}
+
+dialog:is(.settings-dialog, .start-dialog)[data-motion='open']::backdrop {
+  background-color: rgb(24 35 31 / 32%);
+}
+
+dialog:is(.settings-dialog, .start-dialog)[data-motion='closing']::backdrop {
+  background-color: rgb(24 35 31 / 0%);
+  transition-duration: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog:is(.settings-dialog, .start-dialog)[data-motion]::backdrop { transition: none; }
+}

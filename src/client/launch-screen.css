@@ -14,7 +14,7 @@
   color: #18231f;
   font-family: inherit;
   -webkit-font-smoothing: antialiased;
-  transition: opacity 160ms ease-out;
+  transition: opacity 260ms ease-out;
 }
 
 .launch-screen.is-leaving { opacity: 0; }
@@ -50,7 +50,7 @@
   min-width: 0;
   padding-bottom: 14px;
   text-align: center;
-  animation: launch-arrive 380ms ease-out both;
+  animation: launch-arrive 420ms cubic-bezier(.2, 0, 0, 1) both;
 }
 
 .launch-screen__symbol {
@@ -70,9 +70,9 @@
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 148;
-  stroke-dashoffset: 148;
-  animation: launch-draw 1250ms cubic-bezier(.2, 0, 0, 1) 160ms forwards;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: launch-draw 920ms cubic-bezier(.3, .05, .25, 1) 100ms forwards;
 }
 
 .launch-screen__symbol-start {
@@ -81,6 +81,9 @@
 
 .launch-screen__symbol-end-halo {
   fill: #d9efe0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: launch-destination 240ms ease-out 820ms both;
 }
 
 .launch-screen__symbol-end {
@@ -120,7 +123,7 @@
   background: #236650;
   transform: scaleX(0);
   transform-origin: left center;
-  animation: launch-progress 2000ms cubic-bezier(.2, 0, 0, 1) forwards;
+  animation: launch-progress 1150ms cubic-bezier(.2, 0, 0, 1) forwards;
 }
 
 .launch-screen__bottom-line { min-height: 48px; }
@@ -142,7 +145,10 @@
   font-weight: 700;
   text-align: right;
   cursor: pointer;
+  transition: opacity 160ms ease-out;
 }
+
+.launch-screen__skip:disabled { opacity: .35; cursor: default; }
 
 .launch-screen__skip:focus-visible {
   outline: 3px solid #b17c23;
@@ -156,10 +162,16 @@
 
 @keyframes launch-draw { to { stroke-dashoffset: 0; } }
 @keyframes launch-progress { to { transform: scaleX(1); } }
+@keyframes launch-destination {
+  from { opacity: 0; transform: scale(.8); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .launch-screen,
   .launch-screen__center { animation: none; transition: none; }
   .launch-screen__symbol-route { animation: none; stroke-dashoffset: 0; }
+  .launch-screen__symbol-end-halo { animation: none; }
   .launch-screen__progress span { animation: none; transform: scaleX(1); }
+  .launch-screen__skip { transition: none; }
 }

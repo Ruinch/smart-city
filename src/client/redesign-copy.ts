@@ -1,5 +1,6 @@
 export const redesignCopy = {
   ru: {
+    drawerOpen: 'Показать маршрут', drawerExpand: 'Потяните вверх — все детали', drawerCollapse: 'Потяните вниз — к карте', drawerHint: 'Тяните панель или нажмите. Стрелки вверх и вниз меняют высоту',
     title: 'Куда пойдём?', subtitle: 'Прогулка под твоё настроение', prompt: 'Что хочется?',
     placeholder: 'Тихое место, кофе и немного погулять…',
     quiet: 'Спокойно', coffee: 'Кофе', friends: 'С друзьями',
@@ -23,6 +24,7 @@ export const redesignCopy = {
     selectedDuration: 'Выбрано', fromStart: 'От старта', fromPrevious: 'От предыдущей точки',
   },
   kk: {
+    drawerOpen: 'Бағытты көрсету', drawerExpand: 'Толығырақ — жоғары тартыңыз', drawerCollapse: 'Картаға — төмен тартыңыз', drawerHint: 'Панельді тартыңыз не басыңыз. Жоғары-төмен пернелері биіктігін өзгертеді',
     title: 'Қайда барамыз?', subtitle: 'Көңіл күйіңе сай серуен', prompt: 'Не істегің келеді?',
     placeholder: 'Тыныш жер, кофе және аздап серуендеу…',
     quiet: 'Тыныштық', coffee: 'Кофе', friends: 'Достармен',
@@ -46,6 +48,7 @@ export const redesignCopy = {
     selectedDuration: 'Таңдалды', fromStart: 'Бастапқы нүктеден', fromPrevious: 'Алдыңғы нүктеден',
   },
   en: {
+    drawerOpen: 'Show route', drawerExpand: 'Pull up for all details', drawerCollapse: 'Pull down to the map', drawerHint: 'Drag or tap the panel. Use Up and Down keys to resize',
     title: 'Where shall we go?', subtitle: 'A walk to match your mood', prompt: 'What do you feel like?',
     placeholder: 'Somewhere quiet, coffee and a little walk…',
     quiet: 'Unwind', coffee: 'Coffee', friends: 'With friends',
