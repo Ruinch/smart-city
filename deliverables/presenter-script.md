@@ -1,5 +1,7 @@
 # «Рядом»: выступление на 5–7 минут
 
+Архивный сценарий для презентации первого пилота. Он описывает прежний каталог из 27 мест и не отражает текущую версию приложения. Актуальное демо — в [docs/jury-demo.md](../docs/jury-demo.md), запуск и возможности — в [README](../README.md).
+
 Ориентир по времени: около 6 минут 40 секунд. Показывайте слайды по порядку. Живое демо и ссылку на видео добавляйте только после публикации бота и проверки на телефоне. Подробные входы для демонстрации есть в [тестовых сценариях](scenarios-and-limitations.md).
 
 ## Слайд 1 — 0:00–0:35
@@ -37,6 +39,6 @@
 ## Источники и оговорки
 
 - Постановка задачи: `C:\Users\Chach\Downloads\FINAL Задачи_хакатона.docx.pdf`, страницы 1–3.
-- Каталог и алгоритм: `data/README.md`, `scripts/collect-poi.mjs`, `src/worker/recommend.ts`, `src/worker/ai.ts`.
+- Текущие источники данных и алгоритм: `data/README.md`, `scripts/build-astana-fallback.py`, `src/worker/recommend.ts`, `src/worker/ai.ts`. Сборщик первого пилота сохранён в истории Git.
 - Политика обработки данных: `public/privacy.html`.
 - Данные POI: © участники [OpenStreetMap](https://www.openstreetmap.org/copyright), ODbL.

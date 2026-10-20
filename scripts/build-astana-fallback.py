@@ -29,7 +29,7 @@ import osmium.replication
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BOUNDARY_PATH = ROOT / "data" / "astana-boundary.geojson"
+BOUNDARY_PATH = ROOT / "data" / "astana-boundary.json"
 DEFAULT_OUTPUT = ROOT / "data" / "astana-dynamic-fallback.json"
 DEFAULT_PBF_URL = "https://download.geofabrik.de/asia/kazakhstan-latest.osm.pbf"
 

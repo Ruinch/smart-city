@@ -15,7 +15,6 @@
     "deploy": "npm run build && wrangler deploy",
     "secrets:publish": "node scripts/publish-secrets.mjs",
     "bot:configure": "node scripts/configure-telegram.mjs",
-    "collect:poi": "node scripts/collect-poi.mjs",
     "data:check": "node scripts/validate-poi.mjs",
     "test": "vitest run"
   },
