@@ -355,6 +355,8 @@ const eventCopy: Record<Language, {
   heading: string
   intro: string
   noEvents: string
+  noEventsFree: string
+  noEventsAccessible: string
   noEventsPartial: string
   unavailable: string
   partial: string
@@ -373,6 +375,8 @@ const eventCopy: Record<Language, {
     toggle: 'События и афиша', toggleHint: 'Покажем временные мероприятия с датой и источником. Они не входят в маршрут автоматически.', summary: 'события',
     heading: 'Афиша Астаны', intro: 'События показаны отдельно от маршрута: расстояние до площадки не рассчитано. Перед выходом проверьте расписание у организатора.',
     noEvents: 'Событий с подтверждённой датой по этому запросу пока не нашлось.',
+    noEventsFree: 'Бесплатных событий с подтверждённой ценой по этому запросу пока не нашлось. Неизвестная цена не означает бесплатный вход.',
+    noEventsAccessible: 'Событий с отдельно подтверждённой доступностью площадки для коляски пока не нашлось. Отсутствие данных не означает недоступность.',
     noEventsPartial: 'Часть источников сейчас недоступна. По проверенным источникам подходящие события пока не нашлись.',
     unavailable: 'Афиши временно недоступны. Попробуйте проверить события позже.',
     partial: 'Часть источников афиши сейчас недоступна.',
@@ -386,6 +390,8 @@ const eventCopy: Record<Language, {
     toggle: 'Іс-шаралар афишасы', toggleHint: 'Күні мен дереккөзі белгілі уақытша іс-шаралар көрсетіледі. Олар бағытқа автоматты түрде қосылмайды.', summary: 'іс-шаралар',
     heading: 'Астанадағы іс-шаралар', intro: 'Іс-шаралар бағыттан бөлек көрсетіледі: өтетін жерге дейінгі қашықтық есептелмеген. Шығар алдында кестені ұйымдастырушыдан тексеріңіз.',
     noEvents: 'Бұл сұрауға сай күні расталған іс-шаралар әзірге табылмады.',
+    noEventsFree: 'Бұл сұрауға сай бағасы расталған тегін іс-шаралар табылмады. Белгісіз баға тегін кіруді білдірмейді.',
+    noEventsAccessible: 'Арбаға қолжетімділігі бөлек расталған іс-шаралар табылмады. Деректің жоқтығы қолжетімсіздікті білдірмейді.',
     noEventsPartial: 'Кей дереккөздер қазір қолжетімсіз. Тексерілген дереккөздерден лайықты іс-шара табылмады.',
     unavailable: 'Афиша дереккөздері уақытша қолжетімсіз. Кейінірек қайталап көріңіз.',
     partial: 'Афишаның кей дереккөздері қазір қолжетімсіз.',
@@ -399,6 +405,8 @@ const eventCopy: Record<Language, {
     toggle: 'Events and listings', toggleHint: 'Show temporary events with a date and source. They are not added to the route automatically.', summary: 'events',
     heading: 'Events in Astana', intro: 'Events are separate from the route; distance to each venue has not been calculated. Check the schedule with the organizer before leaving.',
     noEvents: 'No events with a sourced date matched this request yet.',
+    noEventsFree: 'No events with a verified free entry price matched yet. An unknown price does not mean free admission.',
+    noEventsAccessible: 'No events with separately verified wheelchair access to the venue matched yet. Missing data does not mean a venue is inaccessible.',
     noEventsPartial: 'Some event sources are unavailable. No matching events were found in the sources we could check.',
     unavailable: 'Event listings are temporarily unavailable. Please try again later.',
     partial: 'Some event sources are currently unavailable.',
@@ -2122,7 +2130,9 @@ function createEventsSection(events: LiveEvent[] | undefined, requested: boolean
     const empty = document.createElement('p')
     empty.className = 'live-events-empty'
     empty.textContent = status === 'unavailable' ? copy.unavailable
-      : status === 'partial' ? copy.noEventsPartial : copy.noEvents
+      : status === 'partial' ? copy.noEventsPartial
+        : lastRequest?.accessibility === 'osm_wheelchair_yes' ? copy.noEventsAccessible
+          : lastRequest?.budgetKzt === 0 ? copy.noEventsFree : copy.noEvents
     section.appendChild(empty)
     return section
   }
