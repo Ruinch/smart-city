@@ -33,11 +33,18 @@ const scenarios = [
     text: 'Хочу в клуб: музыка, танцы и движная ночь', groupSize: 2 } },
   { label: 'coffee-reading', request: { scope: 'city', transport: 'walk', minutes: 180,
     text: 'Тихое кафе с кофе, где можно почитать книгу', groupSize: 3 } },
+  { label: 'named-restaurant', request: { scope: 'city', transport: 'walk', minutes: 180,
+    text: 'Хочу поужинать в Qazaq Gourmet, интересуют казахская кухня и средний чек',
+    latitude: 51.1083, longitude: 71.4304, groupSize: 2 } },
   { label: 'day-trip', request: { scope: 'day_trip', transport: 'car', minutes: 1440,
     text: 'Что интересного посмотреть за городом', groupSize: 4 } },
 ]
 
-for (const scenario of scenarios) {
+const selected = process.argv[3]
+const chosen = selected ? scenarios.filter((scenario) => scenario.label === selected) : scenarios
+if (!chosen.length) throw new Error(`Unknown smoke scenario: ${selected}`)
+
+for (const scenario of chosen) {
   const response = await fetch(new URL('/api/recommend', endpoint), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ initData, request: { cityId: 'astana', intents: [], ...scenario.request } }),
@@ -48,7 +55,9 @@ for (const scenario of scenarios) {
   const status = response.status + ' ' + scenario.label
   const names = stops.map((stop) => stop.name + ' [' + stop.category + ']').join(' → ')
   const sourcedPrices = routes.flatMap((route) => route.stops).filter((stop) => stop.priceEvidence).length
+  const sourcedDetails = routes.flatMap((route) => route.stops)
+    .reduce((count, stop) => count + (stop.evidence?.length ?? 0), 0)
   process.stdout.write(status + ': ' + (names || payload.summary || payload.error || 'empty')
-    + ` (${routes.length} вариантов, ${sourcedPrices} цен с источником)` + '\n')
+    + ` (${routes.length} вариантов, ${sourcedPrices} цен и ${sourcedDetails} деталей с источником)` + '\n')
   if (!response.ok || routes.length === 0 || stops.length === 0) process.exitCode = 1
 }

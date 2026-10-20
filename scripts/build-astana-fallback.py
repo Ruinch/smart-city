@@ -21,6 +21,7 @@ import time
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 import osmium
@@ -63,8 +64,21 @@ RETAIN_TAGS = {
     "building", "opening_hours", "website", "contact:website", "phone",
     "addr:city", "addr:street", "addr:housenumber", "wheelchair", "fee",
     "internet_access", "internet_access:fee", "socket", "outdoor_seating",
-    "live_music", "music", "description",
+    "live_music", "music", "description", "power_supply", "indoor", "outdoor",
+    "indoor_seating", "air_conditioning", "smoking", "stroller", "drive_through",
+    "level",
+    # Venue details used to match explicit food, access, and booking requests.
+    "cuisine", "diet:vegan", "diet:vegetarian", "diet:halal", "diet:gluten_free",
+    "menu", "menu:website", "website:menu", "reservation", "website:booking",
+    "contact:booking", "contact:phone", "contact:email", "email",
+    "toilets", "toilets:wheelchair", "toilets:access", "changing_table",
+    "wheelchair:description", "highchair", "kids_area", "takeaway", "delivery",
+    # Explicit business contact channels only; never retain arbitrary contact:* keys.
+    "contact:facebook", "contact:instagram", "contact:telegram", "contact:vk",
+    "contact:tiktok", "contact:youtube", "contact:twitter", "contact:whatsapp",
+    "facebook", "instagram", "telegram",
 }
+LINK_TAGS = {"website", "contact:website", "menu:website", "website:menu", "website:booking"}
 BLOCKED_LIFECYCLE_KEYS = {"disused", "abandoned", "demolished", "proposed", "construction"}
 LONG_VISIT = {"museum", "gallery", "zoo", "water_park", "park", "cinema", "theatre"}
 SHORT_VISIT = {"artwork", "monument", "memorial", "viewpoint", "attraction"}
@@ -131,6 +145,32 @@ def visit_minutes(category: str) -> int:
     return 45
 
 
+def retained_tags(tags: dict[str, str]) -> dict[str, str]:
+    """Keep a bounded, explicit set of public OSM fields; values remain unverified."""
+    result = {}
+    for key, raw_value in tags.items():
+        if key not in RETAIN_TAGS or not isinstance(raw_value, str):
+            continue
+        value = raw_value.strip()
+        limit = 2048 if key in LINK_TAGS else 300 if key == "description" else 180
+        if not value or len(value) > limit or any(ord(char) < 32 or ord(char) == 127 for char in value):
+            continue
+        if key in LINK_TAGS:
+            try:
+                url = urlsplit(value)
+                host = url.hostname
+                port = url.port
+            except ValueError:
+                continue
+            if (url.scheme not in {"http", "https"} or not host or "." not in host
+                    or host == "localhost" or all(part.isdigit() for part in host.split("."))
+                    or url.username or url.password or port is not None
+                    or any(char.isspace() for char in value)):
+                continue
+        result[key] = value
+    return result
+
+
 def build_poi(osm_type: str, osm_id: int, tags: dict[str, str], lat: float, lon: float,
               category: str) -> dict:
     names = {code: tags[f"name:{code}"] for code in ("ru", "kk", "en") if tags.get(f"name:{code}")}
@@ -146,7 +186,7 @@ def build_poi(osm_type: str, osm_id: int, tags: dict[str, str], lat: float, lon:
         "sourceUrl": f"https://www.openstreetmap.org/{osm_type}/{osm_id}",
         "osmType": osm_type,
         "osmId": osm_id,
-        "tags": {key: value for key, value in tags.items() if key in RETAIN_TAGS},
+        "tags": retained_tags(tags),
     }
     if names:
         point["names"] = names

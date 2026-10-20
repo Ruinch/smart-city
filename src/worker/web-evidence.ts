@@ -261,7 +261,7 @@ export function attachEvidence(stops: Recommendation[], findings: VenueEvidence[
         reading: 'A found description mentions books or reading.',
         nightlife: 'A found description mentions an evening programme; check the current schedule.',
         hours: 'A found source lists opening hours; verify them before visiting.',
-      }[feature]), sourceUrl,
+      }[feature]), sourceUrl, kind: feature === 'hours' ? 'hours' as const : 'feature' as const,
     }))
   }
 }

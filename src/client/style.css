@@ -652,9 +652,15 @@ a { color: inherit; }
 .place-action span { color: var(--brand); font-size: 12px; font-weight: 700; }
 .place-action p { margin: 4px 0 0; font-size: 13px; line-height: 1.45; }
 .place-action small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.45; }
-.place-evidence { display: grid; gap: 5px; margin-top: 9px; }
-.evidence-label { color: var(--muted); font-size: 12px; font-weight: 700; }
-.evidence-link { color: var(--brand); font-size: 12px; line-height: 1.45; text-decoration: underline; text-underline-offset: 2px; }
+.place-evidence { margin-top: 13px; border-top: 1px solid var(--border); }
+.place-evidence h4 { margin: 11px 0 0; font-size: 12px; font-weight: 700; line-height: 1.4; }
+.evidence-list { display: grid; }
+.evidence-row { min-width: 0; padding: 10px 0; }
+.evidence-row + .evidence-row { border-top: 1px solid var(--border); }
+.evidence-kind { color: var(--brand); font-size: 11px; font-weight: 700; line-height: 1.4; }
+.evidence-claim { margin: 3px 0 0; overflow-wrap: anywhere; font-size: 13px; line-height: 1.45; text-wrap: pretty; }
+.evidence-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; color: var(--muted); font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.evidence-link { display: inline-flex; min-height: 44px; align-items: center; overflow-wrap: anywhere; color: var(--brand); font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 .place-links { display: flex; flex-wrap: wrap; gap: 3px 15px; margin-top: 8px; }
 .place-links a { display: inline-flex; min-height: 44px; align-items: center; color: var(--brand); font-size: 12px; font-weight: 700; text-decoration: none; }
 .place-links a:hover { text-decoration: underline; text-underline-offset: 3px; }

@@ -161,7 +161,13 @@ export interface Recommendation {
   /** Position in the generated itinerary, starting at one. */
   stopOrder?: number
   /** Optional sourced claim verified separately from the OSM location. */
-  evidence?: Array<{ claim: string; sourceUrl: string }>
+  evidence?: Array<{
+    claim: string
+    sourceUrl: string
+    /** When this particular detail was checked; it is not a freshness guarantee. */
+    checkedAt?: string
+    kind?: 'hours' | 'menu' | 'feature' | 'accessibility' | 'booking'
+  }>
   sourceProvider?: 'OpenStreetMap' | 'Overture Maps' | '2GIS'
   /** Original Overture supplier when present, displayed with the source link. */
   sourceDataset?: string

@@ -1349,6 +1349,85 @@ function formatPriceDate(value: string): string | null {
   return new Intl.DateTimeFormat(language === 'kk' ? 'kk-KZ' : language === 'en' ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date)
 }
 
+type VenueDetailKind = 'hours' | 'menu' | 'feature' | 'accessibility' | 'booking'
+type VisibleVenueDetail = { claim: string; sourceUrl: string; checkedAt?: string; kind?: VenueDetailKind }
+
+const venueDetailCopy: Record<Language, {
+  heading: string
+  checked: string
+  source: string
+  kinds: Record<VenueDetailKind | 'other', string>
+}> = {
+  ru: {
+    heading: 'Сведения о месте', checked: 'Источник проверен {date}', source: 'Источник: {host} ↗',
+    kinds: { hours: 'Часы работы', menu: 'Меню', feature: 'Особенности', accessibility: 'Доступность', booking: 'Бронирование', other: 'Подробности' },
+  },
+  kk: {
+    heading: 'Орын туралы мәлімет', checked: 'Дереккөз {date} тексерілді', source: 'Дереккөз: {host} ↗',
+    kinds: { hours: 'Жұмыс уақыты', menu: 'Мәзір', feature: 'Ерекшеліктер', accessibility: 'Қолжетімділік', booking: 'Брондау', other: 'Толығырақ' },
+  },
+  en: {
+    heading: 'About this place', checked: 'Source checked {date}', source: 'Source: {host} ↗',
+    kinds: { hours: 'Opening hours', menu: 'Menu', feature: 'Features', accessibility: 'Accessibility', booking: 'Booking', other: 'Details' },
+  },
+}
+
+function visibleVenueDetails(item: Recommendation): VisibleVenueDetail[] {
+  if (!Array.isArray(item.evidence)) return []
+  const details: VisibleVenueDetail[] = []
+  const seen = new Set<string>()
+  for (const entry of item.evidence) {
+    if (!entry || typeof entry.claim !== 'string' || typeof entry.sourceUrl !== 'string') continue
+    const claim = entry.claim.trim()
+    const sourceUrl = safeUrl(entry.sourceUrl)
+    if (!claim || !sourceUrl) continue
+    const kind = ['hours', 'menu', 'feature', 'accessibility', 'booking'].includes(entry.kind ?? '')
+      ? entry.kind : undefined
+    const key = `${claim}\n${sourceUrl}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    details.push({ claim, sourceUrl, kind, checkedAt: entry.checkedAt })
+    if (details.length === 4) break
+  }
+  return details
+}
+
+function createVenueDetailsBlock(details: VisibleVenueDetail[]): HTMLElement | null {
+  if (!details.length) return null
+  const copy = venueDetailCopy[language]
+  const section = document.createElement('section')
+  section.className = 'place-evidence'
+  const heading = document.createElement('h4')
+  heading.textContent = copy.heading
+  const list = document.createElement('div')
+  list.className = 'evidence-list'
+  for (const detail of details) {
+    const row = document.createElement('div')
+    row.className = 'evidence-row'
+    const kind = document.createElement('span')
+    kind.className = 'evidence-kind'
+    kind.textContent = copy.kinds[detail.kind ?? 'other']
+    const claim = document.createElement('p')
+    claim.className = 'evidence-claim'
+    claim.textContent = detail.claim
+    const meta = document.createElement('div')
+    meta.className = 'evidence-meta'
+    const checkedAt = typeof detail.checkedAt === 'string' ? formatPriceDate(detail.checkedAt) : null
+    if (checkedAt) {
+      const checked = document.createElement('span')
+      checked.textContent = copy.checked.replace('{date}', checkedAt)
+      meta.appendChild(checked)
+    }
+    const host = new URL(detail.sourceUrl).hostname.replace(/^www\./, '')
+    const link = createLink(copy.source.replace('{host}', host), detail.sourceUrl, 'evidence-link')
+    if (link) meta.appendChild(link)
+    appendNodes(row, kind, claim, meta)
+    list.appendChild(row)
+  }
+  appendNodes(section, heading, list)
+  return section
+}
+
 function createPriceBlock(item: Recommendation): HTMLElement | null {
   const evidence = item.priceEvidence
   if (!evidence || !safeUrl(evidence.sourceUrl) || !Number.isFinite(evidence.minKzt) || evidence.minKzt < 0) return null
@@ -1412,6 +1491,7 @@ function showMapPreview(item: Recommendation): void {
 }
 
 function createStopCard(item: Recommendation, index: number): HTMLElement {
+  const venueDetails = visibleVenueDetails(item)
   const card = document.createElement('article')
   card.className = 'place-card'
   card.dataset.id = item.id
@@ -1448,7 +1528,7 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   if (item.estimatedCostKzt) {
     addFact(facts, t('roadCost', { min: formatKzt(item.estimatedCostKzt.min), max: formatKzt(item.estimatedCostKzt.max) }))
   } else if (!priceBlock) addFact(facts, t('unknownCost'))
-  if (item.hoursStatus) addFact(facts, item.hoursStatus)
+  if (item.hoursStatus && !venueDetails.some((detail) => detail.kind === 'hours')) addFact(facts, item.hoursStatus)
   let accessibilityTag: HTMLAnchorElement | null = null
   if (item.wheelchairTag === 'yes' || item.wheelchairTag === 'limited' || item.wheelchairTag === 'no') {
     const label = item.wheelchairTag === 'yes' ? t('wheelchairBadgeYes')
@@ -1467,22 +1547,7 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
     caveat.textContent = t('aiCaveat')
     action.appendChild(caveat)
   }
-  const evidence = (item as Recommendation & { evidence?: Array<{ claim: string; sourceUrl: string }> }).evidence
-  const evidenceBlock = document.createElement('div')
-  evidenceBlock.className = 'place-evidence'
-  if (Array.isArray(evidence)) {
-    for (const entry of evidence.slice(0, 4)) {
-      if (!entry || typeof entry.claim !== 'string' || typeof entry.sourceUrl !== 'string') continue
-      const link = createLink(entry.claim, entry.sourceUrl, 'evidence-link')
-      if (link) evidenceBlock.appendChild(link)
-    }
-  }
-  if (evidenceBlock.childElementCount) {
-    const evidenceLabel = document.createElement('span')
-    evidenceLabel.className = 'evidence-label'
-    evidenceLabel.textContent = t('evidence')
-    evidenceBlock.insertBefore(evidenceLabel, evidenceBlock.firstChild)
-  }
+  const evidenceBlock = createVenueDetailsBlock(venueDetails)
   const links = document.createElement('div')
   links.className = 'place-links'
   const venueWebsiteLabel = item.sourceProvider === 'OpenStreetMap' ? t('osmWebsite')
@@ -1511,8 +1576,8 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   appendNodes(card, top, name, why, facts)
   if (accessibilityTag) card.appendChild(accessibilityTag)
   if (priceBlock) card.appendChild(priceBlock)
+  if (evidenceBlock) card.appendChild(evidenceBlock)
   card.appendChild(action)
-  if (evidenceBlock.childElementCount) card.appendChild(evidenceBlock)
   card.appendChild(links)
   return card
 }

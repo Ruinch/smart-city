@@ -12,7 +12,8 @@ import { ASTANA_CENTER, ASTANA_RADIUS_METERS, discoverPlaces,
   type DynamicPlace, type SearchCategory } from './dynamic'
 import { attachEvidence, searchVenueEvidence } from './web-evidence'
 import { buildRouteVariants } from './route-variants'
-import { attachPriceEvidence, researchVenuePrices } from './price-research'
+import { attachPriceEvidence, researchVenuePrices, type PriceEvidence } from './price-research'
+import { attachVenueDetails, collectVenueDetails } from './venue-details'
 import { countPeople, countPlaces, languageOf, pick, placeName } from './i18n'
 import { insideTripPlanningArea } from '../shared/astana'
 import { directionMetrics } from './direction'
@@ -491,12 +492,25 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const selectedPlaces = [...new Set(routes.flatMap((candidate) => candidate.stops.map((stop) => stop.id)))]
     .map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
   const sourceProviders = new Set(selectedPlaces.map((place) => place.provider))
-  const [findings, prices] = await Promise.all([
+  const [findings, researchedPrices, venueDetails] = await Promise.all([
     searchVenueEvidence(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
     researchVenuePrices(env.OPENAI_API_KEY, body.request, selectedPlaces, env.RECOMMEND_RATE),
+    collectVenueDetails(selectedPlaces, language).catch(() => ({ details: [], prices: [] })),
   ])
+  const pricePriority = (unit: PriceEvidence['unit']): number =>
+    unit === 'entry' ? 3 : unit === 'average_bill' ? 2 : 1
+  const pricesByPlace = new Map(researchedPrices.map((price) => [price.id, price]))
+  for (const price of venueDetails.prices) {
+    const previous = pricesByPlace.get(price.id)
+    if (!previous || pricePriority(price.unit) > pricePriority(previous.unit)
+      || (price.unit === previous.unit && price.sourceKind === 'official_site')) {
+      pricesByPlace.set(price.id, price)
+    }
+  }
+  const prices = [...pricesByPlace.values()]
   const allStops = routes.flatMap((candidate) => candidate.stops)
   attachEvidence(allStops, findings, language)
+  attachVenueDetails(allStops, venueDetails.details, body.request.text)
   attachPriceEvidence(routes, prices, body.request.budgetKzt)
   const route = routes[0]
   const result: RecommendResponse = {

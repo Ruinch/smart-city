@@ -35,6 +35,19 @@ describe('broader Astana retrieval', () => {
       .toEqual(expect.arrayContaining(['monument', 'memorial']))
     expect(localSearchIntent(request('Кофе, а потом боулинг')))
       .toMatchObject({ theme: 'active', categories: expect.arrayContaining(['cafe', 'bowling_alley']) })
+    expect(localSearchIntent(request('Хочу суши рядом')).categories)
+      .toEqual(expect.arrayContaining(['restaurant']))
+  })
+
+  it('prefers a cuisine that is explicitly tagged over a nearer generic restaurant', () => {
+    const generic = place(1, 'restaurant')
+    const sushi = { ...place(200, 'restaurant'), tags: { cuisine: 'japanese;sushi' } }
+    const ranked = rankDynamicPlaces([generic, sushi], request('Хочу суши'),
+      { theme: 'general', categories: ['restaurant'] }, ASTANA_CENTER)
+    expect(ranked[0].id).toBe(sushi.id)
+    const route = assembleRoute(request('Хочу суши'),
+      { theme: 'general', categories: ['restaurant'] }, [sushi], ASTANA_CENTER)
+    expect(route?.stops[0].why).toContain('В OSM отмечена подходящая кухня')
   })
 
   it('parses a named historic place with sourced coordinates', () => {
