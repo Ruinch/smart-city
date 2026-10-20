@@ -154,6 +154,17 @@ describe('Worker API integration', () => {
     expect(body.routes![0].summary).toContain('атмосфера и программа')
   })
 
+  it('uses the checked Overture catalog for a karaoke request', async () => {
+    const { response, body } = await recommend({
+      text: 'Хочу петь в караоке', latitude: 51.161039, longitude: 71.429462, minutes: 180,
+    })
+    expect(response.status).toBe(200)
+    expect(body.routes?.flatMap((route) => route.stops).some((stop) =>
+      stop.category === 'karaoke' && stop.sourceProvider === 'Overture Maps'
+      && stop.id.startsWith('overture:'))).toBe(true)
+    expect(body.note).toContain('Overture Maps')
+  })
+
   it('refreshes recent and quoted venue requests through the bounded live path', () => {
     expect(needsLiveRefresh('Что нового открылось сегодня?')).toBe(true)
     expect(needsLiveRefresh('Покажи «точное название места»')).toBe(true)
