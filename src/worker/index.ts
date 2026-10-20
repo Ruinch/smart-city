@@ -8,7 +8,7 @@ import { distanceMeters } from './recommend'
 import { rankTrips, toTripRecommendation } from './trips'
 import { ASTANA_CENTER, ASTANA_RADIUS_METERS, discoverPlaces,
   insideAstana, matchesVenueName, needsLiveRefresh, quotedVenueName, rankDynamicPlaces,
-  resolveNamedArea, searchIntentWithAI, selectStopsWithAI,
+  resolveNamedArea, searchIntentWithAI, selectStopsWithAI, surpriseCandidatePool,
   type DynamicPlace, type SearchCategory } from './dynamic'
 import { attachEvidence, searchVenueEvidence } from './web-evidence'
 import { buildRouteVariants } from './route-variants'
@@ -20,6 +20,7 @@ import { directionMetrics } from './direction'
 import { onCityHeading } from './direction'
 import { importVerifiedOverture, sameVenue } from './overture'
 import { search2GisVenues } from './two-gis'
+import { replaceRouteStop, type ReplaceReason } from './replace'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
@@ -37,6 +38,7 @@ const city: CityCatalog = {
   radiusMeters: ASTANA_RADIUS_METERS, pois: [],
 }
 const MAX_BODY_BYTES = 16_384
+const PLACE_ID_PATTERN = /^(?:osm:(?:node|way|relation):[1-9]\d{0,12}|overture:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|2gis:[1-9]\d{0,20})$/
 
 interface Env {
   ASSETS?: { fetch(request: Request): Promise<Response> }
@@ -172,6 +174,20 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
     throw new HttpError(400, pick(language, 'Некорректный сценарий прогулки.',
       'Серуен сценарийі қате.', 'Invalid walk scenario.'))
   }
+  if (rawRequest.mood !== undefined
+    && !['relax', 'fun', 'photo', 'learn', 'quiet', 'unsure'].includes(String(rawRequest.mood))) {
+    throw new HttpError(400, pick(language, 'Неизвестное настроение.',
+      'Белгісіз көңіл күйі.', 'Unknown mood.'))
+  }
+  if (rawRequest.surprise !== undefined && typeof rawRequest.surprise !== 'boolean') {
+    throw new HttpError(400, pick(language, 'Некорректный режим «Удиви меня».',
+      '«Таңғалдыр» режимі қате.', 'Invalid surprise mode.'))
+  }
+  if (scope !== 'city' && (rawRequest.mood !== undefined || rawRequest.surprise === true)) {
+    throw new HttpError(400, pick(language, 'Настроение и «Удиви меня» доступны для прогулок по Астане.',
+      'Көңіл күйі мен «Таңғалдыр» Астанадағы серуенге арналған.',
+      'Mood and Surprise Me are available for outings in Astana.'))
+  }
   if (typeof rawRequest.text !== 'string' || rawRequest.text.length > 500) {
     throw new HttpError(400, pick(language, 'Описание прогулки должно быть короче 500 символов.',
       'Серуен сипаттамасы 500 таңбадан қысқа болуы тиіс.', 'Keep the walk description under 500 characters.'))
@@ -189,7 +205,7 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
   const excludePlaceIds = rawRequest.excludePlaceIds
   if (excludePlaceIds !== undefined && (!Array.isArray(excludePlaceIds) || excludePlaceIds.length > 36
     || excludePlaceIds.some((id) => typeof id !== 'string'
-      || !/^(?:osm:(?:node|way|relation):[1-9]\d{0,12}|overture:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|2gis:[1-9]\d{0,20})$/.test(id))
+      || !PLACE_ID_PATTERN.test(id))
     || new Set(excludePlaceIds).size !== excludePlaceIds.length)) {
     throw new HttpError(400, pick(language, 'Некорректный список уже показанных мест.',
       'Бұрын көрсетілген орындар тізімі қате.', 'Invalid list of previously shown places.'))
@@ -241,6 +257,8 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
   if (rawRequest.shortLegs === true) walkRequest.shortLegs = true
   if (rawRequest.gentlePace === true) walkRequest.gentlePace = true
   if (rawRequest.microQuest === true) walkRequest.microQuest = true
+  if (rawRequest.mood !== undefined) walkRequest.mood = rawRequest.mood as WalkRequest['mood']
+  if (rawRequest.surprise === true) walkRequest.surprise = true
   if (budgetKzt !== undefined) walkRequest.budgetKzt = budgetKzt as number
   if (groupSize !== undefined) walkRequest.groupSize = groupSize as number
   if (Array.isArray(excludePlaceIds) && excludePlaceIds.length) walkRequest.excludePlaceIds = excludePlaceIds as string[]
@@ -363,6 +381,9 @@ function appendUnverifiedPreferenceNote(base: string, text: string, language: La
 
 async function recommend(request: Request, env: Env): Promise<Response> {
   const body = validateRecommendBody(await readJson(request), headerLanguage(request))
+  // A one-tap discovery is anchored near the visitor, even if the planner has
+  // an older directional hint selected for a different route.
+  if (body.request.surprise) delete body.request.targetArea
   const language = languageOf(body.request)
   if (!env.TELEGRAM_BOT_TOKEN) return json({ error: pick(language, 'Сервис временно не настроен.',
     'Қызмет уақытша бапталмаған.', 'The service is temporarily unavailable.') }, 503)
@@ -458,7 +479,10 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   // that every venue in the chosen corridor is too far for the time available.
   const feasibleSnapshot = rankDynamicPlaces(accessibleNearby, body.request, intent, origin)
     .filter((place) => !previouslyShown.has(place.id))
-  const scarceCategories = scarceSearchCategories(intent.categories, feasibleSnapshot)
+  const scarceCategories = body.request.surprise
+    ? (surpriseCandidatePool(feasibleSnapshot, body.request, origin).length
+      ? [] : intent.categories.slice(0, 6))
+    : scarceSearchCategories(intent.categories, feasibleSnapshot)
   const liveCenter = body.request.targetArea
     && feasibleSnapshot.some((place) => place.category === intent.categories[0])
     ? body.request.targetArea : origin
@@ -500,9 +524,16 @@ async function recommend(request: Request, env: Env): Promise<Response> {
       headingRelaxed = candidates.length > 0
     }
   }
+  if (body.request.surprise) {
+    const pool = surpriseCandidatePool(candidates, body.request, origin)
+    if (!pool.length) return json(noPlacesResponse(body.request, city))
+    const random = crypto.getRandomValues(new Uint32Array(1))[0]
+    candidates = [pool[random % pool.length]]
+  }
   if (!candidates.length) return json(noPlacesResponse(body.request, city))
   const routeRequest = headingRelaxed ? { ...body.request, targetArea: undefined } : body.request
-  const aiIds = await selectStopsWithAI(env.OPENAI_API_KEY, routeRequest, intent, candidates, origin)
+  const aiIds = body.request.surprise ? []
+    : await selectStopsWithAI(env.OPENAI_API_KEY, routeRequest, intent, candidates, origin)
   let byId = new Map(candidates.map((poi) => [poi.id, poi]))
   const aiSelected = aiIds.map((id) => byId.get(id)).filter((poi): poi is DynamicPlace => !!poi)
   if (body.request.targetArea && !headingRelaxed) aiSelected.sort((left, right) =>
@@ -551,9 +582,9 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const route = routes[0]
   const result: RecommendResponse = {
     summary: pick(language,
-      `${route.title}: ${countPlaces(language, route.stops.length)} по вашему запросу${namedArea ? `, от ${placeName(namedArea, language)}` : ''}.`,
-      `${route.title}: сұрауыңызға сай ${countPlaces(language, route.stops.length)}${namedArea ? `, бастапқы нүкте — ${placeName(namedArea, language)}` : ''}.`,
-      `${route.title}: ${countPlaces(language, route.stops.length)} matched your request${namedArea ? `, starting near ${placeName(namedArea, language)}` : ''}.`),
+      `${route.title}: ${countPlaces(language, route.stops.length)} ${body.request.surprise ? 'рядом' : 'по вашему запросу'}${namedArea ? `, от ${placeName(namedArea, language)}` : ''}.`,
+      `${route.title}: ${body.request.surprise ? 'жақын жерден ' : 'сұрауыңызға сай '}${countPlaces(language, route.stops.length)}${namedArea ? `, бастапқы нүкте — ${placeName(namedArea, language)}` : ''}.`,
+      `${route.title}: ${countPlaces(language, route.stops.length)} ${body.request.surprise ? 'nearby' : 'matched your request'}${namedArea ? `, starting near ${placeName(namedArea, language)}` : ''}.`),
     recommendations: route.stops,
     routes,
     ...(headingRelaxed ? { headingAdjusted: true } : {}),
@@ -608,7 +639,156 @@ async function recommend(request: Request, env: Env): Promise<Response> {
         'Асықпай жүру: ең көбі екі аялдама, уақыт шегі мүмкіндік берсе, оларға көбірек уақыт бөлінді. Демалатын орындар мен басқа қолайлылықтар тексерілмеген.',
         'Gentle pace: at most two stops, with longer visits where your time allows. Seating and other amenities have not been checked.')}` : ''),
   }
+  if (body.request.mood === 'quiet' || body.request.mood === 'photo' || body.request.mood === 'fun') {
+    result.note += ` ${pick(language,
+      'Настроение помогло выбрать категории; тишина, фотогеничность и атмосфера на месте не проверены.',
+      'Көңіл күйі санаттарды таңдауға көмектесті; тыныштық, фотогенділік және атмосфера жерде тексерілмеген.',
+      'Mood guided the categories; quietness, photogenic appeal and atmosphere have not been verified on site.')}`
+  }
+  if (body.request.surprise) result.note += ` ${pick(language,
+    'Это реальное место из источника, а необычность — субъективная оценка.',
+    'Бұл дереккөздегі нақты орын, ал ерекшелігі субъективті бағалау.',
+    'This is a sourced place; whether it feels unusual is subjective.')}`
   return json(result)
+}
+
+/** Route content from the client is reduced to IDs and rehydrated from trusted sources. */
+async function replaceStop(request: Request, env: Env): Promise<Response> {
+  const raw = await readJson(request)
+  const body = validateRecommendBody(raw, headerLanguage(request))
+  const language = languageOf(body.request)
+  const payload = record(raw)
+  const route = record(payload?.route)
+  const stops = route?.stops
+  const stopIndex = payload?.stopIndex
+  const reason = payload?.reason
+  const excluded = payload?.excludePlaceIds
+  if (body.request.scope === 'day_trip' || !Array.isArray(stops) || stops.length < 1 || stops.length > 3
+    || stops.some((item) => !record(item) || typeof record(item)?.id !== 'string'
+      || !PLACE_ID_PATTERN.test(String(record(item)?.id)))
+    || new Set(stops.map((item) => record(item)?.id)).size !== stops.length
+    || !Number.isInteger(stopIndex) || (stopIndex as number) < 0 || (stopIndex as number) >= stops.length
+    || !['far', 'expensive', 'visited', 'other'].includes(String(reason))
+    || (excluded !== undefined && (!Array.isArray(excluded) || excluded.length > 36
+      || excluded.some((id) => typeof id !== 'string' || !PLACE_ID_PATTERN.test(id))
+      || new Set(excluded).size !== excluded.length))) {
+    throw new HttpError(400, pick(language, 'Некорректные данные для замены точки.',
+      'Орынды ауыстыру деректері қате.', 'Invalid stop replacement data.'))
+  }
+  const ids = stops.map((item) => (item as { id: string }).id)
+  const allExcluded = [...new Set([...(body.request.excludePlaceIds ?? []), ...((excluded ?? []) as string[])])]
+  body.request.excludePlaceIds = allExcluded.slice(-36)
+  if (!env.TELEGRAM_BOT_TOKEN) return json({ error: pick(language,
+    'Сервис временно не настроен.', 'Қызмет уақытша бапталмаған.',
+    'The service is temporarily unavailable.') }, 503)
+  const identity = await verifyTelegramInitData(body.initData, env.TELEGRAM_BOT_TOKEN)
+  if (!identity) return json({ error: pick(language, 'Откройте приложение через Telegram заново.',
+    'Қосымшаны Telegram арқылы қайта ашыңыз.', 'Reopen the app through Telegram.') }, 401)
+  if (env.RECOMMEND_RATE) {
+    const limit = await env.RECOMMEND_RATE.limit({ key: identity.userId })
+    if (!limit.success) return json({ error: pick(language, 'Слишком много запросов. Попробуйте через минуту.',
+      'Сұраулар тым көп. Бір минуттан кейін қайталаңыз.', 'Too many requests. Try again in a minute.') }, 429)
+  }
+  if (body.request.latitude !== undefined && body.request.longitude !== undefined
+    && !insideAstana({ lat: body.request.latitude, lon: body.request.longitude })) {
+    return json({ error: pick(language, 'Стартовая точка вне Астаны.',
+      'Бастапқы нүкте Астанадан тыс жерде.', 'Start is outside Astana.') }, 422)
+  }
+  const intent = await searchIntentWithAI(env.OPENAI_API_KEY, body.request)
+  const namedArea = body.request.latitude === undefined
+    ? (body.request.landmarkId && body.request.landmarkId !== city.id
+      ? snapshotLandmarks.find((place) => place.id === body.request.landmarkId) ?? null
+      : resolveNamedArea(body.request.text, intent.areaHint, snapshotLandmarks))
+    : null
+  const origin = body.request.latitude !== undefined && body.request.longitude !== undefined
+    ? { lat: body.request.latitude, lon: body.request.longitude }
+    : namedArea ? { lat: namedArea.lat, lon: namedArea.lon } : city.center
+  const overtureImport = importVerifiedOverture(overtureJson, snapshotPlaces, new Date())
+  const merged = new Map<string, DynamicPlace>()
+  for (const place of [...snapshotPlaces, ...overtureImport.places]) {
+    if (usablePlace(place) && insideAstana(place) && distanceMeters(origin, place) <= 25_000) {
+      merged.set(place.id, place)
+    }
+  }
+  const categorySet = new Set<string>(intent.categories)
+  const relevantCount = [...merged.values()].filter((place) => categorySet.has(place.category)).length
+  const needsLive = ids.some((id) => !merged.has(id)) || relevantCount < 6
+  const wheelchairOnly = body.request.accessibility === 'osm_wheelchair_yes'
+  const [live, twoGis] = await Promise.all([
+    needsLive ? discoverPlaces(origin, intent.categories.slice(0, 10), undefined, wheelchairOnly)
+      : Promise.resolve(null),
+    wheelchairOnly || env.TWO_GIS_ENABLED !== 'true'
+      ? Promise.resolve({ places: [], status: 'disabled' as const })
+      : search2GisVenues(env.TWO_GIS_API_KEY, { categories: intent.categories, center: origin, language }),
+  ])
+  for (const place of live ?? []) if (usablePlace(place) && insideAstana(place)) merged.set(place.id, place)
+  for (const place of twoGis.places) {
+    if (!usablePlace(place) || !insideAstana(place)
+      || [...merged.values()].some((known) => sameVenue(known, place))) continue
+    merged.set(place.id, place)
+  }
+  if (ids.some((id) => !merged.has(id))) return json({ error: pick(language,
+    'Точка больше не найдена в проверенных данных. Составьте маршрут заново.',
+    'Орын тексерілген деректерден табылмады. Бағытты қайта құрыңыз.',
+    'A stop is no longer in the sourced catalog. Build a new route.') }, 409)
+  const rankedPlaces = rankDynamicPlaces([...merged.values()],
+    { ...body.request, targetArea: undefined }, intent, origin)
+  const replacedPlace = merged.get(ids[stopIndex as number])!
+  const priceInput = reason === 'expensive'
+    ? [replacedPlace, ...rankedPlaces.filter((place) => !ids.includes(place.id)
+      && (place.category === replacedPlace.category || categorySet.has(place.category))).slice(0, 5)]
+    : []
+  const [researchedPrices, officialDetails] = reason === 'expensive'
+    ? await Promise.all([
+      researchVenuePrices(env.OPENAI_API_KEY, body.request, priceInput, env.RECOMMEND_RATE),
+      collectVenueDetails(priceInput, language).catch(() => ({ details: [], prices: [] })),
+    ]) : [[], { details: [], prices: [] }]
+  const priceById = new Map<string, PriceEvidence>()
+  for (const price of researchedPrices) priceById.set(price.id, price)
+  for (const price of officialDetails.prices) priceById.set(price.id, price)
+  const replacement = replaceRouteStop({
+    request: body.request, intent, route: { stops: ids.map((id) => ({ id })) },
+    stopIndex: stopIndex as number, reason: reason as ReplaceReason,
+    rankedPlaces, origin,
+    ...(namedArea ? { originName: placeName(namedArea, language) } : {}),
+    priceEvidenceById: priceById,
+  })
+  if (!replacement) return json({
+    summary: pick(language, 'Подходящей замены для этой точки пока нет.',
+      'Бұл орынға лайықты ауыстыру әзірге табылмады.',
+      'No suitable replacement was found for this stop yet.'),
+    recommendations: [], routes: [], replacementUnchanged: true,
+  })
+  const selected = replacement.route.stops.map((stop) => merged.get(stop.id)!)
+  const [findings, prices, details] = await Promise.all([
+    searchVenueEvidence(env.OPENAI_API_KEY, body.request, selected, env.RECOMMEND_RATE),
+    researchVenuePrices(env.OPENAI_API_KEY, body.request, selected, env.RECOMMEND_RATE),
+    collectVenueDetails(selected, language).catch(() => ({ details: [], prices: [] })),
+  ])
+  const routePlan = replacement.route
+  attachEvidence(routePlan.stops, findings, language)
+  attachVenueDetails(routePlan.stops, details.details, body.request.text)
+  const finalPrices = new Map(priceById)
+  for (const price of prices) finalPrices.set(price.id, price)
+  for (const price of details.prices) finalPrices.set(price.id, price)
+  attachPriceEvidence([routePlan], [...finalPrices.values()], body.request.budgetKzt)
+  const note = [pick(language,
+    'Заменена только выбранная точка. Время и расстояние приблизительные; часы работы проверьте перед визитом.',
+    'Тек таңдалған орын ауыстырылды. Уақыт пен қашықтық шамамен берілген; жұмыс уақытын барар алдында тексеріңіз.',
+    'Only the selected stop changed. Time and distance are estimates; check opening hours before visiting.'),
+  replacement.priceUnverified ? pick(language,
+    'Более низкая цена не подтверждена опубликованными данными.',
+    'Төменірек баға жарияланған деректермен расталмаған.',
+    'A lower price has not been verified from published sources.') : '',
+  replacement.headingAdjusted ? pick(language,
+    'Новая точка может отклоняться от выбранного направления.',
+    'Жаңа орын таңдалған бағыттан ауытқуы мүмкін.',
+    'The new stop may deviate from the selected heading.') : ''].filter(Boolean).join(' ')
+  return json({
+    summary: pick(language, 'Одна точка заменена.', 'Бір орын ауыстырылды.', 'One stop was replaced.'),
+    recommendations: routePlan.stops, routes: [routePlan], note,
+    ...(replacement.headingAdjusted ? { headingAdjusted: true } : {}),
+  })
 }
 
 function safeMiniAppUrl(raw: string | undefined): string | null {
@@ -684,6 +864,11 @@ export default {
         if (request.method !== 'POST') return json({ error: pick(language,
           'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
         return await recommend(request, env)
+      }
+      if (pathname === '/api/replace') {
+        if (request.method !== 'POST') return json({ error: pick(language,
+          'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
+        return await replaceStop(request, env)
       }
       if (pathname === '/telegram/webhook') {
         if (request.method !== 'POST') return json({ error: pick(language,

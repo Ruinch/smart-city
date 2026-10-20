@@ -30,6 +30,8 @@ declare global {
 
 type Scope = 'city' | 'day_trip'
 type Transport = 'walk' | 'transit' | 'car'
+type Mood = 'relax' | 'fun' | 'photo' | 'learn' | 'quiet' | 'unsure'
+type SwapReason = 'far' | 'expensive' | 'visited' | 'other'
 interface RoutePlan {
   title: string
   summary: string
@@ -45,6 +47,7 @@ interface RouteResponse {
   routes?: RoutePlan[]
   note?: string
   headingAdjusted?: boolean
+  replacementUnchanged?: boolean
 }
 
 const telegram = window.Telegram?.WebApp
@@ -140,6 +143,9 @@ const ruMessages = {
   shortLegsSummary: 'короткие переходы',
   gentleSummary: 'без спешки',
   questSummary: 'микроприключение',
+  moodTitle: 'Под настроение', moodRelax: 'Расслабиться', moodFun: 'Развлечься', moodPhoto: 'Пофотографироваться', moodLearn: 'Узнать новое', moodQuiet: 'Побыть в тишине', moodUnsure: 'Не знаю',
+  surprise: 'Удиви меня', surpriseHint: 'Необычное место рядом с учётом вашего времени и настроек', loadingSurprise: 'Ищем сюрприз…',
+  swap: 'Заменить точку', swapReasons: 'Почему заменить?', swapFar: 'Слишком далеко', swapExpensive: 'Дорого', swapVisited: 'Уже был', swapOther: 'Хочу другое', swapping: 'Ищем другую точку…', swapNoAlternative: 'Подходящей замены пока нет. Эта точка осталась в маршруте.', swapError: 'Не удалось заменить точку. Маршрут не изменился.', swapSuccess: 'Точка заменена. Остальные остановки сохранены.',
 } as const
 type MessageKey = keyof typeof ruMessages
 const messages: Record<Language, Record<MessageKey, string>> = {
@@ -221,6 +227,9 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     shortLegsSummary: 'қысқа өткелдер',
     gentleSummary: 'асықпай',
     questSummary: 'шағын шытырман',
+    moodTitle: 'Көңіл күйім', moodRelax: 'Демалғым келеді', moodFun: 'Көңіл көтеру', moodPhoto: 'Суретке түсу', moodLearn: 'Жаңа нәрсе білу', moodQuiet: 'Тыныштық', moodUnsure: 'Білмеймін',
+    surprise: 'Мені таңғалдыр', surpriseHint: 'Уақытыңыз бен баптауларыңызға сай жақын маңдағы ерекше орын', loadingSurprise: 'Ерекше орын іздейміз…',
+    swap: 'Орынды ауыстыру', swapReasons: 'Неге ауыстырамыз?', swapFar: 'Тым алыс', swapExpensive: 'Қымбат', swapVisited: 'Барып көрдім', swapOther: 'Басқасын қалаймын', swapping: 'Басқа орын іздейміз…', swapNoAlternative: 'Әзірге лайықты балама жоқ. Бұл орын бағытта қалды.', swapError: 'Орынды ауыстыру мүмкін болмады. Бағыт өзгерген жоқ.', swapSuccess: 'Орын ауыстырылды. Қалған аялдамалар сақталды.',
   },
   en: {
     skip: 'Skip to content', mapRegion: 'Astana map and route', map: 'Map of Astana', brand: 'Ryadom — routes from Astana', astana: 'Astana', mapActions: 'Map controls', recenter: 'Show route starting point', fit: 'Show full route', osm: '© OpenStreetMap contributors', license: 'License', data: 'About the data', planner: 'Route planner', expandPanel: 'Expand panel', collapsePanel: 'Collapse panel', expandRoute: 'Expand route', collapseRoute: 'Collapse route', heading: 'Where to?', subtitle: 'Tell us what kind of outing or evening you have in mind.', backRoute: '← Back to route', interest: 'What interests you?', promptHint: 'Describe the mood, places and details that matter to you.', promptPlaceholder: 'For example, a quiet café for reading or dancing all night', examples: 'Example requests', exampleClub: 'Clubs and dancing', exampleClubPrompt: 'I want a club with music, dancing and a lively night', exampleCoffee: 'Coffee and a book', exampleCoffeePrompt: 'A quiet café where I can drink coffee and read a book', exampleFriends: 'With friends', exampleFriendsPrompt: 'A walk with friends around interesting places in Astana', where: 'Search area', whereRoute: 'Where to look for a route', inAstana: 'In Astana', fromCity: 'Trip from the city', duration: 'Time available', durationAria: 'Time including travel', transport: 'How will you travel?', transportAria: 'Transport mode', budget: 'Budget per person, ₸', noLimit: 'No limit', budgetHint: 'Prices are unknown for many places. 0 ₸ excludes cafés, clubs and shops, but the remaining places have not been confirmed free.', group: 'How many people?', groupHint: 'Between 1 and 12 people.', locationButton: 'Use my location', locationDefault: 'Without your location, we start from central Astana.', submit: 'Build a route', readyRoute: 'Your route', language: 'Interface language', fromAstana: 'From Astana', allDay: 'All day', walk: 'Walk', transit: 'Public transport', car: 'Car', walkLower: 'on foot', transitLower: 'by public transport', carLower: 'by car', perPerson: 'per person', personOne: 'person', personMany: 'people', stopsOne: 'stop', stopsFew: 'stops', stopsMany: 'stops', hoursShort: 'h', minutesShort: 'min', tripTransportHint: 'Trips from Astana currently require a car. Check travel time, costs and opening hours before you leave.', walkTransportHint: 'Walking times are approximate. Check opening hours and venue conditions before leaving.', otherTransportHint: 'Travel time by your chosen transport may be unknown. Check directions in an external map.', locationLoading: 'Requesting location…', locationUnavailable: 'Location unavailable. We will start from central Astana.', locationDenied: 'Location access was not granted. We will start from central Astana.', locationFar: 'You are far from Astana. We will start from the city center.', locationFound: 'We will start from your location.', promptError: 'Describe the route you want in at least a few words.', groupError: 'Enter a number from 1 to 12.', budgetError: 'Enter an amount from 0 to 10,000,000 ₸ or leave the field empty.', loadingRoute: 'Finding a route…', searchingPlaces: 'Finding places that fit', searchDescription: 'We are checking real places and planning a route. This may take up to a minute.', routeNotReady: 'Route is not ready yet', edit: 'Edit request', entry: 'Admission', averageBill: 'Average bill', oneItem: 'One item', fromPrice: 'from {amount}', checked: 'Checked {date}', priceSource: 'Price source ↗', itemPriceNote: 'This is the price of one item, not the full visit.', entryOverBudget: 'The listed ticket price exceeds your budget per person.', billOverBudget: 'The published average bill exceeds your budget per person.', trip: 'Trip', stop: 'Stop', place: 'Place', source: 'Source ↗', onMap: 'On map ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} at this stop', unknownTravel: 'Travel time unknown', roadCost: 'Travel cost ≈ {min}–{max}', unknownCost: 'Visit cost unknown', whatToDo: 'What to do here', aiCaveat: 'This idea was generated by AI; check venue details before leaving.', evidence: 'Details in sources', directions: 'Directions to place ↗', osmWebsite: 'Website from OSM ↗', placeSource: 'Place source ↗', timeSource: 'Time source ↗', costSource: 'Cost source ↗', noPlaces: 'No verified places matched your request yet. Try describing your interests differently or allowing more time.', cityRoute: 'Route in Astana', astanaTrip: 'Trip from Astana', yourRoute: 'Your route', walkAndStops: '≈ {time} walking and at stops', openRoute: 'Open full route ↗', tripVariants: 'Trip options', routeVariants: 'Route options', route: 'Route', variant: 'Option', roadLine: 'The line shows a calculated route. Check it in an external map before traveling.', dottedLine: 'The dotted line shows stop order, not a street route. Open precise directions in an external map.', stopsOrder: 'Stops in order', moreIdeas: 'More ideas →', openInTelegram: 'Open this app through the Telegram bot and try again.', loadingMore: 'Finding more…', searchingIdeas: 'Finding ideas…', otherPlaces: 'Looking for different places with the same settings.', telegramExpired: 'Your Telegram session has expired. Reopen the app through the bot.', rateLimit: 'Too many requests. Wait a moment and try again.', newIdeasError: 'Could not find new ideas. Please try again later.', incomplete: 'The server response was incomplete. Please try again.', noNewPlaces: 'No new places found yet. Try changing your request or settings.', searchTimeoutShort: 'The search took too long. Please try again.', newIdeasRetry: 'Could not find new ideas. Please try again.', telegramRequired: 'To build a route, open the app through the Telegram bot. This lets us process your request securely.', telegramInvalid: 'Could not verify the Telegram launch. Close the app completely and reopen it through @smart_city_ryadombot.', serviceError: 'The service is temporarily unavailable. Please try again in a few seconds.', searchTimeout: 'The search took too long. Check your connection and try again.', unknownError: 'Something went wrong. Please try again.', languageChange: 'Language changed. Build the route again so its description uses the new language.',
@@ -299,6 +308,9 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     shortLegsSummary: 'short legs',
     gentleSummary: 'easy pace',
     questSummary: 'micro adventure',
+    moodTitle: 'Pick a mood', moodRelax: 'Unwind', moodFun: 'Have fun', moodPhoto: 'Take photos', moodLearn: 'Learn something', moodQuiet: 'Find quiet', moodUnsure: 'Not sure',
+    surprise: 'Surprise me', surpriseHint: 'An unusual nearby place that fits your time and settings', loadingSurprise: 'Finding a surprise…',
+    swap: 'Replace this stop', swapReasons: 'Why replace it?', swapFar: 'Too far', swapExpensive: 'Too expensive', swapVisited: 'Been there', swapOther: 'Something else', swapping: 'Finding another stop…', swapNoAlternative: 'No suitable replacement yet. This stop remains in the route.', swapError: 'Could not replace this stop. Your route is unchanged.', swapSuccess: 'Stop replaced. Other stops are unchanged.',
   },
 }
 function matchLanguage(value: string | undefined): Language | null {
@@ -320,6 +332,12 @@ const launchScreen = mountLaunchScreen({ language })
 document.documentElement.lang = language
 function t(key: MessageKey, values: Record<string, string | number> = {}): string {
   return messages[language][key].replace(/\{(\w+)\}/g, (match, name: string) => values[name] === undefined ? match : String(values[name]))
+}
+
+const moodSearchText: Record<Language, Record<Mood, string>> = {
+  ru: { relax: 'Хочу расслабиться в приятном месте', fun: 'Хочу развлечься и весело провести время', photo: 'Хочу красивые необычные места для фотографий', learn: 'Хочу узнать что-то новое и интересное', quiet: 'Хочу побыть в тихом спокойном месте', unsure: 'Предложи интересное место или прогулку рядом' },
+  kk: { relax: 'Жайлы жерде демалғым келеді', fun: 'Көңіл көтеріп, жақсы уақыт өткізгім келеді', photo: 'Суретке түсуге әдемі ерекше орындар іздеймін', learn: 'Жаңа әрі қызықты нәрсе білгім келеді', quiet: 'Тыныш жерде болғым келеді', unsure: 'Жақын маңда қызықты орын не серуен ұсын' },
+  en: { relax: 'I want to unwind somewhere pleasant', fun: 'I want to have fun and do something lively', photo: 'I want unusual photogenic places', learn: 'I want to learn something new and interesting', quiet: 'I want a quiet peaceful place', unsure: 'Suggest an interesting nearby place or walk' },
 }
 
 const categoryLabelsRu: Record<string, string> = {
@@ -404,6 +422,17 @@ app.innerHTML = `
           <button type="button" data-example="coffee">Кофе и книга</button>
           <button type="button" data-example="friends">С друзьями</button>
         </div>
+        <fieldset class="mood-picker">
+          <legend id="moodTitle">Под настроение</legend>
+          <div class="mood-options" role="group" aria-labelledby="moodTitle">
+            <button type="button" data-mood="relax" aria-pressed="false">Расслабиться</button>
+            <button type="button" data-mood="fun" aria-pressed="false">Развлечься</button>
+            <button type="button" data-mood="photo" aria-pressed="false">Пофотографироваться</button>
+            <button type="button" data-mood="learn" aria-pressed="false">Узнать новое</button>
+            <button type="button" data-mood="quiet" aria-pressed="false">Побыть в тишине</button>
+            <button type="button" data-mood="unsure" aria-pressed="false">Не знаю</button>
+          </div>
+        </fieldset>
         <div id="startPicker" class="start-picker" role="group" aria-labelledby="startLabel">
           <div class="start-heading">
             <span id="startLabel">Откуда начнём?</span>
@@ -507,6 +536,9 @@ app.innerHTML = `
           <p id="transportHint" class="form-note">Время дороги ориентировочное. Перед выходом проверьте маршрут и часы работы.</p>
         </div>
         <div class="submit-dock">
+          <button id="surpriseButton" class="surprise-button" type="button" title="Необычное место рядом с учётом вашего времени и настроек">
+            <span class="surprise-spark" aria-hidden="true">✦</span><span id="surpriseLabel">Удиви меня</span>
+          </button>
           <button id="submitButton" class="submit-button" type="submit">
             <span class="submit-label">Составить маршрут</span>
             <span class="submit-arrow" aria-hidden="true">→</span>
@@ -540,6 +572,7 @@ const shortLegs = requiredElement<HTMLInputElement>('#shortLegs')
 const gentlePace = requiredElement<HTMLInputElement>('#gentlePace')
 const microQuest = requiredElement<HTMLInputElement>('#microQuest')
 const submitButton = requiredElement<HTMLButtonElement>('#submitButton')
+const surpriseButton = requiredElement<HTMLButtonElement>('#surpriseButton')
 const submitLabel = requiredElement<HTMLElement>('.submit-label')
 const results = requiredElement<HTMLElement>('#results')
 const locationStatus = requiredElement<HTMLElement>('#locationStatus')
@@ -595,6 +628,7 @@ const state: {
   shortLegs: boolean
   gentlePace: boolean
   microQuest: boolean
+  mood: Mood | null
   stops: Recommendation[]
 } = {
   scope: 'city',
@@ -608,6 +642,7 @@ const state: {
   shortLegs: false,
   gentlePace: false,
   microQuest: false,
+  mood: null,
   stops: [],
 }
 
@@ -615,6 +650,10 @@ let requestVersion = 0
 let activeRecommendation: AbortController | null = null
 let mapController: RecommendationsMapController | null = null
 let currentRouteOrigin: MapCoordinate | null = null
+let currentRoute: RoutePlan | null = null
+let currentResponse: RouteResponse | null = null
+let currentRouteIndex = 0
+let lastRequest: WalkRequest | null = null
 const seenPlaceIds = new Set<string>()
 let startMessageKey: MessageKey = 'startCenterStatus'
 let pickingStart = false
@@ -725,6 +764,7 @@ function applyTranslations(): void {
     ['#gentleLabel', 'gentleLabel'], ['#gentleHint', 'gentleHint'],
     ['#questLabel', 'questLabel'], ['#questHint', 'questHint'],
     ['.submit-label', 'submit'], ['.language-picker span', 'language'],
+    ['#moodTitle', 'moodTitle'], ['#surpriseLabel', 'surprise'],
   ]
   for (const [selector, key] of textTargets) {
     const element = document.querySelector<HTMLElement>(selector)
@@ -743,6 +783,8 @@ function applyTranslations(): void {
   for (const [selector, attribute, key] of ariaTargets) document.querySelector(selector)?.setAttribute(attribute, t(key))
   prompt.placeholder = t('promptPlaceholder')
   budget.placeholder = t('noLimit')
+  surpriseButton.title = t('surpriseHint')
+  surpriseButton.setAttribute('aria-label', `${t('surprise')}. ${t('surpriseHint')}`)
   const exampleKeys: Array<[string, MessageKey]> = [['club', 'exampleClubPrompt'], ['coffee', 'exampleCoffeePrompt'], ['friends', 'exampleFriendsPrompt']]
   for (const [id, key] of exampleKeys) document.querySelector(`[data-example="${id}"]`)?.setAttribute('data-example-text', t(key))
   renderStartPicker()
@@ -752,6 +794,7 @@ function applyTranslations(): void {
   renderDurationSlider()
   renderTransportChoices()
   renderSpecialSettings()
+  renderMoodChoices()
   updateSettingsSummary()
   setSheetMode(shell.dataset.sheet as SheetMode)
 }
@@ -832,6 +875,35 @@ function renderSpecialSettings(): void {
   questNote.textContent = t('questUnavailable')
   questNote.hidden = state.scope === 'city'
 }
+
+const moodKeys: Record<Mood, MessageKey> = {
+  relax: 'moodRelax', fun: 'moodFun', photo: 'moodPhoto', learn: 'moodLearn', quiet: 'moodQuiet', unsure: 'moodUnsure',
+}
+const swapReasonKeys: Record<SwapReason, MessageKey> = {
+  far: 'swapFar', expensive: 'swapExpensive', visited: 'swapVisited', other: 'swapOther',
+}
+
+function renderMoodChoices(): void {
+  requiredElement<HTMLElement>('.mood-picker').hidden = state.scope !== 'city'
+  document.querySelectorAll<HTMLButtonElement>('[data-mood]').forEach((button) => {
+    const mood = button.dataset.mood as Mood
+    const selected = state.mood === mood
+    button.textContent = t(moodKeys[mood])
+    button.classList.toggle('is-selected', selected)
+    button.setAttribute('aria-pressed', String(selected))
+  })
+}
+
+document.querySelectorAll<HTMLButtonElement>('[data-mood]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const mood = button.dataset.mood as Mood
+    state.mood = state.mood === mood ? null : mood
+    promptError.hidden = true
+    blurActiveEditor()
+    clearResults()
+    renderMoodChoices()
+  })
+})
 
 wheelchairOnly.addEventListener('change', () => {
   state.wheelchairOnly = wheelchairOnly.checked
@@ -1081,6 +1153,10 @@ function clearResults(): void {
   activeRecommendation = null
   mapController?.update([], origin())
   currentRouteOrigin = null
+  currentRoute = null
+  currentResponse = null
+  currentRouteIndex = 0
+  lastRequest = null
   fitButton.hidden = true
   state.stops = []
   seenPlaceIds.clear()
@@ -1151,6 +1227,7 @@ function updateTransportHint(): void {
 function setScope(scope: Scope): void {
   if (scope === state.scope) return
   state.scope = scope
+  if (scope === 'day_trip') state.mood = null
   targetStatusKey = null
   if (!durationChangedByUser) state.minutes = scope === 'city' ? 120 : 720
   state.transport = scope === 'city' ? 'walk' : 'car'
@@ -1167,6 +1244,7 @@ function setScope(scope: Scope): void {
   renderDurationSlider()
   renderTransportChoices()
   renderSpecialSettings()
+  renderMoodChoices()
   clearResults()
   renderTargetPicker()
   updateSettingsSummary()
@@ -1326,10 +1404,12 @@ targetPickButton.addEventListener('click', () => {
 })
 targetResetButton.addEventListener('click', () => setTargetArea(null))
 
-function validateForm(): { text: string; group: number; budgetKzt?: number } | null {
+type ValidatedForm = { text: string; group: number; budgetKzt?: number }
+
+function validateForm(surprise = false): ValidatedForm | null {
   budget.setCustomValidity('')
   const text = prompt.value.trim()
-  if (text.length < 3) {
+  if (!surprise && text.length < 3 && !state.mood) {
     promptError.textContent = t('promptError')
     promptError.hidden = false
     prompt.focus()
@@ -1356,24 +1436,29 @@ function validateForm(): { text: string; group: number; budgetKzt?: number } | n
   return { text, group, budgetKzt: amount }
 }
 
-function makeRequest(validated: { text: string; group: number; budgetKzt?: number }, excludePlaceIds: string[] = []): { initData: string; request: WalkRequest & { groupSize: number } } {
-  const request: WalkRequest & { groupSize: number } = {
+function makeRequest(validated: ValidatedForm, excludePlaceIds: string[] = [], surprise = false): { initData: string; request: WalkRequest & { groupSize: number; mood?: Mood; surprise?: boolean } } {
+  const text = surprise
+    ? ''
+    : validated.text || moodSearchText[language][state.mood ?? 'unsure']
+  const request: WalkRequest & { groupSize: number; mood?: Mood; surprise?: boolean } = {
     cityId: 'astana',
     scope: state.scope,
     transport: state.transport,
     minutes: state.minutes,
     intents: [],
-    text: validated.text,
+    text,
     groupSize: validated.group,
     language,
   }
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
+  if (state.mood && state.scope === 'city') request.mood = state.mood
+  if (surprise) request.surprise = true
   if (state.wheelchairOnly) request.accessibility = 'osm_wheelchair_yes'
   if (state.shortLegs && state.scope === 'city' && state.transport === 'walk') request.shortLegs = true
   if (state.gentlePace && state.scope === 'city') request.gentlePace = true
   if (state.microQuest && state.scope === 'city') request.microQuest = true
   if (excludePlaceIds.length) request.excludePlaceIds = excludePlaceIds
-  if (state.targetArea) request.targetArea = { ...state.targetArea }
+  if (state.targetArea && !surprise) request.targetArea = { ...state.targetArea }
   if (state.coordinates) {
     request.latitude = state.coordinates.lat
     request.longitude = state.coordinates.lon
@@ -1384,6 +1469,7 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
 function setLoading(value: boolean, loadingLabel = t('loadingRoute')): void {
   state.isLoading = value
   submitButton.disabled = value
+  surpriseButton.disabled = value
   planner.setAttribute('aria-busy', String(value))
   submitLabel.textContent = value ? loadingLabel : t('submit')
 }
@@ -1719,7 +1805,140 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   if (evidenceBlock) card.appendChild(evidenceBlock)
   card.appendChild(action)
   card.appendChild(links)
+  if (state.scope === 'city' && lastRequest && currentRoute) card.appendChild(createStopSwap(item, index))
   return card
+}
+
+function createStopSwap(item: Recommendation, index: number): HTMLElement {
+  const container = document.createElement('div')
+  container.className = 'stop-swap'
+  const toggle = document.createElement('button')
+  toggle.type = 'button'
+  toggle.className = 'stop-swap-toggle'
+  toggle.textContent = t('swap')
+  toggle.setAttribute('aria-expanded', 'false')
+  const optionId = `swap-options-${index}`
+  toggle.setAttribute('aria-controls', optionId)
+  const options = document.createElement('div')
+  options.id = optionId
+  options.className = 'stop-swap-options'
+  options.hidden = true
+  const heading = document.createElement('p')
+  heading.textContent = t('swapReasons')
+  options.appendChild(heading)
+  const status = document.createElement('p')
+  status.className = 'stop-swap-status'
+  status.setAttribute('role', 'status')
+  status.setAttribute('aria-live', 'polite')
+  for (const reason of ['far', 'expensive', 'visited', 'other'] as SwapReason[]) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = t(swapReasonKeys[reason])
+    button.addEventListener('click', () => { void replaceStop(item, index, reason, options, status) })
+    options.appendChild(button)
+  }
+  toggle.addEventListener('click', () => {
+    options.hidden = !options.hidden
+    toggle.setAttribute('aria-expanded', String(!options.hidden))
+    if (!options.hidden) options.querySelector('button')?.focus()
+  })
+  appendNodes(container, toggle, options, status)
+  return container
+}
+
+async function replaceStop(item: Recommendation, index: number, reason: SwapReason, options: HTMLElement, status: HTMLElement): Promise<void> {
+  if (state.isLoading || !currentRoute || !lastRequest) return
+  const originalRoute = currentRoute
+  const originalResponse = currentResponse
+  const originalRouteIndex = currentRouteIndex
+  const originalRequest = lastRequest
+  if (originalRoute.stops[index]?.id !== item.id) return
+  if (!telegram?.initData) {
+    status.textContent = t('openInTelegram')
+    return
+  }
+  setLoading(true, t('swapping'))
+  options.querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = true })
+  status.textContent = t('swapping')
+  const controller = new AbortController()
+  const version = ++requestVersion
+  activeRecommendation = controller
+  const timeout = window.setTimeout(() => controller.abort(), 45_000)
+  try {
+    const response = await fetch('/api/replace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
+      body: JSON.stringify({
+        initData: telegram.initData,
+        request: originalRequest,
+        route: {
+          title: originalRoute.title,
+          summary: originalRoute.summary,
+          routeUrl: originalRoute.routeUrl,
+          stops: originalRoute.stops.map((stop) => ({ id: stop.id })),
+        },
+        stopIndex: index,
+        reason,
+        excludePlaceIds: recentExcludedPlaceIds(),
+      }),
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) throw new Error(t('telegramExpired'))
+      if (response.status === 429) throw new Error(t('rateLimit'))
+      if (response.status === 404 || response.status === 409 || response.status === 422) {
+        status.textContent = t('swapNoAlternative')
+        return
+      }
+      throw new Error(t('swapError'))
+    }
+    const data: RouteResponse = await response.json()
+    if (version !== requestVersion || currentRoute !== originalRoute) return
+    if (data.replacementUnchanged) {
+      status.textContent = t('swapNoAlternative')
+      return
+    }
+    const updated = data.routes?.[0]
+    if (!updated || updated.stops.length !== originalRoute.stops.length
+      || updated.stops[index]?.id === item.id
+      || originalRoute.stops.some((stop, stopIndex) => stopIndex !== index && updated.stops[stopIndex]?.id !== stop.id)) {
+      status.textContent = t('swapNoAlternative')
+      return
+    }
+    seenPlaceIds.add(item.id)
+    const nextResponse: RouteResponse = originalResponse?.routes
+      ? {
+        ...originalResponse,
+        summary: data.summary,
+        note: data.note ?? originalResponse.note,
+        headingAdjusted: data.headingAdjusted ?? originalResponse.headingAdjusted,
+        routes: originalResponse.routes.map((candidate) => candidate === originalRoute ? updated : candidate),
+      }
+      : data
+    showResults(nextResponse, originalRouteIndex)
+    const changed = results.querySelectorAll<HTMLElement>('.place-card h3')[index]
+    if (changed) {
+      changed.tabIndex = -1
+      changed.focus({ preventScroll: true })
+      changed.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+    }
+    const announcement = document.createElement('p')
+    announcement.className = 'swap-announcement'
+    announcement.setAttribute('role', 'status')
+    announcement.textContent = t('swapSuccess')
+    results.querySelector('.results-heading')?.appendChild(announcement)
+  } catch (error) {
+    if (version !== requestVersion || currentRoute !== originalRoute) return
+    status.textContent = error instanceof DOMException && error.name === 'AbortError'
+      ? t('searchTimeoutShort') : error instanceof Error ? error.message : t('swapError')
+  } finally {
+    window.clearTimeout(timeout)
+    if (version === requestVersion) {
+      activeRecommendation = null
+      setLoading(false)
+      options.querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = false })
+    }
+  }
 }
 
 function validPoint(point: unknown): point is MapCoordinate {
@@ -1781,6 +2000,9 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     showNoResults()
     return
   }
+  currentResponse = response
+  currentRoute = route
+  currentRouteIndex = routes[selectedRoute] ? selectedRoute : 0
   rememberShownStops(routes)
   state.stops = route.stops.slice(0, 3)
   const routeOrigin = validPoint(route.origin) ? route.origin : origin()
@@ -1971,8 +2193,10 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
 
 async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement): Promise<void> {
   if (state.scope !== 'city' || state.isLoading) return
-  const validated = validateForm()
-  if (!validated) return
+  const surpriseRequest = lastRequest && 'surprise' in lastRequest && lastRequest.surprise
+    ? { ...lastRequest, excludePlaceIds: recentExcludedPlaceIds() } : null
+  const validated = surpriseRequest ? null : validateForm()
+  if (!surpriseRequest && !validated) return
   if (!telegram?.initData) {
     status.textContent = t('openInTelegram')
     return
@@ -1987,10 +2211,13 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
   const timeout = window.setTimeout(() => controller.abort(), 45_000)
   let exhausted = false
   try {
+    const payload = surpriseRequest
+      ? { initData: telegram.initData, request: surpriseRequest }
+      : makeRequest(validated!, recentExcludedPlaceIds())
     const response = await fetch('/api/recommend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
-      body: JSON.stringify(makeRequest(validated, recentExcludedPlaceIds())),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     })
     if (!response.ok) {
@@ -2007,6 +2234,7 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
       status.textContent = t('noNewPlaces')
       return
     }
+    lastRequest = payload.request
     showResults(data)
     const newHeading = results.querySelector<HTMLHeadingElement>('.results-heading h2')
     if (newHeading) {
@@ -2031,12 +2259,9 @@ async function requestMoreIdeas(button: HTMLButtonElement, status: HTMLElement):
   }
 }
 
-planner.addEventListener('submit', async (event) => {
-  event.preventDefault()
+async function submitRecommendation(validated: ValidatedForm, surprise = false): Promise<void> {
   requiredElement<HTMLElement>('#languageNotice').hidden = true
   if (state.isLoading) return
-  const validated = validateForm()
-  if (!validated) return
   if (!telegram?.initData) {
     showError(t('telegramRequired'))
     return
@@ -2050,10 +2275,11 @@ planner.addEventListener('submit', async (event) => {
   activeRecommendation = controller
   const timeout = window.setTimeout(() => controller.abort(), 45_000)
   try {
+    const payload = makeRequest(validated, [], surprise)
     const response = await fetch('/api/recommend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
-      body: JSON.stringify(makeRequest(validated)),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     })
     if (!response.ok) {
@@ -2066,6 +2292,7 @@ planner.addEventListener('submit', async (event) => {
     if (!data || typeof data.summary !== 'string' || !Array.isArray(data.routes)) {
       throw new Error(t('incomplete'))
     }
+    lastRequest = payload.request
     showResults(data)
   } catch (error) {
     if (version !== requestVersion) return
@@ -2079,6 +2306,20 @@ planner.addEventListener('submit', async (event) => {
       setLoading(false)
     }
   }
+}
+
+planner.addEventListener('submit', (event) => {
+  event.preventDefault()
+  if (state.isLoading) return
+  const validated = validateForm()
+  if (validated) void submitRecommendation(validated)
+})
+
+surpriseButton.addEventListener('click', () => {
+  if (state.isLoading) return
+  if (state.scope !== 'city') setScope('city')
+  const validated = validateForm(true)
+  if (validated) void submitRecommendation(validated, true)
 })
 
 const mapStage = requiredElement<HTMLElement>('.map-stage')

@@ -81,6 +81,7 @@ export interface TripCatalog {
 export type TripScope = 'city' | 'day_trip'
 export type TransportMode = 'walk' | 'car' | 'transit'
 export type Language = 'ru' | 'kk' | 'en'
+export type Mood = 'relax' | 'fun' | 'photo' | 'learn' | 'quiet' | 'unsure'
 
 export interface WalkRequest {
   /** Language explicitly selected in the Mini App; independent of the prompt language. */
@@ -102,6 +103,10 @@ export interface WalkRequest {
   gentlePace?: boolean
   /** Opt-in playful route with varied real stops and local-only completion. */
   microQuest?: boolean
+  /** Chosen mood guides category retrieval; it is not a verified venue property. */
+  mood?: Mood
+  /** One sourced nearby discovery instead of a multi-stop route. */
+  surprise?: boolean
   landmarkId?: string
   minutes: number
   intents: Intent[]
@@ -207,4 +212,6 @@ export interface RecommendResponse {
   note?: string
   /** The chosen heading was softened to return more relevant nearby places. */
   headingAdjusted?: boolean
+  /** A requested single-stop replacement could not preserve the route constraints. */
+  replacementUnchanged?: boolean
 }

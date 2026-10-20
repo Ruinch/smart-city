@@ -4,7 +4,7 @@ import snapshot from '../../data/astana-dynamic-fallback.json'
 import worker, { scarceSearchCategories } from './index'
 import { ASTANA_CENTER, assembleRoute, buildOverpassQuery, needsLiveRefresh, parseOverpassPlaces, quotedVenueName,
   type DynamicPlace } from './dynamic'
-import type { RecommendResponse, WalkRequest } from '../shared/types'
+import type { RecommendResponse, RoutePlan, WalkRequest } from '../shared/types'
 import { onCityHeading } from './direction'
 
 const now = Math.floor(Date.now() / 1000)
@@ -51,6 +51,38 @@ async function recommend(request: Partial<WalkRequest> = {}): Promise<{ response
   }
 }
 
+function compactRoute(route: RoutePlan): { title: string; summary: string; routeUrl: string; stops: Array<{ id: string }> } {
+  return { title: route.title, summary: route.summary, routeUrl: route.routeUrl,
+    stops: route.stops.map((stop) => ({ id: stop.id })) }
+}
+
+function replaceRequest(request: Partial<WalkRequest>, route: unknown, stopIndex: number,
+  reason: string, initData: string, excludePlaceIds: string[] = []): Request {
+  return new Request('https://example.test/api/replace', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      initData,
+      request: { cityId: 'astana', scope: 'city', transport: 'walk', minutes: 120,
+        intents: [], text: '', ...request },
+      route, stopIndex, reason, excludePlaceIds,
+    }),
+  })
+}
+
+async function replace(request: Partial<WalkRequest>, route: unknown, stopIndex: number,
+  reason: string, excludePlaceIds: string[] = []): Promise<{ response: Response; body: RecommendResponse & { replacementUnchanged?: boolean } }> {
+  const liveFetch = globalThis.fetch
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }),
+    { status: 200, headers: { 'content-type': 'application/json' } })))
+  try {
+    const response = await worker.fetch(replaceRequest(request, route, stopIndex, reason,
+      await validInitData(), excludePlaceIds), { TELEGRAM_BOT_TOKEN: token })
+    return { response, body: await response.json() as RecommendResponse & { replacementUnchanged?: boolean } }
+  } finally {
+    vi.stubGlobal('fetch', liveFetch)
+  }
+}
+
 describe('Worker API integration', () => {
   it('accepts signed Telegram launch data and builds an ordered route from sourced Astana places', async () => {
     const { response, body } = await recommend({ text: 'Хочу кофе и почитать книгу', groupSize: 3, minutes: 180 })
@@ -69,6 +101,101 @@ describe('Worker API integration', () => {
     expect(route.routeUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\//)
     expect(body.note).toContain(snapshot.source.osmBaseTimestamp.slice(0, 10))
     expect(body.note).toContain('места')
+  })
+
+  it('returns one sourced nearby place for a signed one-tap surprise without prompt text', async () => {
+    const { response, body } = await recommend({ language: 'en', text: '', surprise: true,
+      minutes: 120, groupSize: 2 })
+    expect(response.status).toBe(200)
+    expect(body.routes).toHaveLength(1)
+    const route = body.routes![0]
+    expect(route.title).toBe('A nearby surprise')
+    expect(route.stops).toHaveLength(1)
+    expect(route.stops[0].sourceUrl).toMatch(/^https:\/\//)
+    expect(route.stops[0].why).toContain('not a verified claim')
+    expect(route.totalMinutesApprox).toBeLessThanOrEqual(120)
+    const latDistance = (route.stops[0].lat! - ASTANA_CENTER.lat) * 111_195
+    const lonDistance = (route.stops[0].lon! - ASTANA_CENTER.lon) * 111_195
+      * Math.cos(ASTANA_CENTER.lat * Math.PI / 180)
+    expect(Math.hypot(latDistance, lonDistance)).toBeLessThanOrEqual(5_000)
+  })
+
+  it('uses the selected mood as a localized search preset when the visitor leaves text empty', async () => {
+    const { response, body } = await recommend({ language: 'kk', text: '', mood: 'learn', minutes: 180 })
+    expect(response.status).toBe(200)
+    expect(body.routes?.length).toBeGreaterThan(0)
+    expect(body.routes?.[0].stops.length).toBeGreaterThan(0)
+    expect(body.routes?.[0].stops.every((stop) =>
+      ['museum', 'gallery', 'library', 'planetarium', 'arts_centre', 'monument'].includes(stop.category))).toBe(true)
+    expect(body.routes?.[0].stops[0].why).toContain('сұрауыңызға сай')
+  })
+
+  it('rejects invalid mood or surprise data and keeps them limited to Astana city routes', async () => {
+    const signed = await validInitData()
+    for (const request of [
+      { mood: 'unknown' as WalkRequest['mood'] },
+      { surprise: 'yes' as unknown as boolean },
+      { scope: 'day_trip' as const, transport: 'car' as const, mood: 'quiet' as const },
+      { scope: 'day_trip' as const, transport: 'car' as const, surprise: true },
+    ]) {
+      expect((await worker.fetch(requestBody(request, signed), { TELEGRAM_BOT_TOKEN: token })).status).toBe(400)
+    }
+  })
+
+  it('replaces exactly one stop while preserving the order and identity of other sourced stops', async () => {
+    const options = { text: 'Хочу погулять по паркам Астаны', minutes: 360, language: 'ru' as const }
+    const initial = await recommend(options)
+    expect(initial.response.status).toBe(200)
+    const original = initial.body.routes![0]
+    expect(original.stops.length).toBeGreaterThanOrEqual(2)
+    const stopIndex = 1
+    const replacement = await replace(options, compactRoute(original), stopIndex, 'other')
+    expect(replacement.response.status).toBe(200)
+    expect(replacement.body.replacementUnchanged).not.toBe(true)
+    const updated = replacement.body.routes![0]
+    expect(updated.stops).toHaveLength(original.stops.length)
+    expect(updated.stops[stopIndex].id).not.toBe(original.stops[stopIndex].id)
+    expect(updated.stops.filter((_, index) => index !== stopIndex).map((stop) => stop.id))
+      .toEqual(original.stops.filter((_, index) => index !== stopIndex).map((stop) => stop.id))
+    expect(updated.stops.map((stop) => stop.stopOrder)).toEqual(original.stops.map((stop) => stop.stopOrder))
+    expect(updated.stops.every((stop) => stop.sourceUrl.startsWith('https://'))).toBe(true)
+  })
+
+  it('requires signed Telegram data and rejects malformed replacement routes or indexes', async () => {
+    const options = { text: 'Хочу в музей', minutes: 240 }
+    const initial = await recommend(options)
+    const route = compactRoute(initial.body.routes![0])
+    const unsigned = await worker.fetch(replaceRequest(options, route, 0, 'other', ''),
+      { TELEGRAM_BOT_TOKEN: token })
+    expect(unsigned.status).toBe(401)
+    const signed = await validInitData()
+    for (const [candidate, index, reason] of [
+      [route, -1, 'other'],
+      [route, route.stops.length, 'other'],
+      [{ ...route, stops: [] }, 0, 'other'],
+      [route, 0, 'invalid'],
+    ] as const) {
+      const response = await worker.fetch(replaceRequest(options, candidate, index, reason, signed),
+        { TELEGRAM_BOT_TOKEN: token })
+      expect(response.status).toBe(400)
+    }
+    const unknown = { ...route, stops: [{ id: 'osm:node:9999999999999' }, ...route.stops.slice(1)] }
+    expect((await worker.fetch(replaceRequest(options, unknown, 0, 'other', signed),
+      { TELEGRAM_BOT_TOKEN: token })).status).toBe(409)
+  })
+
+  it('keeps the route unchanged when every comparable sourced alternative is excluded', async () => {
+    const options = { text: 'Хочу в музей', minutes: 240 }
+    const initial = await recommend(options)
+    expect(initial.response.status).toBe(200)
+    const route = initial.body.routes![0]
+    const excluded = snapshot.pois.filter((place) =>
+      ['museum', 'gallery', 'arts_centre', 'artwork'].includes(place.category)).map((place) => place.id)
+    expect(excluded.length).toBeLessThanOrEqual(36)
+    const result = await replace(options, compactRoute(route), 0, 'other', excluded)
+    expect(result.response.status).toBe(200)
+    expect(result.body.replacementUnchanged).toBe(true)
+    expect(result.body.routes).toEqual([])
   })
 
   it('returns route explanations in the selected language, regardless of prompt language', async () => {

@@ -399,6 +399,17 @@ a { color: inherit; }
 }
 .example-row button:hover { border-color: var(--brand); background: var(--brand-soft); }
 .example-row button:active { transform: scale(.96); }
+.mood-picker { min-width: 0; margin: 13px 0 0; padding: 0; border: 0; }
+.mood-picker legend { margin: 0 0 7px; padding: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
+.mood-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.mood-options button { min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.25; text-align: left; text-wrap: balance; transition: background-color 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out, transform 140ms ease-out; }
+.mood-options button:hover { border-color: var(--brand); }
+.mood-options button.is-selected { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+.mood-options button:active { transform: scale(.96); }
+.app-shell[data-sheet="peek"] .mood-picker { margin-top: 10px; }
+.app-shell[data-sheet="peek"] .mood-options { display: flex; gap: 7px; margin-right: -20px; padding-right: 20px; overflow-x: auto; scrollbar-width: none; }
+.app-shell[data-sheet="peek"] .mood-options::-webkit-scrollbar { display: none; }
+.app-shell[data-sheet="peek"] .mood-options button { flex: none; white-space: nowrap; }
 .start-picker { margin-top: 12px; padding: 11px 12px 9px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
 .start-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; font-size: 13px; line-height: 1.35; }
 .start-heading span { color: var(--muted); font-weight: 600; }
@@ -542,24 +553,32 @@ a { color: inherit; }
   position: sticky;
   z-index: 2;
   bottom: -15px;
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+  gap: 8px;
   margin-top: 10px;
   padding: 8px 0 1px;
   background: var(--surface);
 }
 .app-shell[data-sheet="peek"] .submit-dock { margin-top: 6px; }
+.surprise-button { display: flex; min-width: 0; min-height: 52px; align-items: center; justify-content: center; gap: 6px; padding: 9px 10px; border: 1px solid var(--brand); border-radius: 10px; background: var(--surface); color: var(--brand); font-size: 13px; font-weight: 750; line-height: 1.2; text-align: center; transition: background-color 140ms ease-out, transform 140ms ease-out; }
+.surprise-button:hover:not(:disabled) { background: var(--brand-soft); }
+.surprise-button:active:not(:disabled) { transform: scale(.96); }
+.surprise-button:disabled { opacity: .68; }
+.surprise-spark { flex: none; color: var(--sun); font-size: 16px; line-height: 1; }
 .submit-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   min-height: 52px;
-  gap: 14px;
-  padding: 10px 16px;
+  gap: 7px;
+  padding: 10px 12px;
   border: 0;
   border-radius: 10px;
   background: var(--button);
   color: var(--button-text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   text-align: left;
   transition: filter 120ms ease, transform 120ms ease;
@@ -691,6 +710,18 @@ a { color: inherit; }
 .place-links a { display: inline-flex; min-height: 44px; align-items: center; color: var(--brand); font-size: 12px; font-weight: 700; text-decoration: none; }
 .place-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .place-links .source-link { color: var(--muted); font-weight: 600; }
+.stop-swap { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.stop-swap-toggle { min-height: 44px; padding: 7px 0; border: 0; background: transparent; color: var(--brand); font-size: 12px; font-weight: 700; text-align: left; }
+.stop-swap-toggle:hover { text-decoration: underline; text-underline-offset: 3px; }
+.stop-swap-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 2px 0 7px; }
+.stop-swap-options p { grid-column: 1 / -1; margin: 0 0 2px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.stop-swap-options button { min-height: 44px; padding: 7px 9px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 650; text-align: left; transition: border-color 140ms ease-out, background-color 140ms ease-out, transform 140ms ease-out; }
+.stop-swap-options button:hover:not(:disabled) { border-color: var(--brand); background: var(--brand-soft); }
+.stop-swap-options button:active:not(:disabled) { transform: scale(.96); }
+.stop-swap-options button:disabled { opacity: .65; }
+.stop-swap-status { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.stop-swap-status:empty { display: none; }
+.swap-announcement { margin: 9px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 650; line-height: 1.4; }
 .place-mission { display: grid; gap: 4px; margin-top: 11px; padding: 10px 0 0; border-top: 1px dashed var(--control-border); }
 .mission-source { color: var(--brand); font-size: 11px; font-weight: 700; }
 .place-mission p { margin: 0; font-size: 13px; line-height: 1.45; }
@@ -810,10 +841,10 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .route-sheet, .map-actions, .map-credits, .map-pick-hint,
   .map-stage .rec-map__failure, .sheet-grip, .map-action,
-  .example-row button, .start-button, .target-compass, .settings-chevron, .choice-button,
-  .submit-button, .submit-arrow, .trip-variant, .more-ideas-button,
+  .example-row button, .mood-options button, .start-button, .target-compass, .settings-chevron, .choice-button,
+  .submit-button, .surprise-button, .submit-arrow, .trip-variant, .more-ideas-button,
   .planner textarea, .budget-group input, .group-size-group input,
-  .settings-toggle, .scope-button, .place-card { transition: none; }
+  .settings-toggle, .scope-button, .place-card, .stop-swap-options button { transition: none; }
   .option-card { transition: none; }
   .map-pick-hint, .app-shell[data-sheet="expanded"] .advanced-settings,
   .app-shell[data-sheet="loading"] .loading-row span,
@@ -822,8 +853,8 @@ a { color: inherit; }
   .app-shell[data-sheet="results"] .route-variants,
   .app-shell[data-sheet="results"] .route-stops,
   .app-shell[data-sheet="results"] .message-state { animation: none; }
-  .map-action:active, .example-row button:active, .start-button:active,
-  .scope-button:active, .choice-button:active, .submit-button:active,
+  .map-action:active, .example-row button:active, .mood-options button:active, .start-button:active,
+  .scope-button:active, .choice-button:active, .submit-button:active, .surprise-button:active, .stop-swap-options button:active,
   .trip-variant:active, .more-ideas-button:active,
   .submit-button:hover .submit-arrow { transform: none; }
 }
