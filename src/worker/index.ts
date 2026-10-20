@@ -22,8 +22,6 @@ import { search2GisVenues } from './two-gis'
 
 const snapshot = snapshotJson as unknown as PoiCatalog & { landmarks: Poi[] }
 const snapshotPlaces: DynamicPlace[] = snapshot.pois.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
-const overtureImport = importVerifiedOverture(overtureJson, snapshotPlaces)
-const catalogPlaces: DynamicPlace[] = [...snapshotPlaces, ...overtureImport.places]
 const snapshotLandmarks: DynamicPlace[] = snapshot.landmarks.map((poi) => ({ ...poi, provider: 'OpenStreetMap' }))
 const tripCatalog = tripsJson as unknown as TripCatalog
 const excludedCategories = new Set(exclusionsJson.exclusions.map((item) => `${item.id}|${item.category}`))
@@ -441,6 +439,10 @@ async function recommend(request: Request, env: Env): Promise<Response> {
     : namedArea ? { lat: namedArea.lat, lon: namedArea.lon } : city.center
   const categories = new Set<string>(intent.categories)
   const exactName = quotedVenueName(body.request.text)
+  // Verify evidence age at request time. Worker module initialization can run
+  // with a frozen clock, so top-level Date() would reject every new record.
+  const overtureImport = importVerifiedOverture(overtureJson, snapshotPlaces, new Date())
+  const catalogPlaces: DynamicPlace[] = [...snapshotPlaces, ...overtureImport.places]
   const nearbySnapshot = catalogPlaces.filter((place) => usablePlace(place) && insideAstana(place)
     && ((categories.has(place.category) && distanceMeters(origin, place) <= (body.request.targetArea ? 50_000 : 25_000))
       || (exactName && matchesVenueName(place.name, exactName))))
@@ -605,9 +607,11 @@ export default {
       if (pathname === '/api/health') {
         if (request.method !== 'GET') return json({ error: pick(language,
           'Метод не поддерживается.', 'Бұл әдіске қолдау жоқ.', 'Method not allowed.') }, 405)
+        const overtureImport = importVerifiedOverture(overtureJson, snapshotPlaces, new Date())
         return json({ status: 'ok', cities: 1, discovery: 'osm-overture-and-live-search',
           snapshotSize: snapshot.pois.length, snapshotDate: snapshot.source.osmBaseTimestamp ?? snapshot.source.importedAt,
-          overtureSize: overtureImport.places.length, overtureRelease: overtureJson.source.release,
+          overtureSize: overtureImport.places.length, overtureRejected: overtureImport.rejected,
+          overtureRelease: overtureJson.source.release,
           twoGisEnabled: env.TWO_GIS_ENABLED === 'true' && !!env.TWO_GIS_API_KEY })
       }
       if (pathname === '/api/catalog') {

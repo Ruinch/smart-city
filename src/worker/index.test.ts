@@ -123,7 +123,8 @@ describe('Worker API integration', () => {
 
     const healthResponse = await worker.fetch(new Request('https://example.test/api/health'), {})
     const health = await healthResponse.json() as {
-      snapshotSize: number; snapshotDate: string; overtureSize: number; overtureRelease: string;
+      snapshotSize: number; snapshotDate: string; overtureSize: number;
+      overtureRejected: Record<string, number>; overtureRelease: string;
       twoGisEnabled: boolean
     }
     expect(healthResponse.status).toBe(200)
@@ -131,6 +132,7 @@ describe('Worker API integration', () => {
     expect(health.snapshotSize).toBeGreaterThan(200)
     expect(health.snapshotDate).toBe(snapshot.source.osmBaseTimestamp)
     expect(health.overtureSize).toBeGreaterThan(0)
+    expect(health.overtureRejected).toEqual({})
     expect(health.overtureRelease).toMatch(/^\d{4}-\d{2}-\d{2}\.\d+$/)
     expect(health.twoGisEnabled).toBe(false)
   })
