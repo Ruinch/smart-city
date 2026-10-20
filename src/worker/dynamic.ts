@@ -398,18 +398,20 @@ function cacheKey(center: { lat: number; lon: number }, categories: SearchCatego
   return `${center.lat.toFixed(2)},${center.lon.toFixed(2)}:${[...categories].sort().join(',')}`
 }
 
-export function buildOverpassQuery(center: { lat: number; lon: number }, categories: SearchCategory[], exactName?: string): string {
+export function buildOverpassQuery(center: { lat: number; lon: number }, categories: SearchCategory[],
+  exactName?: string, wheelchairOnly = false): string {
   const origin = `${SEARCH_RADIUS_METERS},${center.lat.toFixed(2)},${center.lon.toFixed(2)}`
+  const accessTag = wheelchairOnly ? '["wheelchair"="yes"]' : ''
   const clauses = categories.flatMap((category) => {
     const definition = TAGS[category]
-    return definition.values.map((value) => `nwr["${definition.key}"="${value}"](area.city)(around:${origin});`)
+    return definition.values.map((value) => `nwr["${definition.key}"="${value}"]${accessTag}(area.city)(around:${origin});`)
   })
   const safeName = safeExactName(exactName)
   if (safeName) {
     const escapedRegex = safeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const pattern = JSON.stringify(`^${escapedRegex}$`)
     for (const key of ['name', 'name:ru', 'name:kk', 'name:en']) {
-      clauses.push(`nwr["${key}"~${pattern},i](area.city);`)
+      clauses.push(`nwr["${key}"~${pattern},i]${accessTag}(area.city);`)
     }
   }
   // OSM administrative relation 3087156 bounds Astana; radius only limits query cost.
@@ -470,13 +472,14 @@ export function parseOverpassPlaces(raw: unknown, categories: SearchCategory[], 
 }
 
 /** Query runs only after Telegram auth and rate limiting; GPS is rounded to ~1 km. */
-export async function discoverPlaces(center: { lat: number; lon: number }, categories: SearchCategory[], exactName?: string): Promise<DynamicPlace[] | null> {
+export async function discoverPlaces(center: { lat: number; lon: number }, categories: SearchCategory[],
+  exactName?: string, wheelchairOnly = false): Promise<DynamicPlace[] | null> {
   const roundedCenter = { lat: Number(center.lat.toFixed(2)), lon: Number(center.lon.toFixed(2)) }
   const safeName = safeExactName(exactName)
   const nameHash = safeName ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',
     new TextEncoder().encode(comparableName(safeName))))).slice(0, 12)
     .map((byte) => byte.toString(16).padStart(2, '0')).join('') : ''
-  const key = `${cacheKey(roundedCenter, categories)}${nameHash ? `:name-${nameHash}` : ''}`
+  const key = `${cacheKey(roundedCenter, categories)}${nameHash ? `:name-${nameHash}` : ''}${wheelchairOnly ? ':wheelchair-yes' : ''}`
   const cached = memoryCache.get(key)
   if (cached && cached.expires > Date.now()) return cached.places
   const cache = sharedCache()
@@ -500,7 +503,7 @@ export async function discoverPlaces(center: { lat: number; lon: number }, categ
       const response = await fetch(url, {
         method: 'POST', signal: controller.signal,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-        body: new URLSearchParams({ data: buildOverpassQuery(roundedCenter, categories, safeName) }),
+        body: new URLSearchParams({ data: buildOverpassQuery(roundedCenter, categories, safeName, wheelchairOnly) }),
       })
       if (!response.ok || Number(response.headers.get('content-length')) > 3_000_000) continue
       const body = await response.text()
@@ -571,19 +574,32 @@ const INDOOR_ONLY_CATEGORIES = new Set([
   'escape_game', 'fitness_centre', 'community_centre',
 ])
 
+function walkingMinutes(from: { lat: number; lon: number }, to: { lat: number; lon: number },
+  gentlePace = false): number {
+  // Both speeds are planning assumptions; the road surface and obstacles are unknown.
+  return Math.ceil(distanceMeters(from, to) * 1.3 / (gentlePace ? 55 : 75))
+}
+
 export function rankDynamicPlaces(places: DynamicPlace[], request: WalkRequest, intent: SearchIntent,
   origin: { lat: number; lon: number }): DynamicPlace[] {
   const budget = request.budgetKzt
   const transport = request.transport ?? 'walk'
   return places.filter((poi) => {
+    if (request.accessibility === 'osm_wheelchair_yes' && poi.tags.wheelchair !== 'yes') return false
     if (budget === 0 && poi.tags.fee?.toLowerCase() === 'yes') return false
     if (budget === 0 && LIKELY_PAID_CATEGORIES.has(poi.category)) return false
     if (request.intents.includes('indoors') && OUTDOOR_ONLY_CATEGORIES.has(poi.category)) return false
     if (request.intents.includes('outdoors') && INDOOR_ONLY_CATEGORIES.has(poi.category)) return false
     if (request.targetArea && !onCityHeading(origin, request.targetArea, poi, transport)) return false
     if (transport === 'walk') {
-      const walkMinutes = Math.ceil(distanceMeters(origin, poi) * 1.3 / 75)
-      return walkMinutes + Math.min(poi.visitMinutes, 20) <= request.minutes
+      const walkTime = walkingMinutes(origin, poi, request.gentlePace)
+      // Each selected leg is capped at ten estimated minutes. A point farther
+      // than the sum of all possible hops cannot fit the route.
+      if (request.shortLegs && walkTime > (request.gentlePace ? 20 : 30)) return false
+      const minimumVisit = request.gentlePace
+        ? Math.min(30, Math.max(15, Math.floor(request.minutes / 2)))
+        : Math.min(poi.visitMinutes, 20)
+      return walkTime + minimumVisit <= request.minutes
     }
     return true
   }).map((poi) => ({
@@ -687,11 +703,25 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
   const transport = request.transport ?? 'walk'
   const wantsReading = /книг|чита|почит|бук|book|read|library|кітап|оқы/u.test(normalized(request.text))
   const wantsCoffee = /коф|кафе|coffee|cafe/u.test(normalized(request.text))
-  const stopLimit = intent.theme === 'reading' ? (wantsReading ? 2 : 1)
+  const gentlePace = !!request.gentlePace && request.scope !== 'day_trip'
+  const normalStopLimit = intent.theme === 'reading' ? (wantsReading ? 2 : 1)
     : transport === 'walk' ? 3 : request.minutes >= 180 ? 2 : 1
+  const stopLimit = gentlePace ? Math.min(2, normalStopLimit) : normalStopLimit
   const firstCafe = intent.theme === 'reading' && wantsCoffee
     ? ordered.find((poi) => poi.category === 'cafe') : undefined
-  const orderedStops = firstCafe ? [firstCafe, ...ordered.filter((poi) => poi.id !== firstCafe.id)] : ordered
+  const initialStops = firstCafe ? [firstCafe, ...ordered.filter((poi) => poi.id !== firstCafe.id)] : ordered
+  // Keep the strongest match first, then vary categories only among the nearby
+  // relevant candidates already retrieved for this request.
+  const questVarietyIds = new Set(request.microQuest && request.scope !== 'day_trip'
+    ? initialStops.slice(1, 13).filter((poi) => poi.category !== initialStops[0].category
+      && distanceMeters(initialStops[0], poi) <= (transport === 'walk' ? 2_000 : 5_000))
+      .map((poi) => poi.id)
+    : [])
+  const orderedStops = request.microQuest && request.scope !== 'day_trip' && initialStops.length > 1
+    ? [initialStops[0],
+      ...initialStops.slice(1, 13).filter((poi) => questVarietyIds.has(poi.id)),
+      ...initialStops.slice(1).filter((poi) => !questVarietyIds.has(poi.id))]
+    : initialStops
   const chosen: DynamicPlace[] = []
   const plannedVisits: number[] = []
   let previous = origin
@@ -709,8 +739,11 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
     }
     const direction = request.targetArea ? directionMetrics(origin, request.targetArea, poi) : null
     if (direction && direction.progress + .04 < lastDirectionProgress) continue
-    const legWalk = Math.ceil(distanceMeters(previous, poi) * 1.3 / 75)
-    const visit = Math.min(poi.visitMinutes, Math.max(15, Math.floor(request.minutes / 2)))
+    const legWalk = walkingMinutes(previous, poi, gentlePace)
+    if (request.shortLegs && transport === 'walk' && legWalk > 10) continue
+    const visit = gentlePace
+      ? Math.min(Math.max(30, poi.visitMinutes + 10), Math.max(15, Math.floor(request.minutes * .65)))
+      : Math.min(poi.visitMinutes, Math.max(15, Math.floor(request.minutes / 2)))
     if (transport === 'walk' && walking + visits + legWalk + visit > request.minutes) continue
     if (transport !== 'walk' && visits + visit > request.minutes) continue
     chosen.push(poi)
@@ -755,6 +788,8 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
       routeUrl: routeUrl(index === 0 ? origin : chosen[index - 1], poi, transport),
       travelMode: transport, visitMinutes: plannedVisits[index], stopOrder: index + 1,
       why, action, actionSource: 'template',
+      ...(['yes', 'limited', 'no'].includes(poi.tags.wheelchair)
+        ? { wheelchairTag: poi.tags.wheelchair as 'yes' | 'limited' | 'no' } : {}),
       budgetStatus: 'unknown', timeStatus: transport === 'walk' ? 'within' : 'unknown',
       hoursStatus: certainty, approximate: true,
     }
@@ -780,10 +815,14 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
   if (intent.theme === 'nightlife' && !chosen.some((poi) => poi.category === 'nightclub')) {
     themeTitle.nightlife = pick(language, 'Вечерний маршрут', 'Кешкі бағыт', 'Evening route')
   }
+  const distinctCategories = new Set(chosen.map((poi) => poi.category)).size
+  const title = request.microQuest && distinctCategories >= 2
+    ? pick(language, 'Маршрут-открытие', 'Таңғажайып бағыт', 'Discovery route')
+    : themeTitle[intent.theme]
   const extra = noteForTheme(request, intent)
   return {
     id: `route-${chosen.map((poi) => poi.id).join('-')}`,
-    title: themeTitle[intent.theme],
+    title,
     summary: `${pick(language,
       `${countStops(language, chosen.length)} по Астане.`,
       `Астанада ${countStops(language, chosen.length)}.`,

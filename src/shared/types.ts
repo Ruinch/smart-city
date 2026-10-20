@@ -94,6 +94,14 @@ export interface WalkRequest {
   longitude?: number
   /** Optional rough heading/end area. Used only for the current request, not as a required stop. */
   targetArea?: { lat: number; lon: number }
+  /** Require the venue's OSM wheelchair tag to be yes. Street access is not verified. */
+  accessibility?: 'osm_wheelchair_yes'
+  /** Cap each approximate walking leg at ten minutes; walking routes only. */
+  shortLegs?: boolean
+  /** Prefer at most two city stops with more time at each; no seating claim. */
+  gentlePace?: boolean
+  /** Opt-in playful route with varied real stops and local-only completion. */
+  microQuest?: boolean
   landmarkId?: string
   minutes: number
   intents: Intent[]
@@ -132,6 +140,8 @@ export interface Recommendation {
   distanceKmApprox?: number
   estimatedCostKzt?: { min: number; max: number }
   priceEvidence?: PriceEvidence
+  /** Venue-level OSM accessibility tag; absent means unknown. */
+  wheelchairTag?: 'yes' | 'limited' | 'no'
   travelSourceUrl?: string
   costSourceUrl?: string
   durationSourceUrl?: string

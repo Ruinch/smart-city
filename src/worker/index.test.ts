@@ -159,6 +159,96 @@ describe('Worker API integration', () => {
     expect(scarce).toContain('escape_game')
   })
 
+  it('refreshes sparse accessibility data and labels only tagged city stops', async () => {
+    const originalFetch = globalThis.fetch
+    const overpassFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }),
+      { status: 200, headers: { 'content-type': 'application/json' } }))
+    vi.stubGlobal('fetch', overpassFetch)
+    try {
+      const response = await worker.fetch(requestBody({ text: 'Кофе и книга', minutes: 240,
+        accessibility: 'osm_wheelchair_yes' }, await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+      const body = await response.json() as RecommendResponse
+      expect(response.status).toBe(200)
+      expect(body.routes?.length).toBeGreaterThan(0)
+      expect(body.routes!.flatMap((route) => route.stops).every((stop) => stop.wheelchairTag === 'yes')).toBe(true)
+      expect(body.note).toContain('wheelchair=yes')
+      expect(body.note).toContain('бордюры')
+      expect(overpassFetch).toHaveBeenCalled()
+      const query = new URLSearchParams(overpassFetch.mock.calls[0][1].body).get('data') ?? ''
+      expect(query).toContain('["wheelchair"="yes"]')
+    } finally {
+      vi.stubGlobal('fetch', originalFetch)
+    }
+  })
+
+  it('returns an honest empty result when strict venue tags are missing', async () => {
+    const { response, body } = await recommend({ text: 'Памятники и история города', minutes: 240,
+      accessibility: 'osm_wheelchair_yes' })
+    expect(response.status).toBe(200)
+    expect(body.routes).toEqual([])
+    expect(body.summary).toContain('wheelchair=yes')
+    expect(body.note).toContain('Отсутствие отметки не означает недоступность')
+
+    const trip = await recommend({ language: 'en', scope: 'day_trip', transport: 'car',
+      minutes: 1440, accessibility: 'osm_wheelchair_yes' })
+    expect(trip.response.status).toBe(200)
+    expect(trip.body.routes).toEqual([])
+    expect(trip.body.summary).toContain('do not yet have OSM wheelchair access data')
+
+    const questTrip = await recommend({ language: 'en', scope: 'day_trip', transport: 'car',
+      minutes: 1440, microQuest: true })
+    expect(questTrip.response.status).toBe(200)
+    expect(questTrip.body.note).toContain('mini quest is available only for city routes')
+    const gentleTrip = await recommend({ language: 'en', scope: 'day_trip', transport: 'car',
+      minutes: 1440, gentlePace: true })
+    expect(gentleTrip.response.status).toBe(200)
+    expect(gentleTrip.body.note).toContain('Gentle pace applies only to city routes')
+  })
+
+  it('validates short hops and keeps each estimated walking leg at ten minutes or less', async () => {
+    const bad = await worker.fetch(requestBody({ shortLegs: true, transport: 'car' },
+      await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(bad.status).toBe(400)
+    const badTrip = await worker.fetch(requestBody({ shortLegs: true, scope: 'day_trip', transport: 'car' },
+      await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(badTrip.status).toBe(400)
+    const badAccess = await worker.fetch(requestBody({ accessibility: 'guaranteed' as unknown as WalkRequest['accessibility'] },
+      await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(badAccess.status).toBe(400)
+    const invalidType = await worker.fetch(requestBody({ microQuest: 'yes' as unknown as boolean },
+      await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(invalidType.status).toBe(400)
+    const invalidPace = await worker.fetch(requestBody({ gentlePace: 'yes' as unknown as boolean },
+      await validInitData()), { TELEGRAM_BOT_TOKEN: token })
+    expect(invalidPace.status).toBe(400)
+    const { response, body } = await recommend({ text: 'Прогулка по Астане', shortLegs: true,
+      microQuest: true, minutes: 180 })
+    expect(response.status).toBe(200)
+    expect(body.routes?.length).toBeGreaterThan(0)
+    expect(body.note).toContain('не более чем в 10 минут')
+    for (const route of body.routes ?? []) {
+      let previous = route.origin!
+      for (const stop of route.stops) {
+        const latRadians = previous.lat * Math.PI / 180
+        const north = (stop.lat! - previous.lat) * 111_195
+        const east = (stop.lon! - previous.lon) * 111_195 * Math.cos(latRadians)
+        expect(Math.ceil(Math.hypot(north, east) * 1.3 / 75)).toBeLessThanOrEqual(10)
+        previous = { lat: stop.lat!, lon: stop.lon! }
+      }
+    }
+  })
+
+  it('limits a gentle city route to two stops with a localized time and amenities caveat', async () => {
+    const { response, body } = await recommend({ language: 'en', text: 'Walk around interesting places',
+      minutes: 240, gentlePace: true, microQuest: true })
+    expect(response.status).toBe(200)
+    expect(body.routes?.length).toBeGreaterThan(0)
+    expect(body.routes!.every((route) => route.stops.length <= 2 &&
+      (route.totalMinutesApprox ?? 0) <= 240)).toBe(true)
+    expect(body.note).toContain('at most two stops')
+    expect(body.note).toContain('Seating and other amenities have not been checked')
+  })
+
   it('looks up a quoted name across OSM categories while rejecting unsafe query text', () => {
     const name = quotedVenueName('Хочу в «Fusion»')
     expect(name).toBe('Fusion')

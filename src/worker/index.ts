@@ -145,6 +145,27 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
     || (rawRequest.intents.includes('outdoors') && rawRequest.intents.includes('indoors'))) {
     throw new HttpError(400, pick(language, 'Некорректная тема прогулки.', 'Серуен тақырыбы қате көрсетілген.', 'Invalid walk theme.'))
   }
+  if (rawRequest.accessibility !== undefined && rawRequest.accessibility !== 'osm_wheelchair_yes') {
+    throw new HttpError(400, pick(language, 'Некорректный фильтр доступности.',
+      'Қолжетімділік сүзгісі қате.', 'Invalid accessibility filter.'))
+  }
+  if (rawRequest.shortLegs !== undefined && typeof rawRequest.shortLegs !== 'boolean') {
+    throw new HttpError(400, pick(language, 'Некорректный фильтр коротких переходов.',
+      'Қысқа аралықтар сүзгісі қате.', 'Invalid short-hops filter.'))
+  }
+  if (rawRequest.shortLegs === true && (scope !== 'city' || transport !== 'walk')) {
+    throw new HttpError(400, pick(language, 'Короткие переходы доступны только для пеших прогулок по Астане.',
+      'Қысқа аралықтар тек Астанадағы жаяу серуенге қолжетімді.',
+      'Short hops are available only for walking routes in Astana.'))
+  }
+  if (rawRequest.gentlePace !== undefined && typeof rawRequest.gentlePace !== 'boolean') {
+    throw new HttpError(400, pick(language, 'Некорректный режим неспешной прогулки.',
+      'Асықпай серуендеу режимі қате.', 'Invalid gentle pace mode.'))
+  }
+  if (rawRequest.microQuest !== undefined && typeof rawRequest.microQuest !== 'boolean') {
+    throw new HttpError(400, pick(language, 'Некорректный сценарий прогулки.',
+      'Серуен сценарийі қате.', 'Invalid walk scenario.'))
+  }
   if (typeof rawRequest.text !== 'string' || rawRequest.text.length > 500) {
     throw new HttpError(400, pick(language, 'Описание прогулки должно быть короче 500 символов.',
       'Серуен сипаттамасы 500 таңбадан қысқа болуы тиіс.', 'Keep the walk description under 500 characters.'))
@@ -209,6 +230,10 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
     intents: rawRequest.intents,
     text: rawRequest.text.trim(),
   }
+  if (rawRequest.accessibility === 'osm_wheelchair_yes') walkRequest.accessibility = 'osm_wheelchair_yes'
+  if (rawRequest.shortLegs === true) walkRequest.shortLegs = true
+  if (rawRequest.gentlePace === true) walkRequest.gentlePace = true
+  if (rawRequest.microQuest === true) walkRequest.microQuest = true
   if (budgetKzt !== undefined) walkRequest.budgetKzt = budgetKzt as number
   if (groupSize !== undefined) walkRequest.groupSize = groupSize as number
   if (Array.isArray(excludePlaceIds) && excludePlaceIds.length) walkRequest.excludePlaceIds = excludePlaceIds as string[]
@@ -224,6 +249,20 @@ function validateRecommendBody(value: unknown, fallbackLanguage: Language = 'ru'
 function noPlacesResponse(request: WalkRequest, city: CityCatalog): RecommendResponse {
   const trip = request.scope === 'day_trip'
   const language = languageOf(request)
+  if (request.accessibility === 'osm_wheelchair_yes') return {
+    summary: trip
+      ? pick(language, 'Для загородных поездок пока нет данных OSM о доступности мест для коляски.',
+        'Қала сыртындағы сапар орындарының арбаға қолжетімділігі туралы OSM деректері әзірге жоқ.',
+        'The out-of-city trips do not yet have OSM wheelchair access data.')
+      : pick(language, 'По этому запросу пока не нашлось мест с отметкой wheelchair=yes в OSM.',
+        'Бұл сұрауға OSM-де wheelchair=yes белгісі бар орындар әзірге табылмады.',
+        'No places tagged wheelchair=yes in OSM matched this request yet.'),
+    recommendations: [], routes: [],
+    note: pick(language,
+      'Отсутствие отметки не означает недоступность места. Попробуйте другую тему или старт; доступность тротуаров, бордюров и транспорта не проверена.',
+      'Белгінің болмауы орын қолжетімсіз дегенді білдірмейді. Басқа тақырыпты не бастау нүктесін таңдаңыз; тротуар, жиек және көлік қолжетімділігі тексерілмеген.',
+      'A missing tag does not mean a place is inaccessible. Try another theme or start; sidewalks, kerbs and transport access have not been checked.'),
+  }
   return {
     summary: request.targetArea
       ? trip
@@ -336,6 +375,7 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   }
 
   if (body.request.scope === 'day_trip') {
+    if (body.request.accessibility === 'osm_wheelchair_yes') return json(noPlacesResponse(body.request, city))
     const candidates = rankTrips(tripCatalog.trips, city, body.request)
     if (candidates.length === 0) return json(noPlacesResponse(body.request, city))
     const recommendations = candidates.slice(0, 3).map((candidate) => toTripRecommendation(candidate, city, body.request))
@@ -370,7 +410,15 @@ async function recommend(request: Request, env: Env): Promise<Response> {
           'Выбранный ориентир использован как примерное направление; поездка может завершиться в другой точке.',
           'Таңдалған бағдар шамамен бағыт ретінде қолданылды; сапар басқа жерде аяқталуы мүмкін.',
           'The selected area guided the rough direction; the trip may end elsewhere.')}` : ''),
-      body.request.text, language),
+      body.request.text, language)
+      + (body.request.microQuest ? ` ${pick(language,
+        'Микро-квест доступен только для городских маршрутов; поездки показаны как отдельные варианты.',
+        'Шағын квест тек қалалық бағыттарға арналған; сапарлар жеке нұсқа ретінде көрсетілді.',
+        'The mini quest is available only for city routes; trips are shown as separate options.')}` : '')
+      + (body.request.gentlePace ? ` ${pick(language,
+        'Неспешный темп применяется только к городским маршрутам; для поездки длительность и паузы не рассчитаны.',
+        'Асықпай жүру режимі тек қалалық бағыттарға қолданылады; сапардың уақыты мен үзілістері есептелмеген.',
+        'Gentle pace applies only to city routes; trip duration and pauses were not calculated.')}` : ''),
     } satisfies RecommendResponse)
   }
 
@@ -391,14 +439,17 @@ async function recommend(request: Request, env: Env): Promise<Response> {
   const nearbyInHeading = body.request.targetArea
     ? nearbySnapshot.filter((place) => onCityHeading(origin, body.request.targetArea!, place, body.request.transport))
     : nearbySnapshot
-  const scarceCategories = scarceSearchCategories(intent.categories, nearbyInHeading)
+  const wheelchairOnly = body.request.accessibility === 'osm_wheelchair_yes'
+  const accessibleNearby = wheelchairOnly
+    ? nearbyInHeading.filter((place) => place.tags.wheelchair === 'yes') : nearbyInHeading
+  const scarceCategories = scarceSearchCategories(intent.categories, accessibleNearby)
   const live = scarceCategories.length > 0 || needsLiveRefresh(body.request.text)
     ? await discoverPlaces(body.request.targetArea ?? origin,
-      scarceCategories.length ? scarceCategories : intent.categories, exactName) : null
+      scarceCategories.length ? scarceCategories : intent.categories, exactName, wheelchairOnly) : null
   const merged = new Map<string, DynamicPlace>(nearbySnapshot.map((place) => [place.id, place]))
   for (const place of live ?? []) if (usablePlace(place)) merged.set(place.id, place)
   const places = [...merged.values()]
-  if (!places.length && live === null) return json({ error: pick(language,
+  if (!places.length && live === null && !wheelchairOnly) return json({ error: pick(language,
     'Поиск мест временно недоступен. Попробуйте позже.',
     'Орындарды іздеу уақытша қолжетімсіз. Кейінірек қайталаңыз.',
     'Place search is temporarily unavailable. Try again later.') }, 503)
@@ -458,7 +509,19 @@ async function recommend(request: Request, env: Env): Promise<Response> {
       + (body.request.targetArea ? ` ${pick(language,
         'Ориентир использован для направления остановок; маршрут может не закончиться точно в этой точке.',
         'Бағдар аялдамалар бағытын таңдауға қолданылды; бағыт дәл сол нүктеде аяқталмауы мүмкін.',
-        'The selected area guided the stop order; the route may not end at that exact point.')}` : ''),
+        'The selected area guided the stop order; the route may not end at that exact point.')}` : '')
+      + (wheelchairOnly ? ` ${pick(language,
+        'У всех остановок есть отметка wheelchair=yes в OSM. Это сведения сообщества, не проверка на месте: тротуары, бордюры, вход и туалеты на всём пути не подтверждены.',
+        'Барлық аялдамада OSM-де wheelchair=yes белгісі бар. Бұл — қауымдастық дерегі, жерде тексерілмеген: бүкіл жолдағы тротуар, жиек, кіреберіс және дәретхана расталмаған.',
+        'Every stop has an OSM wheelchair=yes tag. This is community data, not an on-site check: sidewalks, kerbs, entrances and toilets along the route are unverified.')}` : '')
+      + (body.request.shortLegs ? ` ${pick(language,
+        'Каждый пеший переход оценён не более чем в 10 минут; реальная дорога и барьеры могут увеличить время.',
+        'Әр жаяу аралық 10 минуттан аспайды деп шамаланды; нақты жол мен кедергілер уақытты ұзарта алады.',
+        'Each walking leg is estimated at no more than 10 minutes; the real path and barriers may take longer.')}` : '')
+      + (body.request.gentlePace ? ` ${pick(language,
+        'Неспешный темп: не более двух остановок, время на них увеличено, когда позволяет лимит. Места для отдыха и другие удобства не проверены.',
+        'Асықпай жүру: ең көбі екі аялдама, уақыт шегі мүмкіндік берсе, оларға көбірек уақыт бөлінді. Демалатын орындар мен басқа қолайлылықтар тексерілмеген.',
+        'Gentle pace: at most two stops, with longer visits where your time allows. Seating and other amenities have not been checked.')}` : ''),
   }
   return json(result)
 }

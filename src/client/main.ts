@@ -97,6 +97,38 @@ const ruMessages = {
   routeDirectionHint: 'Реальную дорогу проверьте на карте.',
   routeDirectionNear: 'Последняя остановка рядом со стартом.',
   durationScaleHint: 'Пеший путь оценочный; время дороги на транспорте может быть неизвестно.',
+  accessibleTitle: 'Доступность мест',
+  wheelchairLabel: 'Нужен доступ для коляски',
+  wheelchairHint: 'Покажем только места с отметкой wheelchair=yes в OpenStreetMap. Путь между ними не проверен.',
+  wheelchairTripHint: 'Для поездок из города таких подтверждённых данных пока нет — маршрут может не найтись.',
+  shortLegsLabel: 'Короткие переходы · до ≈10 мин',
+  shortLegsHint: 'Оценка пешком между каждой парой остановок и от старта. Доступно для прогулки по Астане.',
+  shortLegsUnavailable: 'Короткие пешие переходы доступны только для маршрута по Астане пешком.',
+  gentleLabel: 'Без спешки · до 2 мест',
+  gentleHint: 'Меньше переходов и больше времени на каждой остановке. Наличие мест для отдыха и туалетов неизвестно.',
+  gentleUnavailable: 'Неспешный сценарий доступен только для маршрутов по Астане.',
+  specialTitle: 'Особый маршрут',
+  questLabel: 'Микроприключение',
+  questHint: 'Несколько разных реальных мест и маленькое задание в каждом. Без слежения за перемещением.',
+  questUnavailable: 'Микроприключение доступно для маршрутов по Астане.',
+  wheelchairBadgeYes: 'OSM: доступ для коляски — да',
+  wheelchairBadgeLimited: 'OSM: доступ для коляски — частично',
+  wheelchairBadgeNo: 'OSM: доступ для коляски — нет',
+  accessibilityResultTitle: 'Что известно о доступности',
+  accessibilityResultNote: 'Отметка OSM относится к месту. Тротуары, бордюры и вход на всём пути не проверены. Перед выходом уточните условия у места.',
+  accessibilityMap: 'Свериться с картой доступности Казахстана ↗',
+  questResultTitle: 'Микроприключение',
+  questSource: 'Идея приложения',
+  questFirst: 'Заметьте одну деталь этого места: звук, цвет, фактуру или настроение.',
+  questMiddle: 'Сравните с прошлой остановкой: что здесь ощущается иначе?',
+  questLast: 'Выберите любимую точку маршрута и расскажите, почему она запомнилась.',
+  questProgress: 'Выполнено {done} из {total}',
+  questMark: 'Отметить выполненным',
+  questDone: 'Выполнено ✓',
+  wheelchairSummary: 'коляска',
+  shortLegsSummary: 'короткие переходы',
+  gentleSummary: 'без спешки',
+  questSummary: 'микроприключение',
 } as const
 type MessageKey = keyof typeof ruMessages
 const messages: Record<Language, Record<MessageKey, string>> = {
@@ -137,6 +169,38 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     routeDirectionHint: 'Нақты жолды картадан тексеріңіз.',
     routeDirectionNear: 'Соңғы аялдама бастау нүктесіне жақын.',
     durationScaleHint: 'Жаяу жол шамамен есептеледі; көлікпен жүру уақыты белгісіз болуы мүмкін.',
+    accessibleTitle: 'Орындардың қолжетімділігі',
+    wheelchairLabel: 'Арбамен кіру керек',
+    wheelchairHint: 'OpenStreetMap картасында wheelchair=yes белгісі бар орындарды ғана көрсетеміз. Арадағы жол тексерілмеген.',
+    wheelchairTripHint: 'Қала сыртындағы сапарлар үшін мұндай расталған дерек әзірге жоқ — бағыт табылмауы мүмкін.',
+    shortLegsLabel: 'Қысқа өткелдер · ≈10 минутқа дейін',
+    shortLegsHint: 'Бастапқы нүктеден және аялдамалар арасындағы жаяу уақыт шамамен есептеледі. Астана ішіндегі серуенге арналған.',
+    shortLegsUnavailable: 'Қысқа жаяу өткелдер тек Астанада жаяу серуендеу үшін қолжетімді.',
+    gentleLabel: 'Асықпай · 2 орынға дейін',
+    gentleHint: 'Аралықтар аз, әр аялдамаға көбірек уақыт. Демалатын орындар мен дәретханалар туралы дерек жоқ.',
+    gentleUnavailable: 'Асықпай серуендеу тек Астана ішіндегі бағыттарда қолжетімді.',
+    specialTitle: 'Ерекше бағыт',
+    questLabel: 'Шағын шытырман',
+    questHint: 'Бірнеше түрлі нақты орын және әрқайсында шағын тапсырма. Қозғалысыңызды қадағаламаймыз.',
+    questUnavailable: 'Шағын шытырман тек Астана ішіндегі бағыттарға арналған.',
+    wheelchairBadgeYes: 'OSM: арбамен кіруге болады',
+    wheelchairBadgeLimited: 'OSM: арбамен кіру ішінара',
+    wheelchairBadgeNo: 'OSM: арбамен кіруге болмайды',
+    accessibilityResultTitle: 'Қолжетімділік туралы не белгілі',
+    accessibilityResultNote: 'OSM белгісі тек орынға қатысты. Жолдағы тротуарлар, жиектастар мен кіреберіс толық тексерілмеген. Бармас бұрын орыннан жағдайды нақтылаңыз.',
+    accessibilityMap: 'Қазақстанның қолжетімділік картасын қарау (орысша) ↗',
+    questResultTitle: 'Шағын шытырман',
+    questSource: 'Қолданба идеясы',
+    questFirst: 'Осы жердің бір ерекшелігін байқаңыз: дыбысын, түсін, бедерін немесе көңіл күйін.',
+    questMiddle: 'Алдыңғы аялдамамен салыстырыңыз: мұнда не өзгеше сезіледі?',
+    questLast: 'Бағыттағы сүйікті жеріңізді таңдап, неге есте қалғанын айтыңыз.',
+    questProgress: '{total} ішінен {done} орындалды',
+    questMark: 'Орындалды деп белгілеу',
+    questDone: 'Орындалды ✓',
+    wheelchairSummary: 'арбамен',
+    shortLegsSummary: 'қысқа өткелдер',
+    gentleSummary: 'асықпай',
+    questSummary: 'шағын шытырман',
   },
   en: {
     skip: 'Skip to content', mapRegion: 'Astana map and route', map: 'Map of Astana', brand: 'Ryadom — routes from Astana', astana: 'Astana', mapActions: 'Map controls', recenter: 'Show route starting point', fit: 'Show full route', osm: '© OpenStreetMap contributors', license: 'License', data: 'About the data', planner: 'Route planner', expandPanel: 'Expand panel', collapsePanel: 'Collapse panel', expandRoute: 'Expand route', collapseRoute: 'Collapse route', heading: 'Where to?', subtitle: 'Tell us what kind of outing or evening you have in mind.', backRoute: '← Back to route', interest: 'What interests you?', promptHint: 'Describe the mood, places and details that matter to you.', promptPlaceholder: 'For example, a quiet café for reading or dancing all night', examples: 'Example requests', exampleClub: 'Clubs and dancing', exampleClubPrompt: 'I want a club with music, dancing and a lively night', exampleCoffee: 'Coffee and a book', exampleCoffeePrompt: 'A quiet café where I can drink coffee and read a book', exampleFriends: 'With friends', exampleFriendsPrompt: 'A walk with friends around interesting places in Astana', where: 'Search area', whereRoute: 'Where to look for a route', inAstana: 'In Astana', fromCity: 'Trip from the city', duration: 'Time available', durationAria: 'Time including travel', transport: 'How will you travel?', transportAria: 'Transport mode', budget: 'Budget per person, ₸', noLimit: 'No limit', budgetHint: 'Prices are unknown for many places. 0 ₸ excludes cafés, clubs and shops, but the remaining places have not been confirmed free.', group: 'How many people?', groupHint: 'Between 1 and 12 people.', locationButton: 'Use my location', locationDefault: 'Without your location, we start from central Astana.', submit: 'Build a route', readyRoute: 'Your route', language: 'Interface language', fromAstana: 'From Astana', allDay: 'All day', walk: 'Walk', transit: 'Public transport', car: 'Car', walkLower: 'on foot', transitLower: 'by public transport', carLower: 'by car', perPerson: 'per person', personOne: 'person', personMany: 'people', stopsOne: 'stop', stopsFew: 'stops', stopsMany: 'stops', hoursShort: 'h', minutesShort: 'min', tripTransportHint: 'Trips from Astana currently require a car. Check travel time, costs and opening hours before you leave.', walkTransportHint: 'Walking times are approximate. Check opening hours and venue conditions before leaving.', otherTransportHint: 'Travel time by your chosen transport may be unknown. Check directions in an external map.', locationLoading: 'Requesting location…', locationUnavailable: 'Location unavailable. We will start from central Astana.', locationDenied: 'Location access was not granted. We will start from central Astana.', locationFar: 'You are far from Astana. We will start from the city center.', locationFound: 'We will start from your location.', promptError: 'Describe the route you want in at least a few words.', groupError: 'Enter a number from 1 to 12.', budgetError: 'Enter an amount from 0 to 10,000,000 ₸ or leave the field empty.', loadingRoute: 'Finding a route…', searchingPlaces: 'Finding places that fit', searchDescription: 'We are checking real places and planning a route. This may take up to a minute.', routeNotReady: 'Route is not ready yet', edit: 'Edit request', entry: 'Admission', averageBill: 'Average bill', oneItem: 'One item', fromPrice: 'from {amount}', checked: 'Checked {date}', priceSource: 'Price source ↗', itemPriceNote: 'This is the price of one item, not the full visit.', entryOverBudget: 'The listed ticket price exceeds your budget per person.', billOverBudget: 'The published average bill exceeds your budget per person.', trip: 'Trip', stop: 'Stop', place: 'Place', source: 'Source ↗', onMap: 'On map ↗', travelApprox: '≈ {time} {mode}', onSiteApprox: '≈ {time} at this stop', unknownTravel: 'Travel time unknown', roadCost: 'Travel cost ≈ {min}–{max}', unknownCost: 'Visit cost unknown', whatToDo: 'What to do here', aiCaveat: 'This idea was generated by AI; check venue details before leaving.', evidence: 'Details in sources', directions: 'Directions to place ↗', osmWebsite: 'Website from OSM ↗', placeSource: 'Place source ↗', timeSource: 'Time source ↗', costSource: 'Cost source ↗', noPlaces: 'No verified places matched your request yet. Try describing your interests differently or allowing more time.', cityRoute: 'Route in Astana', astanaTrip: 'Trip from Astana', yourRoute: 'Your route', walkAndStops: '≈ {time} walking and at stops', openRoute: 'Open full route ↗', tripVariants: 'Trip options', routeVariants: 'Route options', route: 'Route', variant: 'Option', roadLine: 'The line shows a calculated route. Check it in an external map before traveling.', dottedLine: 'The dotted line shows stop order, not a street route. Open precise directions in an external map.', stopsOrder: 'Stops in order', moreIdeas: 'More ideas →', openInTelegram: 'Open this app through the Telegram bot and try again.', loadingMore: 'Finding more…', searchingIdeas: 'Finding ideas…', otherPlaces: 'Looking for different places with the same settings.', telegramExpired: 'Your Telegram session has expired. Reopen the app through the bot.', rateLimit: 'Too many requests. Wait a moment and try again.', newIdeasError: 'Could not find new ideas. Please try again later.', incomplete: 'The server response was incomplete. Please try again.', noNewPlaces: 'No new places found yet. Try changing your request or settings.', searchTimeoutShort: 'The search took too long. Please try again.', newIdeasRetry: 'Could not find new ideas. Please try again.', telegramRequired: 'To build a route, open the app through the Telegram bot. This lets us process your request securely.', telegramInvalid: 'Could not verify the Telegram launch. Close the app completely and reopen it through @smart_city_ryadombot.', serviceError: 'The service is temporarily unavailable. Please try again in a few seconds.', searchTimeout: 'The search took too long. Check your connection and try again.', unknownError: 'Something went wrong. Please try again.', languageChange: 'Language changed. Build the route again so its description uses the new language.',
@@ -174,6 +238,38 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     routeDirectionHint: 'Check the actual road on the map.',
     routeDirectionNear: 'The final stop is near your starting point.',
     durationScaleHint: 'Walking time is approximate; travel time by transport may be unknown.',
+    accessibleTitle: 'Venue accessibility',
+    wheelchairLabel: 'Wheelchair access needed',
+    wheelchairHint: 'Show only places tagged wheelchair=yes in OpenStreetMap. The route between them has not been checked.',
+    wheelchairTripHint: 'There is no confirmed accessibility data for trips outside the city yet, so there may be no result.',
+    shortLegsLabel: 'Short walking legs · up to ≈10 min',
+    shortLegsHint: 'Approximate walk from the start and between each stop. Available for walks in Astana.',
+    shortLegsUnavailable: 'Short walking legs are available only for walking routes in Astana.',
+    gentleLabel: 'Easy pace · up to 2 stops',
+    gentleHint: 'Fewer transfers and more time at each stop. Seating and toilets are unknown.',
+    gentleUnavailable: 'Easy pace is available only for routes within Astana.',
+    specialTitle: 'Special route',
+    questLabel: 'Micro adventure',
+    questHint: 'A few varied real places, each with a small prompt. No location tracking.',
+    questUnavailable: 'Micro adventures are available for routes within Astana.',
+    wheelchairBadgeYes: 'OSM: wheelchair access — yes',
+    wheelchairBadgeLimited: 'OSM: wheelchair access — limited',
+    wheelchairBadgeNo: 'OSM: wheelchair access — no',
+    accessibilityResultTitle: 'What we know about access',
+    accessibilityResultNote: 'The OSM tag describes the venue. Sidewalks, kerbs and the entrance along the route have not been checked. Confirm conditions with the venue before leaving.',
+    accessibilityMap: 'Check Kazakhstan accessibility map (Russian) ↗',
+    questResultTitle: 'Micro adventure',
+    questSource: 'App idea',
+    questFirst: 'Notice one detail here: a sound, colour, texture or mood.',
+    questMiddle: 'Compare this with your last stop. What feels different?',
+    questLast: 'Choose your favourite stop and say why it stayed with you.',
+    questProgress: '{done} of {total} complete',
+    questMark: 'Mark complete',
+    questDone: 'Completed ✓',
+    wheelchairSummary: 'wheelchair',
+    shortLegsSummary: 'short legs',
+    gentleSummary: 'easy pace',
+    questSummary: 'micro adventure',
   },
 }
 function matchLanguage(value: string | undefined): Language | null {
@@ -350,6 +446,32 @@ app.innerHTML = `
             <p id="groupSizeError" class="field-error" role="alert" hidden></p>
           </div>
           </div>
+          <fieldset class="special-options">
+            <legend id="accessibleTitle">Доступность мест</legend>
+            <label class="option-card" for="wheelchairOnly">
+              <input id="wheelchairOnly" type="checkbox" aria-labelledby="wheelchairLabel" aria-describedby="wheelchairHint wheelchairTripHint" />
+              <span class="option-copy"><strong id="wheelchairLabel">Нужен доступ для коляски</strong><small id="wheelchairHint">Покажем только места с отметкой wheelchair=yes в OpenStreetMap. Путь между ними не проверен.</small></span>
+            </label>
+            <p id="wheelchairTripHint" class="option-availability" hidden></p>
+            <label class="option-card" for="shortLegs">
+              <input id="shortLegs" type="checkbox" aria-labelledby="shortLegsLabel" aria-describedby="shortLegsHint shortLegsAvailability" />
+              <span class="option-copy"><strong id="shortLegsLabel">Короткие переходы · до ≈10 мин</strong><small id="shortLegsHint">Оценка пешком между каждой парой остановок и от старта. Доступно для прогулки по Астане.</small></span>
+            </label>
+            <p id="shortLegsAvailability" class="option-availability" hidden></p>
+            <label class="option-card" for="gentlePace">
+              <input id="gentlePace" type="checkbox" aria-labelledby="gentleLabel" aria-describedby="gentleHint gentleAvailability" />
+              <span class="option-copy"><strong id="gentleLabel">Без спешки · до 2 мест</strong><small id="gentleHint">Меньше переходов и больше времени на каждой остановке. Наличие мест для отдыха и туалетов неизвестно.</small></span>
+            </label>
+            <p id="gentleAvailability" class="option-availability" hidden></p>
+          </fieldset>
+          <fieldset class="special-options">
+            <legend id="specialTitle">Особый маршрут</legend>
+            <label class="option-card" for="microQuest">
+              <input id="microQuest" type="checkbox" aria-labelledby="questLabel" aria-describedby="questHint questAvailability" />
+              <span class="option-copy"><strong id="questLabel">Микроприключение</strong><small id="questHint">Несколько разных реальных мест и маленькое задание в каждом. Без слежения за перемещением.</small></span>
+            </label>
+            <p id="questAvailability" class="option-availability" hidden></p>
+          </fieldset>
           <p id="transportHint" class="form-note">Время дороги ориентировочное. Перед выходом проверьте маршрут и часы работы.</p>
         </div>
         <div class="submit-dock">
@@ -381,6 +503,10 @@ const promptError = requiredElement<HTMLElement>('#promptError')
 const budget = requiredElement<HTMLInputElement>('#budget')
 const groupSize = requiredElement<HTMLInputElement>('#groupSize')
 const groupSizeError = requiredElement<HTMLElement>('#groupSizeError')
+const wheelchairOnly = requiredElement<HTMLInputElement>('#wheelchairOnly')
+const shortLegs = requiredElement<HTMLInputElement>('#shortLegs')
+const gentlePace = requiredElement<HTMLInputElement>('#gentlePace')
+const microQuest = requiredElement<HTMLInputElement>('#microQuest')
 const submitButton = requiredElement<HTMLButtonElement>('#submitButton')
 const submitLabel = requiredElement<HTMLElement>('.submit-label')
 const results = requiredElement<HTMLElement>('#results')
@@ -420,6 +546,10 @@ const state: {
   targetArea: MapCoordinate | null
   startSource: 'center' | 'device' | 'map'
   isLoading: boolean
+  wheelchairOnly: boolean
+  shortLegs: boolean
+  gentlePace: boolean
+  microQuest: boolean
   stops: Recommendation[]
 } = {
   scope: 'city',
@@ -429,6 +559,10 @@ const state: {
   targetArea: null,
   startSource: 'center',
   isLoading: false,
+  wheelchairOnly: false,
+  shortLegs: false,
+  gentlePace: false,
+  microQuest: false,
   stops: [],
 }
 
@@ -539,6 +673,11 @@ function applyTranslations(): void {
     ['.settings-grid .field-group:nth-child(2) legend', 'transport'], ['.budget-group label', 'budget'],
     ['#budgetHint', 'budgetHint'], ['.group-size-group label', 'group'],
     ['#groupSizeHint', 'groupHint'],
+    ['#accessibleTitle', 'accessibleTitle'], ['#wheelchairLabel', 'wheelchairLabel'],
+    ['#wheelchairHint', 'wheelchairHint'], ['#shortLegsLabel', 'shortLegsLabel'],
+    ['#shortLegsHint', 'shortLegsHint'], ['#specialTitle', 'specialTitle'],
+    ['#gentleLabel', 'gentleLabel'], ['#gentleHint', 'gentleHint'],
+    ['#questLabel', 'questLabel'], ['#questHint', 'questHint'],
     ['.submit-label', 'submit'], ['.language-picker span', 'language'],
   ]
   for (const [selector, key] of textTargets) {
@@ -566,6 +705,7 @@ function applyTranslations(): void {
   mapController?.setLanguage(language)
   renderDurationSlider()
   renderTransportChoices()
+  renderSpecialSettings()
   updateSettingsSummary()
   setSheetMode(shell.dataset.sheet as SheetMode)
 }
@@ -588,8 +728,76 @@ function updateSettingsSummary(): void {
   const count = Number(groupSize.value) || 1
   const people = `${count} ${count === 1 ? t('personOne') : t('personMany')}`
   const money = budget.value.trim() === '' ? '' : ` · ${formatKzt(Number(budget.value))} ${t('perPerson')}`
-  settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${formatMinutes(state.minutes)} · ${travel} · ${people}${money}`
+  const extras = [
+    state.wheelchairOnly ? t('wheelchairSummary') : '',
+    state.shortLegs ? t('shortLegsSummary') : '',
+    state.gentlePace ? t('gentleSummary') : '',
+    state.microQuest ? t('questSummary') : '',
+  ].filter(Boolean).map((label) => ` · ${label}`).join('')
+  settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${formatMinutes(state.minutes)} · ${travel} · ${people}${money}${extras}`
 }
+
+function renderSpecialSettings(): void {
+  const cityWalk = state.scope === 'city' && state.transport === 'walk'
+  if (!cityWalk) state.shortLegs = false
+  if (state.scope !== 'city') {
+    state.gentlePace = false
+    state.microQuest = false
+  }
+  wheelchairOnly.checked = state.wheelchairOnly
+  wheelchairOnly.setAttribute('aria-describedby', state.scope === 'day_trip' && state.wheelchairOnly
+    ? 'wheelchairHint wheelchairTripHint' : 'wheelchairHint')
+  shortLegs.checked = state.shortLegs
+  shortLegs.disabled = !cityWalk
+  shortLegs.setAttribute('aria-describedby', cityWalk ? 'shortLegsHint' : 'shortLegsHint shortLegsAvailability')
+  gentlePace.checked = state.gentlePace
+  gentlePace.disabled = state.scope !== 'city'
+  gentlePace.setAttribute('aria-describedby', state.scope === 'city' ? 'gentleHint' : 'gentleHint gentleAvailability')
+  microQuest.checked = state.microQuest
+  microQuest.disabled = state.scope !== 'city'
+  microQuest.setAttribute('aria-describedby', state.scope === 'city' ? 'questHint' : 'questHint questAvailability')
+  for (const input of [wheelchairOnly, shortLegs, gentlePace, microQuest]) {
+    input.closest('.option-card')?.classList.toggle('is-selected', input.checked)
+    input.closest('.option-card')?.classList.toggle('is-disabled', input.disabled)
+  }
+  const tripHint = requiredElement<HTMLElement>('#wheelchairTripHint')
+  tripHint.textContent = t('wheelchairTripHint')
+  tripHint.hidden = state.scope !== 'day_trip' || !state.wheelchairOnly
+  const shortNote = requiredElement<HTMLElement>('#shortLegsAvailability')
+  shortNote.textContent = t('shortLegsUnavailable')
+  shortNote.hidden = cityWalk
+  const gentleNote = requiredElement<HTMLElement>('#gentleAvailability')
+  gentleNote.textContent = t('gentleUnavailable')
+  gentleNote.hidden = state.scope === 'city'
+  const questNote = requiredElement<HTMLElement>('#questAvailability')
+  questNote.textContent = t('questUnavailable')
+  questNote.hidden = state.scope === 'city'
+}
+
+wheelchairOnly.addEventListener('change', () => {
+  state.wheelchairOnly = wheelchairOnly.checked
+  renderSpecialSettings()
+  clearResults()
+  updateSettingsSummary()
+})
+shortLegs.addEventListener('change', () => {
+  state.shortLegs = shortLegs.checked
+  renderSpecialSettings()
+  clearResults()
+  updateSettingsSummary()
+})
+gentlePace.addEventListener('change', () => {
+  state.gentlePace = gentlePace.checked
+  renderSpecialSettings()
+  clearResults()
+  updateSettingsSummary()
+})
+microQuest.addEventListener('change', () => {
+  state.microQuest = microQuest.checked
+  renderSpecialSettings()
+  clearResults()
+  updateSettingsSummary()
+})
 
 interface SheetDrag {
   pointerId: number
@@ -832,6 +1040,7 @@ function renderTransportChoices(): void {
         candidate.setAttribute('aria-pressed', String(active))
       })
       updateTransportHint()
+      renderSpecialSettings()
       clearResults()
       updateSettingsSummary()
     })
@@ -866,6 +1075,7 @@ function setScope(scope: Scope): void {
   })
   renderDurationSlider()
   renderTransportChoices()
+  renderSpecialSettings()
   clearResults()
   renderTargetPicker()
   updateSettingsSummary()
@@ -1065,6 +1275,10 @@ function makeRequest(validated: { text: string; group: number; budgetKzt?: numbe
     language,
   }
   if (validated.budgetKzt !== undefined) request.budgetKzt = validated.budgetKzt
+  if (state.wheelchairOnly) request.accessibility = 'osm_wheelchair_yes'
+  if (state.shortLegs && state.scope === 'city' && state.transport === 'walk') request.shortLegs = true
+  if (state.gentlePace && state.scope === 'city') request.gentlePace = true
+  if (state.microQuest && state.scope === 'city') request.microQuest = true
   if (excludePlaceIds.length) request.excludePlaceIds = excludePlaceIds
   if (state.targetArea) request.targetArea = { ...state.targetArea }
   if (state.coordinates) {
@@ -1088,7 +1302,7 @@ function showLoading(): void {
   scrollToResults()
 }
 
-function showError(message: string): void {
+function showError(message: string, note?: string): void {
   results.hidden = false
   results.replaceChildren()
   const panel = document.createElement('div')
@@ -1099,6 +1313,16 @@ function showError(message: string): void {
   const detail = document.createElement('p')
   detail.textContent = message
   appendNodes(panel, heading, detail)
+  if (note) {
+    const explanation = document.createElement('p')
+    explanation.className = 'message-note'
+    explanation.textContent = note
+    panel.appendChild(explanation)
+  }
+  if (note && state.wheelchairOnly) {
+    const accessibilityMap = createLink(t('accessibilityMap'), 'https://inva.gov.kz/ru#map-box', 'accessibility-map-link')
+    if (accessibilityMap) panel.appendChild(accessibilityMap)
+  }
   const retry = document.createElement('button')
   retry.type = 'button'
   retry.className = 'edit-route-button'
@@ -1225,6 +1449,12 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
     addFact(facts, t('roadCost', { min: formatKzt(item.estimatedCostKzt.min), max: formatKzt(item.estimatedCostKzt.max) }))
   } else if (!priceBlock) addFact(facts, t('unknownCost'))
   if (item.hoursStatus) addFact(facts, item.hoursStatus)
+  let accessibilityTag: HTMLAnchorElement | null = null
+  if (item.wheelchairTag === 'yes' || item.wheelchairTag === 'limited' || item.wheelchairTag === 'no') {
+    const label = item.wheelchairTag === 'yes' ? t('wheelchairBadgeYes')
+      : item.wheelchairTag === 'limited' ? t('wheelchairBadgeLimited') : t('wheelchairBadgeNo')
+    accessibilityTag = createLink(label, item.sourceUrl, 'accessibility-tag')
+  }
   const action = document.createElement('div')
   action.className = 'place-action'
   const actionLabel = document.createElement('span')
@@ -1266,6 +1496,7 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
     if (link) links.appendChild(link)
   }
   appendNodes(card, top, name, why, facts)
+  if (accessibilityTag) card.appendChild(accessibilityTag)
   if (priceBlock) card.appendChild(priceBlock)
   card.appendChild(action)
   if (evidenceBlock.childElementCount) card.appendChild(evidenceBlock)
@@ -1329,7 +1560,7 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   const routes = response.routes?.filter((candidate) => Array.isArray(candidate.stops) && candidate.stops.length > 0) ?? []
   const route = routes[selectedRoute] ?? routes[0]
   if (!route) {
-    showError(response.summary || t('noPlaces'))
+    showError(response.summary || t('noPlaces'), response.note)
     return
   }
   rememberShownStops(routes)
@@ -1350,6 +1581,8 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   meta.className = 'route-meta'
   addFact(meta, stopCount(state.stops.length))
   addFact(meta, `${groupSize.value} ${Number(groupSize.value) === 1 ? t('personOne') : t('personMany')}`)
+  if (state.gentlePace && state.scope === 'city') addFact(meta, t('gentleSummary'))
+  if (state.microQuest && state.scope === 'city') addFact(meta, t('questResultTitle'))
   if (typeof route.totalMinutesApprox === 'number' && state.transport === 'walk') {
     addFact(meta, t('walkAndStops', { time: formatMinutes(route.totalMinutesApprox) }))
   }
@@ -1370,6 +1603,35 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   preview.hidden = true
   heading.appendChild(preview)
   results.appendChild(heading)
+
+  if (state.wheelchairOnly) {
+    const disclosure = document.createElement('aside')
+    disclosure.className = 'accessibility-disclosure'
+    const disclosureTitle = document.createElement('h3')
+    disclosureTitle.textContent = t('accessibilityResultTitle')
+    const disclosureText = document.createElement('p')
+    disclosureText.textContent = t('accessibilityResultNote')
+    appendNodes(disclosure, disclosureTitle, disclosureText)
+    const accessibilityMap = createLink(t('accessibilityMap'), 'https://inva.gov.kz/ru#map-box', 'accessibility-map-link')
+    if (accessibilityMap) disclosure.appendChild(accessibilityMap)
+    results.appendChild(disclosure)
+  }
+
+  const completedMissions = new Set<number>()
+  let missionProgress: HTMLElement | null = null
+  if (state.microQuest && state.scope === 'city') {
+    const missionIntro = document.createElement('section')
+    missionIntro.className = 'mission-intro'
+    const missionTitle = document.createElement('h3')
+    missionTitle.textContent = t('questResultTitle')
+    missionProgress = document.createElement('p')
+    missionProgress.className = 'mission-progress'
+    missionProgress.setAttribute('role', 'status')
+    missionProgress.setAttribute('aria-live', 'polite')
+    missionProgress.textContent = t('questProgress', { done: 0, total: state.stops.length })
+    appendNodes(missionIntro, missionTitle, missionProgress)
+    results.appendChild(missionIntro)
+  }
 
   if (routes.length > 1) {
     const variantSection = document.createElement('section')
@@ -1413,7 +1675,36 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   stopTitle.textContent = t('stopsOrder')
   const list = document.createElement('div')
   list.className = 'place-list'
-  state.stops.forEach((item, index) => list.appendChild(createStopCard(item, index)))
+  state.stops.forEach((item, index) => {
+    const card = createStopCard(item, index)
+    if (missionProgress) {
+      const mission = document.createElement('div')
+      mission.className = 'place-mission'
+      const source = document.createElement('span')
+      source.className = 'mission-source'
+      source.textContent = t('questSource')
+      const description = document.createElement('p')
+      description.textContent = index === 0 ? t('questFirst')
+        : index === state.stops.length - 1 ? t('questLast') : t('questMiddle')
+      const mark = document.createElement('button')
+      mark.type = 'button'
+      mark.className = 'mission-mark'
+      mark.textContent = t('questMark')
+      mark.setAttribute('aria-pressed', 'false')
+      mark.addEventListener('click', () => {
+        if (completedMissions.has(index)) completedMissions.delete(index)
+        else completedMissions.add(index)
+        const done = completedMissions.has(index)
+        mark.classList.toggle('is-done', done)
+        mark.setAttribute('aria-pressed', String(done))
+        mark.textContent = t(done ? 'questDone' : 'questMark')
+        if (missionProgress) missionProgress.textContent = t('questProgress', { done: completedMissions.size, total: state.stops.length })
+      })
+      appendNodes(mission, source, description, mark)
+      card.appendChild(mission)
+    }
+    list.appendChild(card)
+  })
   appendNodes(stopPanel, stopTitle, list, mapNote)
   results.appendChild(stopPanel)
   if (response.note) {
