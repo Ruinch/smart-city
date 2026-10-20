@@ -84,6 +84,24 @@ async function replace(request: Partial<WalkRequest>, route: unknown, stopIndex:
 }
 
 describe('Worker API integration', () => {
+  it.each([30, 45, 1440])('accepts a %i-minute request and keeps walking plus visits within it', async (minutes) => {
+    const { response, body } = await recommend({ text: 'Хочу погулять', minutes })
+    expect(response.status).toBe(200)
+    expect(body.routes!.length).toBeGreaterThan(0)
+    for (const route of body.routes!) {
+      expect(route.totalMinutesApprox).toBeLessThanOrEqual(minutes)
+      expect(route.totalMinutesApprox).toBe(route.stops.reduce(
+        (total, stop) => total + stop.walkMinutes! + stop.visitMinutes!, 0))
+    }
+  })
+
+  it.each([0, -1, 14, 30.5, 1441, '30', null])('rejects an invalid duration %s', async (minutes) => {
+    const response = await worker.fetch(requestBody({ minutes: minutes as number }, await validInitData()),
+      { TELEGRAM_BOT_TOKEN: token })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: 'Выберите время от 15 минут до 24 часов.' })
+  })
+
   it('returns sourced upcoming events alongside a signed city request without making them route stops', async () => {
     const future = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Almaty', day: '2-digit',
       month: '2-digit', year: 'numeric' }).format(new Date(Date.now() + 7 * 86_400_000))

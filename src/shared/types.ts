@@ -159,6 +159,8 @@ export interface Recommendation {
   actionSource: 'ai' | 'template'
   walkMinutes?: number
   visitMinutes?: number
+  /** Raw sourced schedule; its presence does not confirm current opening. */
+  openingHours?: string
   hoursStatus?: string
   sourceUrl: string
   /** Website recorded for this place by the source catalog; availability is unverified. */

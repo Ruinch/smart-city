@@ -19,6 +19,49 @@ const place = (id: number, category: string): DynamicPlace => ({
 })
 
 describe('broader Astana retrieval', () => {
+  it('retains a nearby place that fits a real 30-minute visit and walk', () => {
+    const nearby = { ...place(901, 'cafe'), lon: ASTANA_CENTER.lon + .01 }
+    const query = request('Хочу кофе', { minutes: 30 })
+    const intent = { theme: 'reading' as const, categories: ['cafe' as const] }
+    const ranked = rankDynamicPlaces([nearby], query, intent, ASTANA_CENTER)
+    expect(ranked.map((poi) => poi.id)).toEqual([nearby.id])
+    const route = assembleRoute(query, intent, ranked, ASTANA_CENTER)!
+    expect(route.stops[0].visitMinutes).toBe(15)
+    expect(route.stops[0].walkMinutes).toBeGreaterThan(10)
+    expect(route.totalMinutesApprox).toBe(route.stops[0].visitMinutes! + route.stops[0].walkMinutes!)
+    expect(route.totalMinutesApprox).toBeLessThanOrEqual(30)
+  })
+
+  it('uses the same gentle visit allowance in retrieval and assembly for 45 minutes', () => {
+    const fitting = { ...place(902, 'park'), lon: ASTANA_CENTER.lon + .008 }
+    const tooFar = { ...place(903, 'park'), lon: ASTANA_CENTER.lon + .011 }
+    const query = request('Хочу отдохнуть', { minutes: 45, gentlePace: true })
+    const intent = { theme: 'nature' as const, categories: ['park' as const] }
+    const ranked = rankDynamicPlaces([tooFar, fitting], query, intent, ASTANA_CENTER)
+    expect(ranked.map((poi) => poi.id)).toEqual([fitting.id])
+    const route = assembleRoute(query, intent, ranked, ASTANA_CENTER)!
+    expect(route.stops[0].visitMinutes).toBe(29)
+    expect(route.totalMinutesApprox).toBeLessThanOrEqual(45)
+    expect(assembleRoute(query, intent, [tooFar], ASTANA_CENTER)).toBeNull()
+  })
+
+  it('reports consecutive walking legs and visit time that add up to the total', () => {
+    const first = { ...place(904, 'park'), lon: ASTANA_CENTER.lon + .001, visitMinutes: 15 }
+    const second = { ...place(905, 'gallery'), lon: ASTANA_CENTER.lon + .002, visitMinutes: 15 }
+    const third = { ...place(906, 'park'), lon: ASTANA_CENTER.lon + .003, visitMinutes: 15 }
+    const route = assembleRoute(request('Погулять', { minutes: 45 }),
+      { theme: 'general', categories: ['park', 'gallery'] }, [first, second, third], ASTANA_CENTER)!
+    expect(route.stops.map((stop) => stop.id)).toEqual([first.id, second.id])
+    expect(route.stops.map((stop) => stop.walkMinutes)).toEqual([2, 2])
+    expect(route.totalMinutesApprox).toBe(34)
+    expect(route.totalMinutesApprox).toBe(route.stops.reduce(
+      (sum, stop) => sum + stop.walkMinutes! + stop.visitMinutes!, 0))
+    const byCar = assembleRoute(request('Погулять', { minutes: 45, transport: 'car' }),
+      { theme: 'general', categories: ['park'] }, [first], ASTANA_CENTER)!
+    expect(byCar.totalMinutesApprox).toBeUndefined()
+    expect(byCar.stops[0].walkMinutes).toBeUndefined()
+  })
+
   it('can search every category present in the extracted city snapshot', () => {
     const searchable = new Set<string>(SEARCH_CATEGORIES)
     const missing = [...new Set(snapshot.pois.map((poi) => poi.category))]

@@ -10,11 +10,11 @@
     calc(28px + env(safe-area-inset-bottom, 0px))
     calc(28px + env(safe-area-inset-left, 0px));
   overflow: hidden;
-  background: #f7f9f6;
-  color: #1d2922;
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f6f1;
+  color: #18231f;
+  font-family: inherit;
   -webkit-font-smoothing: antialiased;
-  transition: opacity 240ms ease-out;
+  transition: opacity 160ms ease-out;
 }
 
 .launch-screen.is-leaving { opacity: 0; }
@@ -66,7 +66,7 @@
 }
 
 .launch-screen__symbol-route {
-  stroke: #236a54;
+  stroke: #236650;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -84,18 +84,18 @@
 }
 
 .launch-screen__symbol-end {
-  fill: #236a54;
+  fill: #236650;
 }
 
 .launch-screen__wordmark {
-  color: #1d2922;
+  color: #18231f;
   font-size: clamp(41px, 11vw, 57px);
   font-weight: 700;
   letter-spacing: -.075em;
   line-height: 1.02;
 }
 
-.launch-screen__wordmark span { color: #236a54; }
+.launch-screen__wordmark span { color: #236650; }
 
 .launch-screen__subtitle {
   max-width: 26ch;
@@ -117,7 +117,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: #236a54;
+  background: #236650;
   transform: scaleX(0);
   transform-origin: left center;
   animation: launch-progress 2000ms cubic-bezier(.2, 0, 0, 1) forwards;
@@ -137,7 +137,7 @@
   padding: 0 0 0 10px;
   border: 0;
   background: transparent;
-  color: #236a54;
+  color: #236650;
   font-size: 12px;
   font-weight: 700;
   text-align: right;

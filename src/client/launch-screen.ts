@@ -17,20 +17,20 @@ const copy: Record<LaunchLanguage, { eyebrow: string; subtitle: string; status: 
   ru: {
     eyebrow: 'АСТАНА · СВОЙ МАРШРУТ',
     subtitle: 'Город под ваше настроение',
-    status: 'Открываем карту',
-    skip: 'К карте',
+    status: 'Открываем приложение',
+    skip: 'Начать',
   },
   kk: {
     eyebrow: 'АСТАНА · ӨЗ БАҒЫТЫҢЫЗ',
     subtitle: 'Қала — сіздің көңіл күйіңізге сай',
-    status: 'Карта ашылып жатыр',
-    skip: 'Картаға өту',
+    status: 'Қолданба ашылып жатыр',
+    skip: 'Бастау',
   },
   en: {
     eyebrow: 'ASTANA · YOUR ROUTE',
     subtitle: 'The city, your way',
-    status: 'Opening the map',
-    skip: 'Go to map',
+    status: 'Opening the app',
+    skip: 'Get started',
   },
 }
 
@@ -46,7 +46,7 @@ function duration(value: number | undefined, fallback: number, ceiling: number):
  */
 export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenController {
   const maximumMs = duration(options.maximumMs, 3500, 5000)
-  const minimumMs = Math.min(duration(options.minimumMs, 2000, 3000), maximumMs)
+  const minimumMs = Math.min(duration(options.minimumMs, 0, 3000), maximumMs)
   const startedAt = performance.now()
   // Reuse an optional first-paint shell from index.html, shown before the JS bundle loads.
   const screen = document.querySelector<HTMLDivElement>('#launch-screen') ?? document.createElement('div')
@@ -109,10 +109,10 @@ export function mountLaunchScreen(options: LaunchScreenOptions): LaunchScreenCon
   function beginExit(): void {
     if (removed || screen.classList.contains('is-leaving')) return
     screen.classList.add('is-leaving')
-    // Release hit testing immediately. The visual exit can finish without blocking the map.
+    // Release hit testing immediately, without keeping a ready interface behind the splash.
     screen.style.pointerEvents = 'none'
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) remove()
-    else exitTimer = window.setTimeout(remove, 300)
+    else exitTimer = window.setTimeout(remove, 180)
   }
 
   function dismiss(): void {

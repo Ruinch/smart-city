@@ -624,6 +624,12 @@ function walkingMinutes(from: { lat: number; lon: number }, to: { lat: number; l
   return Math.ceil(distanceMeters(from, to) * 1.3 / (gentlePace ? 55 : 75))
 }
 
+function plannedVisitMinutes(poi: DynamicPlace, request: WalkRequest): number {
+  return request.gentlePace && request.scope !== 'day_trip'
+    ? Math.min(Math.max(30, poi.visitMinutes + 10), Math.max(15, Math.floor(request.minutes * .65)))
+    : Math.min(poi.visitMinutes, Math.max(15, Math.floor(request.minutes / 2)))
+}
+
 export function rankDynamicPlaces(places: DynamicPlace[], request: WalkRequest, intent: SearchIntent,
   origin: { lat: number; lon: number }, headingMode: 'strict' | 'relaxed' = 'strict'): DynamicPlace[] {
   const budget = request.budgetKzt
@@ -646,10 +652,9 @@ export function rankDynamicPlaces(places: DynamicPlace[], request: WalkRequest, 
       // Each selected leg is capped at ten estimated minutes. A point farther
       // than the sum of all possible hops cannot fit the route.
       if (request.shortLegs && walkTime > (request.gentlePace ? 20 : 30)) return false
-      const minimumVisit = request.gentlePace
-        ? Math.min(30, Math.max(15, Math.floor(request.minutes / 2)))
-        : Math.min(poi.visitMinutes, 20)
-      return walkTime + minimumVisit <= request.minutes
+      // Use the same visit allowance as assembly: a 30-minute outing can fit
+      // a 15-minute visit, while gentle pace reserves its longer visit.
+      return walkTime + plannedVisitMinutes(poi, request) <= request.minutes
     }
     return true
   }).map((poi) => ({
@@ -797,6 +802,7 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
     : initialStops
   const chosen: DynamicPlace[] = []
   const plannedVisits: number[] = []
+  const plannedWalks: number[] = []
   let previous = origin
   let walking = 0
   let visits = 0
@@ -814,13 +820,12 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
     if (direction && direction.progress + .04 < lastDirectionProgress) continue
     const legWalk = walkingMinutes(previous, poi, gentlePace)
     if (request.shortLegs && transport === 'walk' && legWalk > 10) continue
-    const visit = gentlePace
-      ? Math.min(Math.max(30, poi.visitMinutes + 10), Math.max(15, Math.floor(request.minutes * .65)))
-      : Math.min(poi.visitMinutes, Math.max(15, Math.floor(request.minutes / 2)))
+    const visit = plannedVisitMinutes(poi, request)
     if (transport === 'walk' && walking + visits + legWalk + visit > request.minutes) continue
     if (transport !== 'walk' && visits + visit > request.minutes) continue
     chosen.push(poi)
     plannedVisits.push(visit)
+    plannedWalks.push(legWalk)
     walking += legWalk
     visits += visit
     previous = poi
@@ -888,11 +893,12 @@ export function assembleRoute(request: WalkRequest, intent: SearchIntent, ordere
       ...(venueWebsite ? { venueWebsite } : {}),
       routeUrl: routeUrl(index === 0 ? origin : chosen[index - 1], poi, transport),
       travelMode: transport, visitMinutes: plannedVisits[index], stopOrder: index + 1,
+      ...(transport === 'walk' ? { walkMinutes: plannedWalks[index] } : {}),
       why, action, actionSource: 'template',
       ...(['yes', 'limited', 'no'].includes(poi.tags.wheelchair)
         ? { wheelchairTag: poi.tags.wheelchair as 'yes' | 'limited' | 'no' } : {}),
       budgetStatus: 'unknown', timeStatus: transport === 'walk' ? 'within' : 'unknown',
-      hoursStatus: certainty, approximate: true,
+      openingHours: hours, hoursStatus: certainty, approximate: true,
     }
   })
   let straightLineMeters = 0

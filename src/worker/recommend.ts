@@ -313,6 +313,7 @@ export function toRecommendation(
     actionSource: selection?.idea ? 'ai' : 'template',
     walkMinutes: transport === 'walk' ? candidate.walkMinutes : undefined,
     visitMinutes: candidate.visitMinutes,
+    openingHours: candidate.poi.tags.opening_hours?.trim().slice(0, 100) || undefined,
     hoursStatus: hoursStatus(candidate.poi),
     sourceUrl: safeOsmSource(candidate.poi),
     routeUrl: routeUrl(origin, candidate.poi, transport),

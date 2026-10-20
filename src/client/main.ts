@@ -2,7 +2,9 @@ import type { LiveEvent, Recommendation, WalkRequest } from '../shared/types'
 import { ASTANA_CENTER, insideAstana, insideTripPlanningArea } from '../shared/astana'
 import { mountRecommendationsMap, type MapCoordinate, type RecommendationsMapController } from './map'
 import { mountLaunchScreen } from './launch-screen'
+import { redesignCopy } from './redesign-copy'
 import './style.css'
+import './redesign.css'
 
 interface TelegramLocation { latitude: number; longitude: number }
 interface TelegramLocationManager {
@@ -11,6 +13,12 @@ interface TelegramLocationManager {
   getLocation(callback: (location: TelegramLocation | null) => void): void
 }
 interface TelegramWebApp {
+  viewportStableHeight?: number
+  viewportHeight?: number
+  safeAreaInset?: { top: number; bottom: number; left: number; right: number }
+  contentSafeAreaInset?: { top: number; bottom: number; left: number; right: number }
+  BackButton?: { show(): void; hide(): void; onClick(callback: () => void): void }
+  hideKeyboard?(): void
   initData: string
   initDataUnsafe?: { user?: { language_code?: string } }
   LocationManager?: TelegramLocationManager
@@ -22,7 +30,7 @@ interface TelegramWebApp {
   setBottomBarColor?(color: string): void
   disableVerticalSwipes?(): void
   openLink?(url: string): void
-  onEvent?(event: string, callback: () => void): void
+  onEvent?(event: string, callback: (event?: { isStateStable?: boolean }) => void): void
 }
 declare global {
   interface Window { Telegram?: { WebApp: TelegramWebApp } }
@@ -37,7 +45,7 @@ interface RoutePlan {
   summary: string
   stops: Recommendation[]
   routeUrl?: string
-  origin?: MapCoordinate
+  origin?: MapCoordinate & { name?: string }
   geometry?: MapCoordinate[]
   totalMinutesApprox?: number
   distanceKmApprox?: number
@@ -447,7 +455,7 @@ function categoryLabel(category: string): string | undefined {
 
 app.innerHTML = `
   <a class="skip-link" href="#content">К содержимому</a>
-  <div class="app-shell" data-sheet="peek">
+  <div class="app-shell" data-sheet="peek" data-screen="request">
     <main id="content" class="map-stage" aria-label="Карта Астаны и маршрута">
       <div id="map" class="map-canvas" role="region" aria-label="Карта Астаны"></div>
       <header class="map-topbar topbar">
@@ -481,7 +489,7 @@ app.innerHTML = `
         <span id="sheetHandleLabel" class="sheet-handle-label" aria-hidden="true">Показать карту</span>
       </button>
       <button id="keyboardDone" class="keyboard-done" type="button" hidden>Готово</button>
-      <div id="sheetBody" class="sheet-scroll">
+      <div id="sheetBody" class="sheet-scroll" tabindex="-1">
         <div class="sheet-heading">
           <h1>Куда хочется?</h1>
           <p>Расскажите, какой вечер или прогулку вы задумали.</p>
@@ -496,7 +504,7 @@ app.innerHTML = `
         <textarea id="prompt" name="prompt" rows="2" maxlength="300" enterkeyhint="done" aria-describedby="promptHint promptError" placeholder="Например, тихое кафе с книгой или танцы до ночи"></textarea>
         <p id="promptError" class="field-error" role="alert" hidden></p>
         <div class="example-row" role="group" aria-label="Примеры запросов">
-          <button type="button" data-example="club">Клуб и танцы</button>
+          <button type="button" data-example="quiet">Клуб и танцы</button>
           <button type="button" data-example="coffee">Кофе и книга</button>
           <button type="button" data-example="friends">С друзьями</button>
         </div>
@@ -555,8 +563,8 @@ app.innerHTML = `
           </div>
           <p id="targetStatus" class="target-status" role="status" hidden></p>
         </div>
-        <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="advancedSettings">
-          <span id="settingsSummary">Астана · 2 ч · пешком · 1 человек</span>
+        <button id="settingsToggle" class="settings-toggle" type="button" aria-expanded="false" aria-controls="settingsDialog" aria-haspopup="dialog">
+          <span><strong id="settingsLabel">Настройки</strong><span id="settingsSummary"></span></span>
           <span class="settings-chevron" aria-hidden="true">⌄</span>
         </button>
         <div id="advancedSettings" class="advanced-settings">
@@ -571,12 +579,12 @@ app.innerHTML = `
           <fieldset class="field-group">
             <legend id="durationLegend">Сколько времени есть</legend>
             <div class="duration-topline"><output id="durationValue" for="durationRange">2 ч</output></div>
-            <input id="durationRange" class="duration-range" type="range" min="1" max="24" step="1" value="2" aria-labelledby="durationLegend" aria-describedby="durationScaleHint" />
-            <div class="duration-ticks" aria-hidden="true"><span>1</span><span>6</span><span>12</span><span>18</span><span>24 ч</span></div>
+            <input id="durationRange" class="duration-range" type="range" min="30" max="1440" step="15" value="120" aria-labelledby="durationLegend" aria-describedby="durationScaleHint" />
+            <div class="duration-ticks" aria-hidden="true"><span>30 мин</span><span>6 ч</span><span>12 ч</span><span>18 ч</span><span>24 ч</span></div>
             <p id="durationScaleHint" class="field-hint">Пеший путь оценочный; время дороги на транспорте может быть неизвестно.</p>
           </fieldset>
           <fieldset class="field-group">
-            <legend>Как доберётесь</legend>
+            <legend id="transportLegend">Как доберётесь</legend>
             <div id="transportChoices" class="choice-row" aria-label="Способ передвижения"></div>
           </fieldset>
           <div class="field-group budget-group">
@@ -645,6 +653,66 @@ function appendNodes(parent: Element, ...children: Node[]): void {
   children.forEach((child) => parent.appendChild(child))
 }
 
+// Keep controls mounted while switching surfaces so entered values and focus targets survive.
+const pinIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>'
+const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>'
+const appShell = requiredElement<HTMLElement>('.app-shell')
+appShell.insertBefore(requiredElement<HTMLElement>('.map-topbar'), appShell.firstChild)
+requiredElement('.brand').remove()
+requiredElement('.mood-picker').remove()
+requiredElement('.sheet-heading').classList.add('request-intro')
+requiredElement('#settingsToggle').insertAdjacentHTML('beforebegin', `
+  <fieldset class="request-duration"><legend id="requestDurationLabel"></legend>
+    <div class="duration-presets">${[30, 45, 60, 120].map((minutes) => `<button type="button" data-minutes="${minutes}" aria-pressed="false"></button>`).join('')}</div>
+    <button id="customDuration" class="custom-duration" type="button"><span id="customDurationLabel"></span><span id="requestDurationValue"></span></button>
+  </fieldset>`)
+requiredElement('#startPicker').insertAdjacentHTML('beforebegin', `<button id="startRow" class="start-row" type="button" aria-haspopup="dialog" aria-controls="startDialog">${pinIcon}<span class="start-row-copy"><span id="fromLabel"></span><strong id="startValue"></strong><small id="startSourceLabel"></small></span><span class="settings-chevron" aria-hidden="true">›</span></button>`)
+// The original start value lived inside the expanded picker.
+requiredElement('#startPicker .start-heading').remove()
+appShell.insertAdjacentHTML('beforeend', `
+  <dialog id="startDialog" class="start-dialog" aria-labelledby="startLabel">
+    <header class="dialog-header"><h2 id="startLabel"></h2><button type="button" class="dialog-close" data-close-dialog="startDialog">${closeIcon}</button></header>
+    <div class="dialog-content"></div>
+  </dialog>
+  <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
+    <header class="dialog-header"><h2 id="settingsTitle" tabindex="-1"></h2><button type="button" class="dialog-close" data-close-dialog="settingsDialog">${closeIcon}</button></header>
+    <div class="dialog-content"></div>
+    <footer class="dialog-footer"><button id="applySettings" type="button" class="apply-settings"></button></footer>
+  </dialog>`)
+const settingsContent = requiredElement<HTMLElement>('#settingsDialog .dialog-content')
+const advanced = requiredElement<HTMLElement>('#advancedSettings')
+settingsContent.appendChild(advanced)
+requiredElement('#startDialog .dialog-content').appendChild(requiredElement('#startPicker'))
+const grid = requiredElement('.settings-grid')
+const durationField = requiredElement('#durationLegend').closest('fieldset')!
+const scopeField = requiredElement('.scope-row')
+const specialField = requiredElement('#specialTitle').closest('fieldset')!
+advanced.appendChild(durationField)
+advanced.appendChild(scopeField)
+advanced.appendChild(requiredElement('#targetPicker'))
+advanced.appendChild(requiredElement('#eventOption'))
+advanced.appendChild(specialField)
+// Comfort stays independent of the wheelchair data filter.
+const comfort = document.createElement('fieldset')
+comfort.className = 'special-options'
+comfort.innerHTML = '<legend id="comfortTitle"></legend>'
+for (const id of ['shortLegs', 'shortLegsAvailability', 'gentlePace', 'gentleAvailability']) {
+  const control = requiredElement('#' + id)
+  comfort.appendChild(control.closest('label') ?? control)
+}
+grid.parentNode!.insertBefore(comfort, grid.nextSibling)
+settingsContent.insertAdjacentHTML('beforeend', '<a id="settingsPrivacy" class="settings-privacy" href="/privacy.html"></a>')
+const peopleInput = requiredElement<HTMLInputElement>('#groupSize')
+const stepper = document.createElement('div')
+stepper.className = 'people-stepper'
+peopleInput.parentNode!.insertBefore(stepper, peopleInput)
+stepper.innerHTML = '<button id="peopleLess" type="button">−</button><button id="peopleMore" type="button">+</button>'
+stepper.insertBefore(peopleInput, stepper.lastElementChild)
+requiredElement('.request-intro').insertAdjacentHTML('beforebegin', '<aside id="telegramGate" class="telegram-gate" hidden><strong id="telegramGateTitle"></strong><p id="telegramGateHint"></p><a id="telegramGateLink" href="https://t.me/smart_city_ryadombot?startapp" target="_blank" rel="noopener noreferrer"></a></aside>')
+const settingsDialog = requiredElement<HTMLDialogElement>('#settingsDialog')
+const startDialog = requiredElement<HTMLDialogElement>('#startDialog')
+let mapReturn: 'request' | 'settings' = 'request'
+
 const planner = requiredElement<HTMLFormElement>('#planner')
 const prompt = requiredElement<HTMLTextAreaElement>('#prompt')
 const promptError = requiredElement<HTMLElement>('#promptError')
@@ -698,7 +766,10 @@ function isTextEditor(element: Element | null): element is HTMLElement {
 
 function blurActiveEditor(): void {
   const active = document.activeElement
-  if (isTextEditor(active)) active.blur()
+  if (isTextEditor(active)) {
+    active.blur()
+    if (telegram?.isVersionAtLeast?.('9.1')) telegram.hideKeyboard?.()
+  }
 }
 
 const state: {
@@ -768,7 +839,7 @@ function bearingDegrees(a: MapCoordinate, b: MapCoordinate): number {
 }
 
 function renderMapPickHint(): void {
-  mapPickHint.textContent = t(pickingTarget ? (targetStatusKey ?? 'targetPickInstruction') : 'startPickInstruction')
+  mapPickHint.textContent = t(pickingTarget ? (targetStatusKey ?? 'targetPickInstruction') : startMessageKey === 'startOutside' ? 'startOutside' : 'startPickInstruction')
   mapPickHint.hidden = !pickingStart && !pickingTarget
 }
 
@@ -817,6 +888,7 @@ function renderStartPicker(): void {
   deviceButton.setAttribute('aria-pressed', String(state.startSource === 'device'))
   mapPickButton.setAttribute('aria-pressed', String(pickingStart || state.startSource === 'map'))
   locationStatus.textContent = t(startMessageKey)
+  requiredElement('#startSourceLabel').textContent = redesignCopy[language][state.startSource === 'center' ? 'automatic' : state.startSource === 'device' ? 'device' : 'manual']
   renderMapPickHint()
 }
 
@@ -836,13 +908,13 @@ function applyTranslations(): void {
     ['#privacyLink', 'data'], ['.sheet-heading h1', 'heading'], ['.sheet-heading p', 'subtitle'],
     ['#keyboardDone', 'keyboardDone'],
     ['#returnToRouteButton', 'backRoute'], ['.planner-lead label', 'interest'],
-    ['#promptHint', 'promptHint'], ['.example-row [data-example="club"]', 'exampleClub'],
+    ['#promptHint', 'promptHint'], ['.example-row [data-example="quiet"]', 'exampleClub'],
     ['.example-row [data-example="coffee"]', 'exampleCoffee'],
     ['.example-row [data-example="friends"]', 'exampleFriends'],
     ['.scope-row .field-label', 'where'], ['[data-scope="city"]', 'inAstana'],
     ['[data-scope="day_trip"]', 'fromCity'], ['#durationLegend', 'duration'],
     ['#durationScaleHint', 'durationScaleHint'],
-    ['.settings-grid .field-group:nth-child(2) legend', 'transport'], ['.budget-group label', 'budget'],
+    ['#transportLegend', 'transport'], ['.budget-group label', 'budget'],
     ['#budgetHint', 'budgetHint'], ['.group-size-group label', 'group'],
     ['#groupSizeHint', 'groupHint'],
     ['#accessibleTitle', 'accessibleTitle'], ['#wheelchairLabel', 'wheelchairLabel'],
@@ -874,8 +946,7 @@ function applyTranslations(): void {
   requiredElement<HTMLElement>('#includeEventsHint').textContent = eventCopy[language].toggleHint
   surpriseButton.title = t('surpriseHint')
   surpriseButton.setAttribute('aria-label', `${t('surprise')}. ${t('surpriseHint')}`)
-  const exampleKeys: Array<[string, MessageKey]> = [['club', 'exampleClubPrompt'], ['coffee', 'exampleCoffeePrompt'], ['friends', 'exampleFriendsPrompt']]
-  for (const [id, key] of exampleKeys) document.querySelector(`[data-example="${id}"]`)?.setAttribute('data-example-text', t(key))
+  applyRedesignTranslations()
   renderStartPicker()
   renderTargetPicker()
   requiredElement<HTMLAnchorElement>('#privacyLink').href = `/privacy.html?lang=${language}`
@@ -888,45 +959,132 @@ function applyTranslations(): void {
   setSheetMode(shell.dataset.sheet as SheetMode)
 }
 
+function updateBackButton(): void {
+  if (!telegram?.isVersionAtLeast?.('6.1')) return
+  if (settingsDialog.open || startDialog.open || shell.dataset.screen !== 'request') telegram.BackButton?.show()
+  else telegram.BackButton?.hide()
+}
+
+function openSettings(): void {
+  blurActiveEditor()
+  if (!settingsDialog.open) settingsDialog.showModal()
+  settingsToggle.setAttribute('aria-expanded', 'true')
+  requiredElement<HTMLElement>('#settingsTitle').focus({ preventScroll: true })
+  updateBackButton()
+}
+
+function closeDialog(dialog: HTMLDialogElement): void {
+  blurActiveEditor()
+  dialog.close()
+  updateSettingsSummary()
+  settingsToggle.setAttribute('aria-expanded', String(settingsDialog.open))
+  updateBackButton()
+}
+
+function returnFromMap(): void {
+  const wasPicking = pickingStart || pickingTarget
+  pickingStart = false
+  pickingTarget = false
+  mapController?.setStartPointSelectionMode(false)
+  mapController?.setTargetAreaSelectionMode(false)
+  startMessageKey = startStatusForSource()
+  targetStatusKey = null
+  renderStartPicker()
+  renderTargetPicker()
+  setSheetMode(wasPicking ? 'peek' : sheetReturnMode)
+  if (wasPicking && mapReturn === 'settings') openSettings()
+}
+
+function goBack(): void {
+  blurActiveEditor()
+  if (settingsDialog.open) closeDialog(settingsDialog)
+  else if (startDialog.open) closeDialog(startDialog)
+  else if (shell.dataset.screen === 'map') returnFromMap()
+  else {
+    if (state.isLoading) clearResults()
+    setSheetMode('peek')
+  }
+}
+
 function setSheetMode(mode: SheetMode): void {
   const previousMode = shell.dataset.sheet as SheetMode
-  if (mode === 'map-only' && previousMode !== 'map-only' && previousMode !== 'loading') {
-    sheetReturnMode = previousMode
-    blurActiveEditor()
-  }
-  if (mode === 'map-only' && !window.matchMedia('(max-width: 760px)').matches) mode = sheetReturnMode
+  if (mode === 'peek-results') mode = 'map-only'
+  if (mode === 'map-only' && previousMode !== 'map-only' && previousMode !== 'loading') sheetReturnMode = previousMode
+  blurActiveEditor()
   shell.dataset.sheet = mode
-  const expanded = mode === 'expanded' || mode === 'results'
-  const handleLabel = mode === 'map-only'
-    ? sheetReturnMode === 'results' || sheetReturnMode === 'peek-results' ? t('expandRoute') : t('openPlanner')
-    : mode === 'results' ? t('collapseRoute')
-      : mode === 'expanded' ? t('collapsePanel') : t('showMap')
+  shell.dataset.screen = mode === 'map-only' ? 'map'
+    : mode === 'results' || mode === 'loading' ? 'result' : 'request'
+  const handleLabel = pickingStart ? redesignCopy[language].cancelPoint
+    : pickingTarget ? redesignCopy[language].returnSettings
+      : currentRoute ? t('expandRoute') : t('openPlanner')
   sheetHandleLabel.textContent = handleLabel
-  sheetHandle.setAttribute('aria-expanded', String(mode !== 'map-only'))
   sheetHandle.setAttribute('aria-label', handleLabel)
+  sheetHandle.setAttribute('aria-expanded', String(mode !== 'map-only'))
   sheetHandle.disabled = mode === 'loading'
-  settingsToggle.setAttribute('aria-expanded', String(mode === 'expanded'))
-  planner.hidden = mode === 'map-only' || mode === 'loading' || mode === 'results' || mode === 'peek-results'
-  if (mode !== 'map-only' && mode !== 'results' && mode !== 'loading' && mode !== 'peek-results') results.hidden = true
+  planner.hidden = shell.dataset.screen !== 'request'
+  requiredElement<HTMLElement>('.request-intro').hidden = planner.hidden
+  requiredElement<HTMLAnchorElement>('.skip-link').href = planner.hidden ? '#content' : '#sheetBody'
+  requiredElement<HTMLElement>('#telegramGate').hidden = Boolean(telegram?.initData) || planner.hidden
+  results.hidden = shell.dataset.screen !== 'result'
   sheetScroll.inert = mode === 'map-only'
   sheetScroll.setAttribute('aria-hidden', String(mode === 'map-only'))
-  returnToRouteButton.hidden = !currentRouteOrigin || (mode !== 'peek' && mode !== 'expanded')
-  if (mode !== 'map-only' && previousMode !== 'map-only' && mode !== previousMode) sheetScroll.scrollTop = 0
+  returnToRouteButton.hidden = !currentRouteOrigin || planner.hidden
+  if (mode !== previousMode) sheetScroll.scrollTop = 0
+  updateBackButton()
+  // The map's new dimensions must be measured before reframing the route.
+  requestAnimationFrame(() => {
+    syncMapInset()
+    if (mode === 'results' && currentRoute) mapController?.fit()
+  })
 }
 
 function updateSettingsSummary(): void {
-  const travel = travelModeLabel(state.transport)
   const count = Number(groupSize.value) || 1
   const people = `${count} ${count === 1 ? t('personOne') : t('personMany')}`
-  const money = budget.value.trim() === '' ? '' : ` · ${formatKzt(Number(budget.value))} ${t('perPerson')}`
+  const money = budget.value.trim() === '' ? t('noLimit') : `${formatKzt(Number(budget.value))} ${t('perPerson')}`
   const extras = [
+    state.scope === 'day_trip' ? t('fromAstana') : '',
     state.wheelchairOnly ? t('wheelchairSummary') : '',
     state.shortLegs ? t('shortLegsSummary') : '',
     state.gentlePace ? t('gentleSummary') : '',
     state.microQuest ? t('questSummary') : '',
     state.includeEvents ? eventCopy[language].summary : '',
-  ].filter(Boolean).map((label) => ` · ${label}`).join('')
-  settingsSummary.textContent = `${state.scope === 'city' ? t('astana') : t('fromAstana')} · ${formatMinutes(state.minutes)} · ${travel} · ${people}${money}${extras}`
+    state.targetArea ? targetValue.textContent : '',
+  ].filter(Boolean)
+  settingsSummary.textContent = [travelModeLabel(state.transport), money, people, ...extras].join(' · ')
+  requiredElement<HTMLButtonElement>('#peopleLess').disabled = count <= 1
+  requiredElement<HTMLButtonElement>('#peopleMore').disabled = count >= 12
+  requiredElement('#budgetHint').textContent = budget.value.trim() === '0' ? redesignCopy[language].zeroBudgetHint : redesignCopy[language].budgetHint
+}
+
+function applyRedesignTranslations(): void {
+  const copy = redesignCopy[language]
+  const labels: Record<string, string> = {
+    '.request-intro h1': copy.title, '.request-intro > p:first-of-type': copy.subtitle,
+    '.planner-lead label': copy.prompt, '#fromLabel': copy.from,
+    '#requestDurationLabel': copy.duration, '#customDurationLabel': copy.customTime,
+    '#settingsLabel': copy.settings, '#settingsTitle': copy.settingsTitle,
+    '#applySettings': copy.apply, '#comfortTitle': copy.comfort, '#specialTitle': copy.more,
+    '#settingsPrivacy': copy.privacy, '#budgetHint': copy.budgetHint,
+    '#telegramGateTitle': copy.telegramTitle, '#telegramGateHint': copy.telegramHint,
+    '#telegramGateLink': copy.telegramOpen,
+  }
+  for (const [selector, label] of Object.entries(labels)) requiredElement(selector).textContent = label
+  prompt.placeholder = copy.placeholder
+  requiredElement<HTMLAnchorElement>('#settingsPrivacy').href = `/privacy.html?lang=${language}`
+  document.querySelectorAll('[data-close-dialog]').forEach((button) => button.setAttribute('aria-label', copy.close))
+  requiredElement('#peopleLess').setAttribute('aria-label', copy.decrease)
+  requiredElement('#peopleMore').setAttribute('aria-label', copy.increase)
+  document.querySelectorAll<HTMLButtonElement>('[data-example]').forEach((button) => {
+    const key = button.dataset.example as 'quiet' | 'coffee' | 'friends'
+    button.textContent = copy[key]
+    button.dataset.exampleText = copy[`${key}Prompt`]
+    button.setAttribute('aria-pressed', String(prompt.value === button.dataset.exampleText))
+  })
+  document.querySelectorAll<HTMLButtonElement>('[data-minutes]').forEach((button) => {
+    button.textContent = formatMinutes(Number(button.dataset.minutes))
+  })
+  requiredElement('.duration-ticks').innerHTML = [30, 360, 720, 1080, 1440].map((value) => `<span>${formatMinutes(value)}</span>`).join('')
 }
 
 function renderSpecialSettings(): void {
@@ -978,7 +1136,7 @@ const swapReasonKeys: Record<SwapReason, MessageKey> = {
 }
 
 function renderMoodChoices(): void {
-  requiredElement<HTMLElement>('.mood-picker').hidden = state.scope !== 'city'
+  document.querySelector<HTMLElement>('.mood-picker')?.toggleAttribute('hidden', state.scope !== 'city')
   document.querySelectorAll<HTMLButtonElement>('[data-mood]').forEach((button) => {
     const mood = button.dataset.mood as Mood
     const selected = state.mood === mood
@@ -1030,111 +1188,8 @@ includeEvents.addEventListener('change', () => {
   updateSettingsSummary()
 })
 
-interface SheetDrag {
-  pointerId: number
-  startY: number
-  startHeight: number
-  lastY: number
-  lastTime: number
-  velocity: number
-  moved: boolean
-  startMode: Exclude<SheetMode, 'loading'>
-  snaps: Array<{ mode: SheetMode; height: number }>
-  minHeight: number
-  maxHeight: number
-}
-
-let sheetDrag: SheetDrag | null = null
-let ignoreHandleClickUntil = 0
-
-function sheetSnapHeights(mode: SheetDrag['startMode']): SheetDrag['snaps'] {
-  const height = shell.getBoundingClientRect().height
-  const compactScreen = height <= 700
-  const routeFamily = mode === 'results' || mode === 'peek-results'
-    || mode === 'map-only' && (sheetReturnMode === 'results' || sheetReturnMode === 'peek-results')
-  return routeFamily
-    ? [
-      { mode: 'map-only', height: 64 },
-      { mode: 'peek-results', height: compactScreen ? height * .33 : Math.min(230, height * .32) },
-      { mode: 'results', height: height * .56 },
-    ]
-    : [
-      { mode: 'map-only', height: 64 },
-      { mode: 'peek', height: compactScreen ? Math.min(390, height * .6) : Math.min(430, Math.max(390, height * .5)) },
-      { mode: 'expanded', height: height * (compactScreen ? .87 : .88) },
-    ]
-}
-
-function releaseSheetDrag(event: PointerEvent): void {
-  const drag = sheetDrag
-  if (!drag || drag.pointerId !== event.pointerId) return
-  sheetDrag = null
-  if (sheetHandle.hasPointerCapture(event.pointerId)) sheetHandle.releasePointerCapture(event.pointerId)
-  shell.classList.remove('is-sheet-dragging')
-  shell.style.removeProperty('--sheet-height')
-  if (!drag.moved) return
-  ignoreHandleClickUntil = performance.now() + 350
-  if (event.type === 'pointercancel') return
-  const delta = event.clientY - drag.startY
-  const currentHeight = Math.min(drag.maxHeight, Math.max(drag.minHeight, drag.startHeight - delta))
-  const velocity = performance.now() - drag.lastTime < 90 ? drag.velocity : 0
-  const nearest = drag.snaps.reduce((best, snap) =>
-    Math.abs(snap.height - currentHeight) < Math.abs(best.height - currentHeight) ? snap : best)
-  const directional = velocity > .35
-    ? [...drag.snaps].reverse().find((snap) => snap.height < currentHeight - 12)
-    : velocity < -.35 ? drag.snaps.find((snap) => snap.height > currentHeight + 12) : undefined
-  const nextMode = (directional ?? nearest).mode
-  if (nextMode !== drag.startMode) setSheetMode(nextMode)
-}
-
-sheetHandle.addEventListener('pointerdown', (event) => {
-  if (event.button !== 0 || !event.isPrimary || sheetHandle.disabled
-    || !window.matchMedia('(max-width: 760px)').matches) return
-  const mode = shell.dataset.sheet as SheetMode
-  if (mode === 'loading') return
-  const snaps = sheetSnapHeights(mode)
-  sheetDrag = {
-    pointerId: event.pointerId,
-    startY: event.clientY,
-    startHeight: requiredElement<HTMLElement>('#routeSheet').getBoundingClientRect().height,
-    lastY: event.clientY,
-    lastTime: performance.now(),
-    velocity: 0,
-    moved: false,
-    startMode: mode,
-    snaps,
-    minHeight: snaps[0].height,
-    maxHeight: snaps[snaps.length - 1].height,
-  }
-  sheetHandle.setPointerCapture(event.pointerId)
-})
-sheetHandle.addEventListener('pointermove', (event) => {
-  const drag = sheetDrag
-  if (!drag || drag.pointerId !== event.pointerId) return
-  const delta = event.clientY - drag.startY
-  if (!drag.moved && Math.abs(delta) < 5) return
-  if (!drag.moved) {
-    drag.moved = true
-    shell.classList.add('is-sheet-dragging')
-  }
-  const now = performance.now()
-  drag.velocity = (event.clientY - drag.lastY) / Math.max(1, now - drag.lastTime)
-  drag.lastY = event.clientY
-  drag.lastTime = now
-  const nextHeight = Math.min(drag.maxHeight, Math.max(drag.minHeight, drag.startHeight - delta))
-  shell.style.setProperty('--sheet-height', `${nextHeight}px`)
-})
-sheetHandle.addEventListener('pointerup', releaseSheetDrag)
-sheetHandle.addEventListener('pointercancel', releaseSheetDrag)
-sheetHandle.addEventListener('click', () => {
-  if (performance.now() < ignoreHandleClickUntil) return
-  const mode = shell.dataset.sheet as SheetMode
-  if (mode === 'map-only') setSheetMode(sheetReturnMode)
-  else if (mode === 'results') setSheetMode('peek-results')
-  else if (mode === 'expanded') setSheetMode('peek')
-  else if (mode !== 'loading') setSheetMode('map-only')
-})
-settingsToggle.addEventListener('click', () => setSheetMode(shell.dataset.sheet === 'expanded' ? 'peek' : 'expanded'))
+sheetHandle.addEventListener('click', returnFromMap)
+settingsToggle.addEventListener('click', openSettings)
 returnToRouteButton.addEventListener('click', () => setSheetMode('results'))
 keyboardDone.addEventListener('pointerdown', (event) => {
   event.preventDefault()
@@ -1157,20 +1212,19 @@ document.addEventListener('pointerdown', (event) => {
 prompt.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault()
-    prompt.blur()
+    blurActiveEditor()
   }
 })
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
-    blurActiveEditor()
-    if (shell.dataset.sheet === 'expanded') setSheetMode('peek')
+    if (!settingsDialog.open && !startDialog.open) goBack()
   }
 })
 
 document.documentElement.dataset.theme = 'light'
-if (telegram?.isVersionAtLeast?.('7.0')) telegram.setHeaderColor?.('#ffffff')
-if (telegram?.isVersionAtLeast?.('6.1')) telegram.setBackgroundColor?.('#e6ece8')
-if (telegram?.isVersionAtLeast?.('7.10')) telegram.setBottomBarColor?.('#ffffff')
+if (telegram?.isVersionAtLeast?.('7.0')) telegram.setHeaderColor?.('#f5f6f1')
+if (telegram?.isVersionAtLeast?.('6.1')) telegram.setBackgroundColor?.('#f5f6f1')
+if (telegram?.isVersionAtLeast?.('7.10')) telegram.setBottomBarColor?.('#f5f6f1')
 if (telegram?.isVersionAtLeast?.('7.7')) telegram.disableVerticalSwipes?.()
 telegram?.ready()
 telegram?.expand()
@@ -1179,20 +1233,26 @@ languageSelect.addEventListener('change', () => {
   const next = matchLanguage(languageSelect.value)
   if (!next || next === language) return
   const hadRoute = currentRouteOrigin !== null || state.isLoading
+  const regenerate = hadRoute && shell.dataset.screen !== 'request'
+  const repeatSurprise = Boolean(lastRequest?.surprise)
   const prior = language
-  const previousExample = (['club', 'coffee', 'friends'] as const).find((id) => prompt.value === messages[prior][({ club: 'exampleClubPrompt', coffee: 'exampleCoffeePrompt', friends: 'exampleFriendsPrompt' } as const)[id]])
+  const previousExample = (['quiet', 'coffee', 'friends'] as const).find((id) => prompt.value === redesignCopy[prior][`${id}Prompt`])
   language = next
   launchScreen.setLanguage(language)
   try { localStorage.setItem('ryadom-language', language) } catch { /* Ignore storage errors. */ }
-  if (previousExample) prompt.value = messages[language][({ club: 'exampleClubPrompt', coffee: 'exampleCoffeePrompt', friends: 'exampleFriendsPrompt' } as const)[previousExample]]
-  clearResults()
+  if (previousExample) prompt.value = redesignCopy[language][`${previousExample}Prompt`]
+  if (state.isLoading || hadRoute && !regenerate) clearResults()
   promptError.hidden = true
   groupSizeError.hidden = true
   budget.setCustomValidity('')
   applyTranslations()
+  if (regenerate) {
+    const validated = validateForm(repeatSurprise)
+    if (validated) void submitRecommendation(validated, repeatSurprise)
+  }
   const notice = requiredElement<HTMLElement>('#languageNotice')
   notice.textContent = t('languageChange')
-  notice.hidden = !hadRoute
+  notice.hidden = !hadRoute || regenerate
 })
 
 function safeUrl(value: string | undefined): string | null {
@@ -1267,22 +1327,62 @@ function clearResults(): void {
 }
 
 function renderDurationSlider(): void {
-  const hours = state.minutes / 60
-  durationRange.value = String(hours)
-  durationRange.style.setProperty('--duration-progress', `${(hours - 1) / 23 * 100}%`)
+  durationRange.value = String(state.minutes)
+  durationRange.style.setProperty('--duration-progress', `${(state.minutes - 30) / 1410 * 100}%`)
   durationRange.setAttribute('aria-valuetext', formatMinutes(state.minutes))
   durationValue.value = formatMinutes(state.minutes)
+  document.querySelectorAll<HTMLButtonElement>('[data-minutes]').forEach((button) => {
+    const selected = Number(button.dataset.minutes) === state.minutes
+    button.classList.toggle('is-selected', selected)
+    button.setAttribute('aria-pressed', String(selected))
+  })
+  requiredElement('#requestDurationValue').textContent = [30, 45, 60, 120].includes(state.minutes) ? '' : ` · ${formatMinutes(state.minutes)}`
 }
 
-durationRange.addEventListener('input', () => {
+function selectDuration(minutes: number): void {
   durationChangedByUser = true
-  const minutes = Number(durationRange.value) * 60
   if (state.minutes === minutes) return
   state.minutes = minutes
   if (currentRouteOrigin !== null || state.isLoading || !results.hidden) clearResults()
   renderDurationSlider()
   updateSettingsSummary()
+}
+durationRange.addEventListener('input', () => selectDuration(Number(durationRange.value)))
+document.querySelectorAll<HTMLButtonElement>('[data-minutes]').forEach((button) => {
+  button.addEventListener('click', () => selectDuration(Number(button.dataset.minutes)))
 })
+requiredElement('#customDuration').addEventListener('click', () => {
+  openSettings()
+  durationRange.focus()
+  durationRange.scrollIntoView({ block: 'center' })
+})
+requiredElement('#startRow').addEventListener('click', () => {
+  blurActiveEditor()
+  startDialog.showModal()
+  updateBackButton()
+})
+for (const dialog of [settingsDialog, startDialog]) {
+  dialog.addEventListener('close', () => {
+    settingsToggle.setAttribute('aria-expanded', String(settingsDialog.open))
+    updateBackButton()
+  })
+  dialog.addEventListener('cancel', (event) => { event.preventDefault(); closeDialog(dialog) })
+}
+document.querySelectorAll<HTMLButtonElement>('[data-close-dialog]').forEach((button) => {
+  button.addEventListener('click', () => closeDialog(requiredElement<HTMLDialogElement>('#' + button.dataset.closeDialog)))
+})
+requiredElement('#applySettings').addEventListener('click', () => {
+  // Check settings without requiring a written request yet.
+  if (!validateForm(true)) return
+  closeDialog(settingsDialog)
+})
+for (const [id, delta] of [['peopleLess', -1], ['peopleMore', 1]] as const) {
+  requiredElement('#' + id).addEventListener('click', () => {
+    groupSize.value = String(Math.max(1, Math.min(12, (Number(groupSize.value) || 1) + delta)))
+    groupSize.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+if (telegram?.isVersionAtLeast?.('6.1')) telegram.BackButton?.onClick(goBack)
 
 function renderTransportChoices(): void {
   const options: Array<[Transport, string]> = state.scope === 'city'
@@ -1357,11 +1457,17 @@ document.querySelectorAll<HTMLButtonElement>('[data-example]').forEach((button) 
   button.addEventListener('click', () => {
     prompt.value = button.dataset.exampleText ?? ''
     promptError.hidden = true
-    prompt.focus()
+    blurActiveEditor()
+    state.mood = button.dataset.example === 'quiet' ? 'relax' : null
+    if (button.dataset.example === 'friends' && Number(groupSize.value) === 1) groupSize.value = '3'
     clearResults()
+    applyRedesignTranslations()
+    updateSettingsSummary()
   })
 })
 prompt.addEventListener('input', () => {
+  state.mood = null
+  document.querySelectorAll('[data-example]').forEach((button) => button.setAttribute('aria-pressed', 'false'))
   promptError.hidden = true
   clearResults()
 })
@@ -1383,7 +1489,9 @@ function startStatusForSource(): MessageKey {
 
 function setStartPoint(point: MapCoordinate | null, source: 'center' | 'device' | 'map'): void {
   locationAttemptId += 1
+  const wasPicking = pickingStart
   pickingStart = false
+  deviceButton.disabled = false
   mapController?.setStartPointSelectionMode(false)
   state.coordinates = point
   state.startSource = source
@@ -1393,6 +1501,8 @@ function setStartPoint(point: MapCoordinate | null, source: 'center' | 'device' 
   mapController?.focus(origin())
   renderStartPicker()
   renderTargetPicker()
+  if (startDialog.open) closeDialog(startDialog)
+  if (wasPicking) setSheetMode('peek')
 }
 
 function requestDeviceLocation(): void {
@@ -1474,12 +1584,18 @@ mapPickButton.addEventListener('click', () => {
   pickingStart = !pickingStart
   mapController?.setStartPointSelectionMode(pickingStart)
   startMessageKey = pickingStart ? 'startPickInstruction' : startStatusForSource()
-  if (pickingStart) setSheetMode('peek')
+  if (pickingStart) {
+    mapReturn = 'request'
+    closeDialog(startDialog)
+    setSheetMode('map-only')
+    mapController?.focus(origin())
+  }
   renderStartPicker()
 })
 resetStartButton.addEventListener('click', () => setStartPoint(null, 'center'))
 
 function setTargetArea(point: MapCoordinate | null): void {
+  const wasPicking = pickingTarget
   pickingTarget = false
   mapController?.setTargetAreaSelectionMode(false)
   state.targetArea = point
@@ -1487,6 +1603,8 @@ function setTargetArea(point: MapCoordinate | null): void {
   mapController?.setTargetArea(point ?? undefined)
   clearResults()
   renderTargetPicker()
+  updateSettingsSummary()
+  if (wasPicking) { setSheetMode('peek'); openSettings() }
 }
 
 targetPickButton.addEventListener('click', () => {
@@ -1499,7 +1617,12 @@ targetPickButton.addEventListener('click', () => {
   pickingTarget = !pickingTarget
   targetStatusKey = null
   mapController?.setTargetAreaSelectionMode(pickingTarget)
-  if (pickingTarget) setSheetMode('peek')
+  if (pickingTarget) {
+    mapReturn = 'settings'
+    closeDialog(settingsDialog)
+    setSheetMode('map-only')
+    mapController?.focus(state.targetArea ?? origin())
+  }
   renderTargetPicker()
 })
 targetResetButton.addEventListener('click', () => setTargetArea(null))
@@ -1519,7 +1642,7 @@ function validateForm(surprise = false): ValidatedForm | null {
   if (!Number.isInteger(group) || group < 1 || group > 12) {
     groupSizeError.textContent = t('groupError')
     groupSizeError.hidden = false
-    setSheetMode('expanded')
+    openSettings()
     groupSize.focus()
     return null
   }
@@ -1527,7 +1650,7 @@ function validateForm(surprise = false): ValidatedForm | null {
   const amount = Number(budget.value)
   if (!Number.isInteger(amount) || amount < 0 || amount > 10_000_000) {
     budget.setCustomValidity(t('budgetError'))
-    setSheetMode('expanded')
+    openSettings()
     budget.reportValidity()
     budget.focus()
     return null
@@ -1579,6 +1702,12 @@ function setLoading(value: boolean, loadingLabel = t('loadingRoute')): void {
 function showLoading(): void {
   results.hidden = false
   results.innerHTML = `<div class="results-heading"><h2>${t('searchingPlaces')}</h2><p>${t('searchDescription')}</p></div><div class="loading-row" aria-hidden="true"><span></span><span></span><span></span></div>`
+  const back = document.createElement('button')
+  back.type = 'button'
+  back.className = 'result-back'
+  back.textContent = `← ${redesignCopy[language].back}`
+  back.addEventListener('click', goBack)
+  results.insertBefore(back, results.firstChild)
   setSheetMode('loading')
   scrollToResults()
 }
@@ -1603,6 +1732,22 @@ function showError(message: string, note?: string): void {
   if (note && state.wheelchairOnly) {
     const accessibilityMap = createLink(t('accessibilityMap'), 'https://inva.gov.kz/ru#map-box', 'accessibility-map-link')
     if (accessibilityMap) panel.appendChild(accessibilityMap)
+  }
+  if (telegram?.initData) {
+    const again = document.createElement('button')
+    again.type = 'button'
+    again.className = 'apply-settings'
+    again.textContent = redesignCopy[language].retry
+    again.addEventListener('click', () => {
+      if (state.isLoading) return
+      const surprise = Boolean(lastRequest?.surprise)
+      const validated = validateForm(surprise)
+      if (validated) void submitRecommendation(validated, surprise)
+    })
+    panel.appendChild(again)
+  } else {
+    const open = createLink(redesignCopy[language].telegramOpen, 'https://t.me/smart_city_ryadombot?startapp', 'route-link')
+    if (open) panel.appendChild(open)
   }
   const retry = document.createElement('button')
   retry.type = 'button'
@@ -1846,17 +1991,30 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   const why = document.createElement('p')
   why.className = 'place-why'
   why.textContent = item.why
+  why.setAttribute('aria-label', redesignCopy[language].why)
   const facts = document.createElement('div')
   facts.className = 'place-facts'
   const priceBlock = createPriceBlock(item)
   if (typeof item.travelMinutesApprox === 'number') addFact(facts, t('travelApprox', { time: formatMinutes(item.travelMinutesApprox), mode: travelModeLabel(item.travelMode) }))
-  else if (typeof item.walkMinutes === 'number') addFact(facts, t('travelApprox', { time: formatMinutes(item.walkMinutes), mode: t('walkLower') }))
+  else if (typeof item.walkMinutes === 'number') addFact(facts, `${redesignCopy[language][index === 0 ? 'fromStart' : 'fromPrevious']}: ${t('travelApprox', { time: formatMinutes(item.walkMinutes), mode: t('walkLower') })}`)
   else addFact(facts, t('unknownTravel'))
   if (typeof item.visitMinutes === 'number') addFact(facts, t('onSiteApprox', { time: formatMinutes(item.visitMinutes) }))
   if (item.estimatedCostKzt) {
     addFact(facts, t('roadCost', { min: formatKzt(item.estimatedCostKzt.min), max: formatKzt(item.estimatedCostKzt.max) }))
-  } else if (!priceBlock) addFact(facts, t('unknownCost'))
-  if (item.hoursStatus && !venueDetails.some((detail) => detail.kind === 'hours')) addFact(facts, item.hoursStatus)
+  }
+  const unknowns = document.createElement('ul')
+  unknowns.className = 'place-unknowns'
+  const missing = [
+    !item.openingHours && !venueDetails.some((detail) => detail.kind === 'hours') ? redesignCopy[language].hoursUnknown : '',
+    !priceBlock ? redesignCopy[language].priceUnknown : '',
+    !item.wheelchairTag && !venueDetails.some((detail) => detail.kind === 'accessibility') ? redesignCopy[language].accessUnknown : '',
+  ].filter(Boolean)
+  for (const text of missing) {
+    const row = document.createElement('li')
+    row.textContent = text
+    unknowns.appendChild(row)
+  }
+  if (item.openingHours && item.hoursStatus) addFact(facts, item.hoursStatus)
   let accessibilityTag: HTMLAnchorElement | null = null
   if (item.wheelchairTag === 'yes' || item.wheelchairTag === 'limited' || item.wheelchairTag === 'no') {
     const label = item.wheelchairTag === 'yes' ? t('wheelchairBadgeYes')
@@ -1904,9 +2062,21 @@ function createStopCard(item: Recommendation, index: number): HTMLElement {
   appendNodes(card, top, name, why, facts)
   if (accessibilityTag) card.appendChild(accessibilityTag)
   if (priceBlock) card.appendChild(priceBlock)
-  if (evidenceBlock) card.appendChild(evidenceBlock)
   card.appendChild(action)
-  card.appendChild(links)
+  if (unknowns.childElementCount) card.appendChild(unknowns)
+  const details = document.createElement('details')
+  details.className = 'place-details'
+  const detailsTitle = document.createElement('summary')
+  detailsTitle.textContent = redesignCopy[language].details
+  details.appendChild(detailsTitle)
+  if (evidenceBlock) details.appendChild(evidenceBlock)
+  if (item.hoursStatus && !venueDetails.some((detail) => detail.kind === 'hours')) {
+    const note = document.createElement('p')
+    note.textContent = item.hoursStatus
+    details.appendChild(note)
+  }
+  details.appendChild(links)
+  card.appendChild(details)
   if (state.scope === 'city' && lastRequest && currentRoute) card.appendChild(createStopSwap(item, index))
   return card
 }
@@ -2230,21 +2400,20 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   heading.className = 'results-heading'
   const eyebrow = document.createElement('span')
   eyebrow.className = 'results-eyebrow'
-  eyebrow.textContent = state.scope === 'day_trip' ? t('astanaTrip') : t('cityRoute')
+  eyebrow.textContent = stopCount(state.stops.length)
   const title = document.createElement('h2')
   title.textContent = route.title || t('yourRoute')
   const summary = document.createElement('p')
   summary.textContent = route.summary || response.summary
-  const meta = document.createElement('div')
-  meta.className = 'route-meta'
-  addFact(meta, stopCount(state.stops.length))
-  addFact(meta, `${groupSize.value} ${Number(groupSize.value) === 1 ? t('personOne') : t('personMany')}`)
-  if (state.gentlePace && state.scope === 'city') addFact(meta, t('gentleSummary'))
-  if (state.microQuest && state.scope === 'city') addFact(meta, t('questResultTitle'))
-  if (typeof route.totalMinutesApprox === 'number' && state.transport === 'walk') {
-    addFact(meta, t('walkAndStops', { time: formatMinutes(route.totalMinutesApprox) }))
-  }
-  appendNodes(heading, eyebrow, title, summary)
+  const back = document.createElement('button')
+  back.type = 'button'
+  back.className = 'result-back'
+  back.textContent = `← ${redesignCopy[language].back}`
+  back.addEventListener('click', () => setSheetMode('peek'))
+  const context = document.createElement('p')
+  context.className = 'result-context'
+  context.textContent = `${route.origin?.name || startValue.textContent} · ${settingsSummary.textContent}`
+  appendNodes(heading, back, eyebrow, title, context, summary)
   if (response.headingAdjusted) {
     const adjustment = document.createElement('p')
     adjustment.className = 'route-adjustment'
@@ -2252,16 +2421,37 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
     adjustment.textContent = t('routeAdjusted')
     heading.appendChild(adjustment)
   }
-  heading.appendChild(meta)
-  if (lastStop) heading.appendChild(createRouteDirection(routeOrigin, lastStop))
-  const routeLink = createLink(t('openRoute'), route.routeUrl, 'route-link')
-  if (routeLink) heading.appendChild(routeLink)
+  if (lastStop && state.targetArea) heading.appendChild(createRouteDirection(routeOrigin, lastStop))
+  const timing = document.createElement('div')
+  timing.className = 'route-timing'
+  const visits = state.stops.every((stop) => typeof stop.visitMinutes === 'number')
+    ? state.stops.reduce((sum, stop) => sum + stop.visitMinutes!, 0) : undefined
+  const travel = state.transport === 'walk' && state.stops.every((stop) => typeof stop.walkMinutes === 'number')
+    ? state.stops.reduce((sum, stop) => sum + stop.walkMinutes!, 0) : undefined
+  const total = typeof visits === 'number' && typeof travel === 'number' ? visits + travel : undefined
+  for (const [label, minutes] of [[redesignCopy[language].total, total], [redesignCopy[language].travel, travel], [redesignCopy[language].visits, visits]] as const) {
+    const metric = document.createElement('div')
+    const value = document.createElement('strong')
+    value.textContent = typeof minutes === 'number' ? `≈ ${formatMinutes(minutes)}` : redesignCopy[language].unknownTime
+    const caption = document.createElement('span')
+    caption.textContent = label
+    appendNodes(metric, value, caption)
+    timing.appendChild(metric)
+  }
+  heading.appendChild(timing)
+  const fullMap = document.createElement('button')
+  fullMap.className = 'result-map-button'
+  fullMap.type = 'button'
+  fullMap.textContent = t('showMap')
+  fullMap.addEventListener('click', () => setSheetMode('map-only'))
+  heading.appendChild(fullMap)
+  const routeLink = createLink(redesignCopy[language].openRoute, route.routeUrl, 'route-link')
   const editButton = document.createElement('button')
   editButton.type = 'button'
   editButton.className = 'edit-route-button'
-  editButton.textContent = t('edit')
+  editButton.textContent = redesignCopy[language].edit
   editButton.addEventListener('click', () => setSheetMode('expanded'))
-  heading.appendChild(editButton)
+
   const preview = document.createElement('div')
   preview.id = 'mapPreview'
   preview.className = 'map-preview'
@@ -2374,6 +2564,11 @@ function showResults(response: RouteResponse, selectedRoute = 0, focusVariant = 
   appendNodes(stopPanel, stopTitle, list, mapNote)
   results.appendChild(stopPanel)
   if (eventsSection) results.appendChild(eventsSection)
+  const resultActions = document.createElement('div')
+  resultActions.className = 'result-actions'
+  if (routeLink) resultActions.appendChild(routeLink)
+  resultActions.appendChild(editButton)
+  results.appendChild(resultActions)
   if (response.note) {
     const note = document.createElement('p')
     note.className = 'results-note'
@@ -2485,7 +2680,7 @@ async function submitRecommendation(validated: ValidatedForm, surprise = false):
     showError(t('telegramRequired'))
     return
   }
-  prompt.blur()
+  blurActiveEditor()
   clearResults()
   showLoading()
   setLoading(true)
@@ -2495,6 +2690,7 @@ async function submitRecommendation(validated: ValidatedForm, surprise = false):
   const timeout = window.setTimeout(() => controller.abort(), 45_000)
   try {
     const payload = makeRequest(validated, [], surprise)
+    lastRequest = payload.request
     const response = await fetch('/api/recommend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
@@ -2589,21 +2785,37 @@ sheetObserver.observe(routeSheet)
 window.addEventListener('resize', syncMapInset)
 requestAnimationFrame(syncMapInset)
 
-let fullViewportHeight = window.visualViewport?.height ?? window.innerHeight
-function syncVisualViewport(): void {
-  const visibleHeight = window.visualViewport?.height ?? window.innerHeight
+let fullViewportHeight = telegram?.viewportStableHeight || window.visualViewport?.height || window.innerHeight
+function syncVisualViewport(event?: { isStateStable?: boolean }): void {
+  const visibleHeight = window.visualViewport?.height ?? telegram?.viewportHeight ?? window.innerHeight
   if (!Number.isFinite(visibleHeight) || visibleHeight <= 0) return
   const editing = isTextEditor(document.activeElement)
-  if (!editing) fullViewportHeight = visibleHeight
-  shell.style.setProperty('--view-height', `${visibleHeight}px`)
-  shell.classList.toggle('is-keyboard-open', editing && fullViewportHeight - visibleHeight > 120)
+  const stable = telegram?.viewportStableHeight
+  if (stable && stable > 0 && (!editing || stable > fullViewportHeight)) fullViewportHeight = stable
+  else if (!editing && event?.isStateStable !== false) fullViewportHeight = visibleHeight
+  const keyboardOpen = editing && fullViewportHeight - visibleHeight > 120
+  const usableHeight = editing ? Math.min(visibleHeight, stable || fullViewportHeight) : fullViewportHeight
+  shell.style.setProperty('--stable-height', `${fullViewportHeight}px`)
+  shell.style.setProperty('--view-height', `${usableHeight}px`)
+  for (const edge of ['top', 'bottom', 'left', 'right'] as const) {
+    const inset = Math.max(0, telegram?.safeAreaInset?.[edge] ?? 0) + Math.max(0, telegram?.contentSafeAreaInset?.[edge] ?? 0)
+    shell.style.setProperty(`--app-safe-${edge}`, `${keyboardOpen && edge === 'bottom' ? 0 : inset}px`)
+  }
+  shell.classList.toggle('is-keyboard-open', editing)
   syncMapInset()
+  if (keyboardOpen && isTextEditor(document.activeElement)) {
+    document.activeElement.scrollIntoView({ block: 'nearest' })
+  }
 }
-window.visualViewport?.addEventListener('resize', syncVisualViewport)
-window.addEventListener('resize', syncVisualViewport)
-document.addEventListener('focusin', syncVisualViewport)
-document.addEventListener('focusout', () => window.setTimeout(syncVisualViewport, 120))
+window.visualViewport?.addEventListener('resize', () => syncVisualViewport())
+window.addEventListener('resize', () => syncVisualViewport())
+document.addEventListener('focusin', () => syncVisualViewport())
+document.addEventListener('focusout', () => window.setTimeout(() => syncVisualViewport(), 120))
 telegram?.onEvent?.('viewportChanged', syncVisualViewport)
+if (telegram?.isVersionAtLeast?.('8.0')) {
+  telegram.onEvent?.('safeAreaChanged', () => syncVisualViewport())
+  telegram.onEvent?.('contentSafeAreaChanged', () => syncVisualViewport())
+}
 syncVisualViewport()
 launchScreen.dismiss()
 
