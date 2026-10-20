@@ -1,6 +1,7 @@
 import type { Recommendation, WalkRequest } from '../shared/types'
 import { ASTANA_CENTER, insideAstana, insideTripPlanningArea } from '../shared/astana'
 import { mountRecommendationsMap, type MapCoordinate, type RecommendationsMapController } from './map'
+import { mountLaunchScreen } from './launch-screen'
 import './style.css'
 
 interface TelegramLocation { latitude: number; longitude: number }
@@ -69,6 +70,9 @@ const ruMessages = {
   startMap: 'Указать на карте',
   startMapSelected: 'Точка на карте',
   startCancel: 'Отменить выбор',
+  openPlanner: 'Открыть поиск',
+  showMap: 'Показать карту',
+  keyboardDone: 'Готово',
   startReset: 'Сбросить',
   startCenterStatus: 'По умолчанию — центр Астаны.',
   startDeviceFound: 'Стартуем от вашей геопозиции.',
@@ -141,6 +145,9 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     startMap: 'Картадан көрсету',
     startMapSelected: 'Картадағы нүкте',
     startCancel: 'Таңдауды тоқтату',
+    openPlanner: 'Іздеуді ашу',
+    showMap: 'Картаны көрсету',
+    keyboardDone: 'Дайын',
     startReset: 'Қалпына келтіру',
     startCenterStatus: 'Әдепкі бойынша Астана орталығынан бастаймыз.',
     startDeviceFound: 'Сіз тұрған жерден бастаймыз.',
@@ -210,6 +217,9 @@ const messages: Record<Language, Record<MessageKey, string>> = {
     startMap: 'Pick on map',
     startMapSelected: 'Map point',
     startCancel: 'Cancel selection',
+    openPlanner: 'Open search',
+    showMap: 'Show map',
+    keyboardDone: 'Done',
     startReset: 'Reset',
     startCenterStatus: 'Starting from central Astana by default.',
     startDeviceFound: 'Starting from your location.',
@@ -287,6 +297,7 @@ function initialLanguage(): Language {
     ?? 'ru'
 }
 let language: Language = initialLanguage()
+const launchScreen = mountLaunchScreen({ language })
 document.documentElement.lang = language
 function t(key: MessageKey, values: Record<string, string | number> = {}): string {
   return messages[language][key].replace(/\{(\w+)\}/g, (match, name: string) => values[name] === undefined ? match : String(values[name]))
@@ -352,7 +363,9 @@ app.innerHTML = `
     <section id="routeSheet" class="route-sheet" aria-label="Планировщик маршрута">
       <button id="sheetHandle" class="sheet-handle" type="button" aria-label="Развернуть панель" aria-expanded="false" aria-controls="sheetBody">
         <span class="sheet-grip" aria-hidden="true"></span>
+        <span id="sheetHandleLabel" class="sheet-handle-label" aria-hidden="true">Показать карту</span>
       </button>
+      <button id="keyboardDone" class="keyboard-done" type="button" hidden>Готово</button>
       <div id="sheetBody" class="sheet-scroll">
         <div class="sheet-heading">
           <h1>Куда хочется?</h1>
@@ -365,7 +378,7 @@ app.innerHTML = `
           <label for="prompt">Что вам интересно</label>
           <p id="promptHint" class="visually-hidden">Опишите настроение, места и детали своими словами.</p>
         </div>
-        <textarea id="prompt" name="prompt" rows="2" maxlength="300" aria-describedby="promptHint promptError" placeholder="Например, тихое кафе с книгой или танцы до ночи"></textarea>
+        <textarea id="prompt" name="prompt" rows="2" maxlength="300" enterkeyhint="done" aria-describedby="promptHint promptError" placeholder="Например, тихое кафе с книгой или танцы до ночи"></textarea>
         <p id="promptError" class="field-error" role="alert" hidden></p>
         <div class="example-row" role="group" aria-label="Примеры запросов">
           <button type="button" data-example="club">Клуб и танцы</button>
@@ -526,7 +539,9 @@ const durationValue = requiredElement<HTMLOutputElement>('#durationValue')
 const mapPickHint = requiredElement<HTMLElement>('#mapPickHint')
 const shell = requiredElement<HTMLElement>('.app-shell')
 const sheetHandle = requiredElement<HTMLButtonElement>('#sheetHandle')
+const sheetHandleLabel = requiredElement<HTMLElement>('#sheetHandleLabel')
 const sheetScroll = requiredElement<HTMLElement>('#sheetBody')
+const keyboardDone = requiredElement<HTMLButtonElement>('#keyboardDone')
 const settingsToggle = requiredElement<HTMLButtonElement>('#settingsToggle')
 const settingsSummary = requiredElement<HTMLElement>('#settingsSummary')
 const recenterButton = requiredElement<HTMLButtonElement>('#recenterButton')
@@ -536,7 +551,18 @@ const languageSelect = document.getElementById('languageSelect') as unknown as H
 if (!languageSelect) throw new Error('Missing language selector')
 languageSelect.value = language
 
-type SheetMode = 'peek' | 'expanded' | 'loading' | 'results' | 'peek-results'
+type SheetMode = 'map-only' | 'peek' | 'expanded' | 'loading' | 'results' | 'peek-results'
+let sheetReturnMode: Exclude<SheetMode, 'map-only' | 'loading'> = 'peek'
+
+function isTextEditor(element: Element | null): element is HTMLElement {
+  return element instanceof HTMLTextAreaElement
+    || element instanceof HTMLInputElement && !['checkbox', 'radio', 'range', 'button', 'submit'].includes(element.type)
+}
+
+function blurActiveEditor(): void {
+  const active = document.activeElement
+  if (isTextEditor(active)) active.blur()
+}
 
 const state: {
   scope: Scope
@@ -663,6 +689,7 @@ function applyTranslations(): void {
     ['.skip-link', 'skip'], ['.topbar-country', 'astana'],
     ['.map-credits span', 'osm'], ['.map-credits a[href^="https://www.openstreetmap.org"]', 'license'],
     ['#privacyLink', 'data'], ['.sheet-heading h1', 'heading'], ['.sheet-heading p', 'subtitle'],
+    ['#keyboardDone', 'keyboardDone'],
     ['#returnToRouteButton', 'backRoute'], ['.planner-lead label', 'interest'],
     ['#promptHint', 'promptHint'], ['.example-row [data-example="club"]', 'exampleClub'],
     ['.example-row [data-example="coffee"]', 'exampleCoffee'],
@@ -711,16 +738,29 @@ function applyTranslations(): void {
 }
 
 function setSheetMode(mode: SheetMode): void {
+  const previousMode = shell.dataset.sheet as SheetMode
+  if (mode === 'map-only' && previousMode !== 'map-only' && previousMode !== 'loading') {
+    sheetReturnMode = previousMode
+    blurActiveEditor()
+  }
+  if (mode === 'map-only' && !window.matchMedia('(max-width: 760px)').matches) mode = sheetReturnMode
   shell.dataset.sheet = mode
   const expanded = mode === 'expanded' || mode === 'results'
-  sheetHandle.setAttribute('aria-expanded', String(expanded))
-  sheetHandle.setAttribute('aria-label', mode === 'results' ? t('collapseRoute') : mode === 'peek-results' ? t('expandRoute') : expanded ? t('collapsePanel') : t('expandPanel'))
+  const handleLabel = mode === 'map-only'
+    ? sheetReturnMode === 'results' || sheetReturnMode === 'peek-results' ? t('expandRoute') : t('openPlanner')
+    : mode === 'results' ? t('collapseRoute')
+      : mode === 'expanded' ? t('collapsePanel') : t('showMap')
+  sheetHandleLabel.textContent = handleLabel
+  sheetHandle.setAttribute('aria-expanded', String(mode !== 'map-only'))
+  sheetHandle.setAttribute('aria-label', handleLabel)
   sheetHandle.disabled = mode === 'loading'
   settingsToggle.setAttribute('aria-expanded', String(mode === 'expanded'))
-  planner.hidden = mode === 'loading' || mode === 'results' || mode === 'peek-results'
-  if (mode !== 'results' && mode !== 'loading' && mode !== 'peek-results') results.hidden = true
+  planner.hidden = mode === 'map-only' || mode === 'loading' || mode === 'results' || mode === 'peek-results'
+  if (mode !== 'map-only' && mode !== 'results' && mode !== 'loading' && mode !== 'peek-results') results.hidden = true
+  sheetScroll.inert = mode === 'map-only'
+  sheetScroll.setAttribute('aria-hidden', String(mode === 'map-only'))
   returnToRouteButton.hidden = !currentRouteOrigin || (mode !== 'peek' && mode !== 'expanded')
-  sheetScroll.scrollTop = 0
+  if (mode !== 'map-only' && previousMode !== 'map-only' && mode !== previousMode) sheetScroll.scrollTop = 0
 }
 
 function updateSettingsSummary(): void {
@@ -807,7 +847,8 @@ interface SheetDrag {
   lastTime: number
   velocity: number
   moved: boolean
-  startMode: 'peek' | 'expanded' | 'results' | 'peek-results'
+  startMode: Exclude<SheetMode, 'loading'>
+  snaps: Array<{ mode: SheetMode; height: number }>
   minHeight: number
   maxHeight: number
 }
@@ -815,18 +856,22 @@ interface SheetDrag {
 let sheetDrag: SheetDrag | null = null
 let ignoreHandleClickUntil = 0
 
-function sheetSnapHeights(mode: SheetDrag['startMode']): { min: number; max: number } {
-  const height = window.innerHeight
+function sheetSnapHeights(mode: SheetDrag['startMode']): SheetDrag['snaps'] {
+  const height = shell.getBoundingClientRect().height
   const compactScreen = height <= 700
-  return mode === 'results' || mode === 'peek-results'
-    ? {
-      min: compactScreen ? height * .33 : Math.min(230, height * .32),
-      max: height * .56,
-    }
-    : {
-      min: compactScreen ? Math.min(390, height * .6) : Math.min(430, Math.max(390, height * .5)),
-      max: height * (compactScreen ? .87 : .88),
-    }
+  const routeFamily = mode === 'results' || mode === 'peek-results'
+    || mode === 'map-only' && (sheetReturnMode === 'results' || sheetReturnMode === 'peek-results')
+  return routeFamily
+    ? [
+      { mode: 'map-only', height: 64 },
+      { mode: 'peek-results', height: compactScreen ? height * .33 : Math.min(230, height * .32) },
+      { mode: 'results', height: height * .56 },
+    ]
+    : [
+      { mode: 'map-only', height: 64 },
+      { mode: 'peek', height: compactScreen ? Math.min(390, height * .6) : Math.min(430, Math.max(390, height * .5)) },
+      { mode: 'expanded', height: height * (compactScreen ? .87 : .88) },
+    ]
 }
 
 function releaseSheetDrag(event: PointerEvent): void {
@@ -842,12 +887,12 @@ function releaseSheetDrag(event: PointerEvent): void {
   const delta = event.clientY - drag.startY
   const currentHeight = Math.min(drag.maxHeight, Math.max(drag.minHeight, drag.startHeight - delta))
   const velocity = performance.now() - drag.lastTime < 90 ? drag.velocity : 0
-  const goingUp = velocity < -.28 || (Math.abs(delta) >= 72 && delta < 0)
-  const goingDown = velocity > .28 || (Math.abs(delta) >= 72 && delta > 0)
-  const expand = goingUp || (!goingDown && currentHeight >= (drag.minHeight + drag.maxHeight) / 2)
-  const nextMode = drag.startMode === 'results' || drag.startMode === 'peek-results'
-    ? expand ? 'results' : 'peek-results'
-    : expand ? 'expanded' : 'peek'
+  const nearest = drag.snaps.reduce((best, snap) =>
+    Math.abs(snap.height - currentHeight) < Math.abs(best.height - currentHeight) ? snap : best)
+  const directional = velocity > .35
+    ? [...drag.snaps].reverse().find((snap) => snap.height < currentHeight - 12)
+    : velocity < -.35 ? drag.snaps.find((snap) => snap.height > currentHeight + 12) : undefined
+  const nextMode = (directional ?? nearest).mode
   if (nextMode !== drag.startMode) setSheetMode(nextMode)
 }
 
@@ -855,8 +900,8 @@ sheetHandle.addEventListener('pointerdown', (event) => {
   if (event.button !== 0 || !event.isPrimary || sheetHandle.disabled
     || !window.matchMedia('(max-width: 760px)').matches) return
   const mode = shell.dataset.sheet as SheetMode
-  if (mode !== 'peek' && mode !== 'expanded' && mode !== 'results' && mode !== 'peek-results') return
-  const heights = sheetSnapHeights(mode)
+  if (mode === 'loading') return
+  const snaps = sheetSnapHeights(mode)
   sheetDrag = {
     pointerId: event.pointerId,
     startY: event.clientY,
@@ -866,8 +911,9 @@ sheetHandle.addEventListener('pointerdown', (event) => {
     velocity: 0,
     moved: false,
     startMode: mode,
-    minHeight: heights.min,
-    maxHeight: heights.max,
+    snaps,
+    minHeight: snaps[0].height,
+    maxHeight: snaps[snaps.length - 1].height,
   }
   sheetHandle.setPointerCapture(event.pointerId)
 })
@@ -892,17 +938,42 @@ sheetHandle.addEventListener('pointercancel', releaseSheetDrag)
 sheetHandle.addEventListener('click', () => {
   if (performance.now() < ignoreHandleClickUntil) return
   const mode = shell.dataset.sheet as SheetMode
-  if (mode === 'results') {
-    setSheetMode('peek-results')
-  } else if (mode === 'peek-results') {
-    setSheetMode('results')
-  } else if (mode !== 'loading') setSheetMode(mode === 'expanded' ? 'peek' : 'expanded')
+  if (mode === 'map-only') setSheetMode(sheetReturnMode)
+  else if (mode === 'results') setSheetMode('peek-results')
+  else if (mode === 'expanded') setSheetMode('peek')
+  else if (mode !== 'loading') setSheetMode('map-only')
 })
 settingsToggle.addEventListener('click', () => setSheetMode(shell.dataset.sheet === 'expanded' ? 'peek' : 'expanded'))
 returnToRouteButton.addEventListener('click', () => setSheetMode('results'))
-prompt.addEventListener('focus', () => setSheetMode('expanded'))
+keyboardDone.addEventListener('pointerdown', (event) => {
+  event.preventDefault()
+  blurActiveEditor()
+})
+keyboardDone.addEventListener('click', blurActiveEditor)
+document.addEventListener('focusin', (event) => {
+  if (isTextEditor(event.target as Element) && routeSheet.contains(event.target as Node)) keyboardDone.hidden = false
+})
+document.addEventListener('focusout', () => {
+  window.setTimeout(() => {
+    if (!isTextEditor(document.activeElement)) keyboardDone.hidden = true
+  }, 100)
+})
+document.addEventListener('pointerdown', (event) => {
+  if (!isTextEditor(document.activeElement)) return
+  const target = event.target
+  if (target instanceof Element && !target.closest('input, textarea, select, [contenteditable="true"]')) blurActiveEditor()
+}, { capture: true })
+prompt.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault()
+    prompt.blur()
+  }
+})
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && shell.dataset.sheet === 'expanded') setSheetMode('peek')
+  if (event.key === 'Escape') {
+    blurActiveEditor()
+    if (shell.dataset.sheet === 'expanded') setSheetMode('peek')
+  }
 })
 
 document.documentElement.dataset.theme = 'light'
@@ -920,6 +991,7 @@ languageSelect.addEventListener('change', () => {
   const prior = language
   const previousExample = (['club', 'coffee', 'friends'] as const).find((id) => prompt.value === messages[prior][({ club: 'exampleClubPrompt', coffee: 'exampleCoffeePrompt', friends: 'exampleFriendsPrompt' } as const)[id]])
   language = next
+  launchScreen.setLanguage(language)
   try { localStorage.setItem('ryadom-language', language) } catch { /* Ignore storage errors. */ }
   if (previousExample) prompt.value = messages[language][({ club: 'exampleClubPrompt', coffee: 'exampleCoffeePrompt', friends: 'exampleFriendsPrompt' } as const)[previousExample]]
   clearResults()
@@ -1248,6 +1320,7 @@ function validateForm(): { text: string; group: number; budgetKzt?: number } | n
   if (!Number.isInteger(group) || group < 1 || group > 12) {
     groupSizeError.textContent = t('groupError')
     groupSizeError.hidden = false
+    setSheetMode('expanded')
     groupSize.focus()
     return null
   }
@@ -1255,6 +1328,7 @@ function validateForm(): { text: string; group: number; budgetKzt?: number } | n
   const amount = Number(budget.value)
   if (!Number.isInteger(amount) || amount < 0 || amount > 10_000_000) {
     budget.setCustomValidity(t('budgetError'))
+    setSheetMode('expanded')
     budget.reportValidity()
     budget.focus()
     return null
@@ -1487,7 +1561,7 @@ function showMapPreview(item: Recommendation): void {
   results.querySelectorAll<HTMLElement>('.place-card').forEach((card) => {
     card.classList.toggle('is-map-selected', card.dataset.id === item.id)
   })
-  if (shell.dataset.sheet === 'peek-results') setSheetMode('results')
+  if (shell.dataset.sheet === 'peek-results' || shell.dataset.sheet === 'map-only') setSheetMode('results')
 }
 
 function createStopCard(item: Recommendation, index: number): HTMLElement {
@@ -1980,6 +2054,24 @@ const sheetObserver = new ResizeObserver(syncMapInset)
 sheetObserver.observe(routeSheet)
 window.addEventListener('resize', syncMapInset)
 requestAnimationFrame(syncMapInset)
+
+let fullViewportHeight = window.visualViewport?.height ?? window.innerHeight
+function syncVisualViewport(): void {
+  const visibleHeight = window.visualViewport?.height ?? window.innerHeight
+  if (!Number.isFinite(visibleHeight) || visibleHeight <= 0) return
+  const editing = isTextEditor(document.activeElement)
+  if (!editing) fullViewportHeight = visibleHeight
+  shell.style.setProperty('--view-height', `${visibleHeight}px`)
+  shell.classList.toggle('is-keyboard-open', editing && fullViewportHeight - visibleHeight > 120)
+  syncMapInset()
+}
+window.visualViewport?.addEventListener('resize', syncVisualViewport)
+window.addEventListener('resize', syncVisualViewport)
+document.addEventListener('focusin', syncVisualViewport)
+document.addEventListener('focusout', () => window.setTimeout(syncVisualViewport, 120))
+telegram?.onEvent?.('viewportChanged', syncVisualViewport)
+syncVisualViewport()
+launchScreen.dismiss()
 
 recenterButton.addEventListener('click', () => mapController?.focus(currentRouteOrigin ?? origin()))
 fitButton.addEventListener('click', () => mapController?.fit())

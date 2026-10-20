@@ -319,10 +319,12 @@ export function mountRecommendationsMap(
   let cameraTargetZoom = zoom
   let insetFitTimer = 0
   let destroyed = false
-  let activePointer: number | null = null
+  const activePointers = new Map<number, Pixel>()
   let lastPointer: Pixel | null = null
   let pointerOrigin: Pixel | null = null
   let pointerMoved = false
+  let gestureHadMultiplePointers = false
+  let pinchStart: { distance: number; zoom: number; anchor: MapCoordinate } | null = null
   let selectingStartPoint = false
   let selectingTargetArea = false
   const tiles = new Map<string, HTMLImageElement>()
@@ -864,17 +866,60 @@ export function mountRecommendationsMap(
     fitMarkers(true)
   })
   viewport.addEventListener('pointerdown', (event) => {
-    if (event.target instanceof Element && event.target.closest('button, a')) return
-    if (activePointer !== null) return
+    if (activePointers.size === 0 && event.target instanceof Element && event.target.closest('button, a')) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if (activePointers.size >= 2) return
     cancelCamera()
-    activePointer = event.pointerId
-    lastPointer = { x: event.clientX, y: event.clientY }
-    pointerOrigin = lastPointer
-    pointerMoved = false
+    const point = { x: event.clientX, y: event.clientY }
+    activePointers.set(event.pointerId, point)
+    if (activePointers.size === 1) {
+      lastPointer = point
+      pointerOrigin = point
+      pointerMoved = false
+      gestureHadMultiplePointers = false
+    } else if (activePointers.size === 2) {
+      const [first, second] = [...activePointers.values()]
+      const midX = (first.x + second.x) / 2
+      const midY = (first.y + second.y) / 2
+      pinchStart = {
+        distance: Math.max(1, Math.hypot(first.x - second.x, first.y - second.y)),
+        zoom,
+        anchor: pointAtClientPosition(midX, midY),
+      }
+      pointerMoved = true
+      gestureHadMultiplePointers = true
+      viewport.classList.add('is-dragging')
+    }
     viewport.setPointerCapture(event.pointerId)
   })
   viewport.addEventListener('pointermove', (event) => {
-    if (activePointer !== event.pointerId || !lastPointer || !pointerOrigin) return
+    if (!activePointers.has(event.pointerId)) return
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (activePointers.size >= 2 && pinchStart) {
+      const [first, second] = [...activePointers.values()]
+      const distance = Math.max(1, Math.hypot(first.x - second.x, first.y - second.y))
+      const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM,
+        pinchStart.zoom + Math.log2(distance / pinchStart.distance)))
+      const midX = (first.x + second.x) / 2
+      const midY = (first.y + second.y) / 2
+      const rect = viewport.getBoundingClientRect()
+      const { width, height } = viewportSize()
+      const localX = (midX - rect.left) * width / Math.max(1, rect.width)
+      const localY = (midY - rect.top) * height / Math.max(1, rect.height)
+      const anchorPixel = project(pinchStart.anchor, nextZoom)
+      const world = TILE_SIZE * 2 ** nextZoom
+      center = unproject({
+        x: anchorPixel.x + width / 2 - localX,
+        y: Math.max(0, Math.min(world, anchorPixel.y + mapAnchorY(height) - localY)),
+      }, nextZoom)
+      zoom = nextZoom
+      cameraTargetCenter = center
+      cameraTargetZoom = zoom
+      resizedAfterInteraction = true
+      queueRender()
+      return
+    }
+    if (!lastPointer || !pointerOrigin) return
     if (!pointerMoved) {
       if (Math.hypot(event.clientX - pointerOrigin.x, event.clientY - pointerOrigin.y) < 8) return
       pointerMoved = true
@@ -884,15 +929,25 @@ export function mountRecommendationsMap(
     lastPointer = { x: event.clientX, y: event.clientY }
   })
   function stopDragging(event: PointerEvent): void {
-    if (activePointer !== event.pointerId) return
-    const isTap = event.type === 'pointerup' && !pointerMoved && pointerOrigin
+    if (!activePointers.has(event.pointerId)) return
+    const isTap = event.type === 'pointerup' && activePointers.size === 1
+      && !gestureHadMultiplePointers && !pointerMoved && pointerOrigin
       && Math.hypot(event.clientX - pointerOrigin.x, event.clientY - pointerOrigin.y) < 8
-    activePointer = null
-    lastPointer = null
-    pointerOrigin = null
-    pointerMoved = false
-    viewport.classList.remove('is-dragging')
+    activePointers.delete(event.pointerId)
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId)
+    if (activePointers.size === 1) {
+      lastPointer = [...activePointers.values()][0]
+      pointerOrigin = lastPointer
+      pointerMoved = true
+      pinchStart = null
+    } else if (activePointers.size === 0) {
+      lastPointer = null
+      pointerOrigin = null
+      pointerMoved = false
+      gestureHadMultiplePointers = false
+      pinchStart = null
+      viewport.classList.remove('is-dragging')
+    }
     if (isTap && selectingStartPoint) {
       options.onStartPointSelect?.(pointAtClientPosition(event.clientX, event.clientY))
     } else if (isTap && selectingTargetArea) {

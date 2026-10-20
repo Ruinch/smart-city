@@ -60,17 +60,19 @@ a { color: inherit; }
 
 /* The map stays mounted while the sheet changes state. */
 .app-shell {
-  --sheet-height: clamp(390px, 50dvh, 430px);
+  --view-height: 100dvh;
+  --sheet-height: clamp(390px, calc(var(--view-height) * .5), 430px);
   position: relative;
   width: 100%;
-  height: 100dvh;
+  height: var(--view-height);
   overflow: hidden;
   background: var(--page);
 }
-.app-shell[data-sheet="expanded"] { --sheet-height: 88dvh; }
-.app-shell[data-sheet="loading"] { --sheet-height: min(320px, 39dvh); }
-.app-shell[data-sheet="results"] { --sheet-height: min(560px, 56dvh); }
-.app-shell[data-sheet="peek-results"] { --sheet-height: min(230px, 32dvh); }
+.app-shell[data-sheet="map-only"] { --sheet-height: calc(64px + var(--tg-content-safe-area-inset-bottom, 0px)); }
+.app-shell[data-sheet="expanded"] { --sheet-height: calc(var(--view-height) * .88); }
+.app-shell[data-sheet="loading"] { --sheet-height: min(320px, calc(var(--view-height) * .39)); }
+.app-shell[data-sheet="results"] { --sheet-height: min(560px, calc(var(--view-height) * .56)); }
+.app-shell[data-sheet="peek-results"] { --sheet-height: min(230px, calc(var(--view-height) * .32)); }
 .map-stage {
   position: absolute;
   inset: 0;
@@ -234,7 +236,8 @@ a { color: inherit; }
   left: calc(16px + var(--tg-content-safe-area-inset-left, 0px));
   display: flex;
   align-items: center;
-  gap: 9px;
+  flex-wrap: wrap;
+  gap: 2px 9px;
   max-width: calc(100% - 95px);
   padding: 4px 6px;
   border-radius: 5px;
@@ -242,7 +245,7 @@ a { color: inherit; }
   color: var(--muted);
   font-size: 11px;
   line-height: 1.2;
-  white-space: nowrap;
+  white-space: normal;
   transition: bottom 340ms cubic-bezier(.22, 1, .36, 1);
 }
 .map-credits a { min-height: 22px; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
@@ -274,6 +277,7 @@ a { color: inherit; }
   place-items: center;
   width: 100%;
   min-height: 44px;
+  gap: 4px;
   padding: 4px 0 6px;
   border: 0;
   border-radius: 22px 22px 0 0;
@@ -282,6 +286,10 @@ a { color: inherit; }
   touch-action: none;
   user-select: none;
 }
+.sheet-handle-label { color: var(--muted); font-size: 11px; font-weight: 700; line-height: 1; }
+.app-shell[data-sheet="map-only"] .sheet-handle { min-height: 60px; }
+.app-shell[data-sheet="map-only"] .sheet-handle-label { color: var(--brand); font-size: 12px; }
+.app-shell[data-sheet="map-only"] .sheet-scroll { display: none; }
 .sheet-handle:active { cursor: grabbing; }
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--control-border); transition: width 150ms ease, background-color 150ms ease; }
 .sheet-handle:hover .sheet-grip { background: var(--muted); }
@@ -291,12 +299,13 @@ a { color: inherit; }
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 2px 20px calc(15px + var(--tg-content-safe-area-inset-bottom, 0px));
   scrollbar-width: thin;
   scrollbar-color: var(--control-border) transparent;
 }
-.sheet-heading { margin: 0 0 15px; }
+.sheet-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; margin: 0 0 15px; }
 .sheet-heading h1 {
   margin: 0;
   font-size: 23px;
@@ -306,11 +315,27 @@ a { color: inherit; }
   text-wrap: balance;
 }
 .sheet-heading p {
+  grid-column: 1 / -1;
   margin: 5px 0 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
   text-wrap: pretty;
+}
+.sheet-heading .return-route-button { grid-column: 1 / -1; justify-self: start; }
+.keyboard-done {
+  position: absolute;
+  z-index: 12;
+  top: 3px;
+  right: calc(16px + var(--tg-content-safe-area-inset-right, 0px));
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 14px;
+  font-weight: 700;
 }
 .app-shell[data-sheet="peek"] .sheet-heading { margin-bottom: 12px; }
 .app-shell[data-sheet="peek"] .sheet-heading p { display: none; }
@@ -717,23 +742,36 @@ a { color: inherit; }
   .scope-button { padding-inline: 7px; }
 }
 
+@media (max-width: 760px) {
+  .planner textarea, .budget-group input, .group-size-group input,
+  .language-picker select { font-size: 16px; }
+  .app-shell.is-keyboard-open[data-sheet="peek"],
+  .app-shell.is-keyboard-open[data-sheet="expanded"] {
+    --sheet-height: calc(var(--view-height) - 8px);
+  }
+}
+
 @media (max-height: 700px) and (max-width: 760px) {
-  .app-shell { --sheet-height: min(390px, 60dvh); }
-  .app-shell[data-sheet="expanded"] { --sheet-height: 87dvh; }
-  .app-shell[data-sheet="loading"] { --sheet-height: 42dvh; }
-  .app-shell[data-sheet="results"] { --sheet-height: 56dvh; }
-  .app-shell[data-sheet="peek-results"] { --sheet-height: 33dvh; }
+  .app-shell { --sheet-height: min(390px, calc(var(--view-height) * .6)); }
+  .app-shell[data-sheet="expanded"] { --sheet-height: calc(var(--view-height) * .87); }
+  .app-shell[data-sheet="loading"] { --sheet-height: calc(var(--view-height) * .42); }
+  .app-shell[data-sheet="results"] { --sheet-height: calc(var(--view-height) * .56); }
+  .app-shell[data-sheet="peek-results"] { --sheet-height: calc(var(--view-height) * .33); }
+  .app-shell[data-sheet="map-only"] { --sheet-height: calc(64px + var(--tg-content-safe-area-inset-bottom, 0px)); }
   .sheet-heading { margin-bottom: 10px; }
   .sheet-heading p { display: none; }
   .sheet-heading .language-notice:not([hidden]) { display: block; }
+  .app-shell.is-keyboard-open[data-sheet="peek"],
+  .app-shell.is-keyboard-open[data-sheet="expanded"] { --sheet-height: calc(var(--view-height) - 8px); }
 }
 
 @media (min-width: 761px) {
-  .app-shell { --sheet-height: calc(100dvh - 32px); }
+  .app-shell { --sheet-height: calc(var(--view-height) - 32px); }
+  .app-shell[data-sheet="map-only"],
   .app-shell[data-sheet="expanded"],
   .app-shell[data-sheet="loading"],
   .app-shell[data-sheet="results"],
-  .app-shell[data-sheet="peek-results"] { --sheet-height: calc(100dvh - 32px); }
+  .app-shell[data-sheet="peek-results"] { --sheet-height: calc(var(--view-height) - 32px); }
   .route-sheet {
     top: 16px;
     right: 16px;
@@ -750,6 +788,7 @@ a { color: inherit; }
     height: auto;
     max-height: calc(100dvh - 32px);
   }
+  .app-shell[data-sheet="map-only"] .sheet-scroll { display: block; }
   .sheet-handle { display: none; }
   .sheet-scroll { padding: 25px 24px; }
   .map-topbar { top: 20px; left: 20px; }

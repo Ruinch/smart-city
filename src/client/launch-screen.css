@@ -1,0 +1,165 @@
+.launch-screen {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  padding: calc(28px + env(safe-area-inset-top, 0px))
+    calc(28px + env(safe-area-inset-right, 0px))
+    calc(28px + env(safe-area-inset-bottom, 0px))
+    calc(28px + env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  background: #f7f9f6;
+  color: #1d2922;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: opacity 240ms ease-out;
+}
+
+.launch-screen.is-leaving { opacity: 0; }
+
+.launch-screen__top,
+.launch-screen__bottom-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.launch-screen__eyebrow {
+  color: #60736a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.launch-screen__top-line {
+  width: 34px;
+  height: 1px;
+  background: #adc3b4;
+}
+
+.launch-screen__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding-bottom: 14px;
+  text-align: center;
+  animation: launch-arrive 380ms ease-out both;
+}
+
+.launch-screen__symbol {
+  width: clamp(118px, 37vw, 164px);
+  height: auto;
+  margin-bottom: 18px;
+  overflow: visible;
+}
+
+.launch-screen__symbol-ring {
+  stroke: #d9e9dc;
+  stroke-width: 1;
+}
+
+.launch-screen__symbol-route {
+  stroke: #236a54;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 148;
+  stroke-dashoffset: 148;
+  animation: launch-draw 620ms cubic-bezier(.2, 0, 0, 1) 50ms forwards;
+}
+
+.launch-screen__symbol-start {
+  fill: #7db69a;
+}
+
+.launch-screen__symbol-end-halo {
+  fill: #d9efe0;
+}
+
+.launch-screen__symbol-end {
+  fill: #236a54;
+}
+
+.launch-screen__wordmark {
+  color: #1d2922;
+  font-size: clamp(41px, 11vw, 57px);
+  font-weight: 700;
+  letter-spacing: -.075em;
+  line-height: 1.02;
+}
+
+.launch-screen__wordmark span { color: #236a54; }
+
+.launch-screen__subtitle {
+  max-width: 26ch;
+  margin: 13px 0 0;
+  color: #5d6a62;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-wrap: balance;
+}
+
+.launch-screen__progress {
+  height: 2px;
+  overflow: hidden;
+  background: #dce8de;
+}
+
+.launch-screen__progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #236a54;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: launch-progress 2200ms cubic-bezier(.2, 0, 0, 1) forwards;
+}
+
+.launch-screen__bottom-line { min-height: 48px; }
+
+.launch-screen__status {
+  color: #5d6a62;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.launch-screen__skip {
+  min-width: 70px;
+  min-height: 44px;
+  padding: 0 0 0 10px;
+  border: 0;
+  background: transparent;
+  color: #236a54;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  cursor: pointer;
+}
+
+.launch-screen__skip:focus-visible {
+  outline: 3px solid #b17c23;
+  outline-offset: 3px;
+}
+
+@keyframes launch-arrive {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes launch-draw { to { stroke-dashoffset: 0; } }
+@keyframes launch-progress { to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-screen,
+  .launch-screen__center { animation: none; transition: none; }
+  .launch-screen__symbol-route { animation: none; stroke-dashoffset: 0; }
+  .launch-screen__progress span { animation: none; transform: scaleX(1); }
+}
